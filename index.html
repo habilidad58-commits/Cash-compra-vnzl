@@ -40,8 +40,10 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
+            padding: 20px 10px; 
             overflow-x: hidden;
+            overflow-y: auto; 
         }
 
         /* Neon UI Elements */
@@ -202,6 +204,10 @@
             padding: 15px;
         }
 
+        #custom-modal {
+            z-index: 99999 !important; 
+        }
+
         .modal-overlay.active {
             display: flex;
         }
@@ -332,8 +338,58 @@
         </div>
     </div>
 
+    <!-- VIEW 0: WELCOME / PUBLICIDAD -->
+    <div id="view-welcome" class="view active" style="max-width: 100%; margin: -20px -10px; padding: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid rgba(0, 243, 255, 0.1); background: rgba(11, 15, 25, 0.95); position: sticky; top: 0; z-index: 10;">
+            <div class="neon-title" style="font-size: 1.2rem; margin: 0; text-align: left;">
+                <i class="fa-solid fa-wallet" style="color: var(--neon-green);"></i> CASH
+            </div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <span style="color: var(--text-light); font-weight: 600; font-size: 0.95rem; cursor: pointer;" onclick="switchView('view-login')">Entrar</span>
+                <button class="neon-btn neon-btn-green" style="margin: 0; padding: 8px 16px; font-size: 0.85rem; width: auto; border-radius: 8px;" onclick="startGoogleRegistration()">Registro</button>
+            </div>
+        </div>
+
+        <div style="text-align: center; padding: 40px 15px; display: flex; flex-direction: column; align-items: center; overflow: hidden;">
+            <h1 class="neon-title" style="font-size: 2.3rem; line-height: 1.2; margin-bottom: 15px; text-shadow: 0 0 15px rgba(0, 243, 255, 0.4);">Descubre la libertad de tu saldo digital</h1>
+            <p style="color: var(--text-dim); font-size: 1.05rem; margin-bottom: 30px; max-width: 400px;">La plataforma más rápida y segura para tus micro-créditos y compras diarias.</p>
+            
+            <div style="position: relative; margin-top: 10px; width: 280px; height: 550px; background: var(--bg-dark); border: 8px solid #1e293b; border-radius: 40px; box-shadow: 0 20px 50px rgba(0, 243, 255, 0.2), inset 0 0 20px rgba(0,0,0,0.8); overflow: hidden; transform: perspective(1000px) rotateX(15deg) rotateY(-12deg) rotateZ(3deg); transition: transform 0.5s ease;">
+                <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 25px; background: #1e293b; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; z-index: 2;"></div>
+                
+                <div style="padding: 40px 15px 15px; height: 100%; display: flex; flex-direction: column; background: radial-gradient(circle at top, rgba(15,23,42,1) 0%, rgba(11,15,25,1) 100%); pointer-events: none;">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div style="width: 35px; height: 35px; border-radius: 50%; background: rgba(244,63,94,0.1); border: 1px solid var(--neon-pink); display: flex; justify-content: center; align-items: center;">
+                            <i class="fa-solid fa-power-off" style="color: var(--neon-pink); font-size: 0.8rem;"></i>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.85rem; color: var(--neon-cyan); font-weight: bold;">0412-XXXXXXX</div>
+                            <div style="font-size: 0.7rem; color: var(--text-light);">Cargando...</div>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(0, 255, 102, 0.3); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px;">
+                        <div style="font-size: 0.7rem; color: var(--text-dim);">SALDO DISPONIBLE DIGITAL</div>
+                        <div style="font-family: 'Orbitron'; font-size: 1.5rem; font-weight: 700; color: #fff; margin: 5px 0;">$150.00 USD</div>
+                        <div style="color: var(--neon-green); font-size: 0.95rem; font-weight: 600;">5,400.00 Bs</div>
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(0, 243, 255, 0.4); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px;">
+                        <div style="font-size: 0.7rem; color: var(--neon-cyan); font-weight:700;">LÍNEA DE CRÉDITO</div>
+                        <div style="font-family: 'Orbitron'; font-size: 1.5rem; font-weight: 700; color: var(--neon-cyan); margin: 5px 0;">$50.00 USD</div>
+                    </div>
+
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); height: 45px; border-radius: 10px; display: flex; justify-content: center; align-items: center; box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);">
+                        <i class="fa-solid fa-wallet" style="color: #fff; font-size: 1.2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- VIEW 1: LOGIN -->
-    <div id="view-login" class="view active">
+    <div id="view-login" class="view">
         <div class="neon-card">
             <h1 class="neon-title" style="font-size: 1.8rem; margin-bottom: 25px;">CASH-COMPRA</h1>
             
@@ -356,8 +412,8 @@
 
             <div style="margin-top: 20px; text-align: center;">
                 <a href="#" onclick="showForgotPasswordModal()" style="color: var(--text-dim); text-decoration: none; font-size: 0.9rem; display: block; margin-bottom: 12px;">¿Olvidaste tu contraseña?</a>
-                <button class="neon-btn" style="background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);" onclick="switchView('view-register')">
-                    <i class="fa-solid fa-user-plus"></i> CREAR CUENTA
+                <button class="neon-btn" style="background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);" onclick="switchView('view-welcome')">
+                    <i class="fa-solid fa-house"></i> VOLVER AL INICIO
                 </button>
             </div>
 
@@ -436,18 +492,12 @@
                 <img id="face-preview" class="file-preview">
             </div>
 
-            <!-- Google Account Linking -->
-            <div class="input-group" style="margin-top: 20px;">
-                <label><i class="fa-brands fa-google"></i> Vincular Correo Google (UID)</label>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button type="button" class="neon-btn" style="margin-top:0; flex: 1; background: rgba(255,255,255,0.1); border: 1px solid #fff; color: #fff;" onclick="handleGoogleSignInForRegistration()">
-                        <i class="fa-brands fa-google"></i> Seleccionar Cuenta
-                    </button>
-                    <div id="google-verified-icon" class="google-verified-box">
-                        <i class="fa-solid fa-check"></i>
-                    </div>
-                </div>
+            <!-- Google Account Linked (Automático) -->
+            <div class="input-group" style="margin-top: 15px; display: flex; align-items: center; justify-content: center; background: rgba(0,255,102,0.1); border: 1px solid var(--neon-green); border-radius: 8px; padding: 10px;">
+                <i class="fa-brands fa-google" style="color: var(--neon-green); font-size: 1.2rem; margin-right: 10px;"></i>
+                <span style="color: var(--neon-green); font-weight: 600;">Cuenta Google Vinculada</span>
                 <input type="hidden" id="reg-email-uid">
+                <input type="hidden" id="reg-uid">
             </div>
 
             <div class="input-group">
@@ -684,16 +734,19 @@
 
         let currentUserData = null;
         let activeTxId = null;
-
-        // Hide Splash Screen on load
+// Hide Splash Screen on load
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
                 splash.style.opacity = '0';
-                setTimeout(() => splash.style.display = 'none', 500);
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                    switchView('view-welcome');
+                }, 500);
             }, 1200);
 
             listenToApprovedUsersCount();
+        
             listenToExchangeRate();
         });
 
@@ -795,19 +848,20 @@
             });
         }
 
-        // Google Sign-In for Registration linking
-        function handleGoogleSignInForRegistration() {
+        
+// Google Sign-In para Iniciar Registro desde la pestaña Welcome
+        function startGoogleRegistration() {
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithPopup(provider).then((result) => {
                 const email = result.user.email;
+                const uid = result.user.uid;
                 document.getElementById('reg-email-uid').value = email;
-                document.getElementById('google-verified-icon').style.display = 'inline-flex';
-                showCustomModal("Correo Google (" + email + ") vinculado correctamente.", "ÉXITO");
+                document.getElementById('reg-uid').value = uid;
+                switchView('view-register');
             }).catch(error => {
-                showCustomModal("Error al vincular con Google: " + error.message, "ERROR");
+                showCustomModal("Error al iniciar con Google: " + error.message, "ERROR");
             });
         }
-
         // Submit Registration Form con Firebase Auth UID integrado
         function handleRegistrationSubmit() {
             const role = document.getElementById('reg-role').value;
@@ -856,43 +910,38 @@
 
             const cleanPhone = phone.replace(/\s+/g, '');
 
-            // Genera el usuario real en Firebase Auth silenciosamente
-            auth.createUserWithEmailAndPassword(email, pass).then((userCredential) => {
-                const userUid = userCredential.user.uid;
+            // Vinculamos la contraseña a la cuenta de Google recién creada
+            if (auth.currentUser && auth.currentUser.email === email) {
+                auth.currentUser.updatePassword(pass).catch(e => console.log("Password update:", e));
+            }
 
-                const userData = {
-                    uid: userUid,
-                    role: role,
-                    firstname: firstname,
-                    lastname: lastname,
-                    fullname: firstname + " " + lastname,
-                    dob: dob,
-                    location: location,
-                    phone: cleanPhone,
-                    bank: role === 'vendedor' ? bank : '',
-                    idImage: idBase64,
-                    faceImage: faceBase64,
-                    email: email,
-                    password: pass,
-                    status: 'pendiente',
-                    balanceUSD: 0,
-                    creditUSD: 0,
-                    verificationCode: '',
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                };
+            // Guardamos temporalmente en la base de datos
+            const userData = {
+                uid: document.getElementById('reg-uid').value || 'por_asignar',
+                role: role,
+                firstname: firstname,
+                lastname: lastname,
+                fullname: firstname + " " + lastname,
+                dob: dob,
+                location: location,
+                phone: cleanPhone,
+                bank: role === 'vendedor' ? bank : '',
+                idImage: idBase64,
+                faceImage: faceBase64,
+                email: email,
+                password: pass, // Necesario para crear la cuenta Auth después
+                status: 'pendiente',
+                balanceUSD: 0,
+                creditUSD: 0,
+                verificationCode: '',
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
 
-                // Guarda la ficha en Realtime Database vinculando el UID real
-                return db.ref('users/' + cleanPhone).set(userData);
-            }).then(() => {
-                auth.signOut(); // Cierra la sesión activa hasta que la cuenta sea aprobada
+            db.ref('users/' + cleanPhone).set(userData).then(() => {
                 showCustomModal("Solicitud enviada exitosamente. Espera el mensaje de verificación en WhatsApp.", "SOLICITUD RECIBIDA");
                 listenForPreApprovalCode(cleanPhone);
             }).catch(err => {
-                if (err.code === 'auth/email-already-in-use') {
-                    showCustomModal("El correo seleccionado ya tiene una cuenta registrada en Firebase.");
-                } else {
-                    showCustomModal("Error en creación de usuario Auth: " + err.message);
-                }
+                showCustomModal("Error al enviar la solicitud: " + err.message);
             });
         }
 
@@ -919,15 +968,36 @@
             db.ref('users/' + phone).once('value', snapshot => {
                 const user = snapshot.val();
                 if (user && user.verificationCode === inputCode && inputCode !== '') {
-                    // Update user status to aprobado
-                    db.ref('users/' + phone).update({
-                        status: 'aprobado',
-                        verificationCode: ''
+                    
+                    // AHORA creamos la cuenta en Auth (o la usamos si ya existe porque entraron con Google)
+                    auth.createUserWithEmailAndPassword(user.email, user.password).then((userCredential) => {
+                        return db.ref('users/' + phone).update({
+                            status: 'aprobado',
+                            uid: userCredential.user.uid,
+                            verificationCode: ''
+                        });
                     }).then(() => {
+                        auth.signOut(); 
                         document.getElementById('modal-verification-code').classList.remove('active');
-                        showCustomModal("¡Tu cuenta ha sido aprobada con éxito! Ya puedes ingresar con tu número de teléfono y contraseña.", "¡FELICITACIONES!");
+                        showCustomModal("¡Tu cuenta ha sido aprobada con éxito! Ya puedes ingresar con tu número y contraseña.", "¡FELICITACIONES!");
                         switchView('view-login');
+                    }).catch(err => {
+                        if (err.code === 'auth/email-already-in-use') {
+                            // La cuenta ya existe vía Google, solo actualizamos la aprobación
+                            db.ref('users/' + phone).update({
+                                status: 'aprobado',
+                                verificationCode: ''
+                            }).then(() => {
+                                auth.signOut();
+                                document.getElementById('modal-verification-code').classList.remove('active');
+                                showCustomModal("¡Tu cuenta ha sido aprobada con éxito! Usa tu número y contraseña para ingresar.", "¡FELICITACIONES!");
+                                switchView('view-login');
+                            });
+                        } else {
+                            showCustomModal("Error al crear cuenta Auth: " + err.message);
+                        }
                     });
+
                 } else {
                     showCustomModal("El código de verificación ingresado es incorrecto.");
                 }
@@ -1424,4 +1494,4 @@ function payPendingDebt(key, amountUSD) {
         }
     </script>
 </body>
-</html> 
+</html>  

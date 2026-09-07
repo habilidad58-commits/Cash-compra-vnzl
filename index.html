@@ -539,7 +539,12 @@
 
     <!-- VIEW 3: BUYER DASHBOARD -->
     <div id="view-buyer-dashboard" class="view">
-        <div class="neon-card">
+        <div class="neon-card" id="buyer-card-container">
+            <div id="frozen-warning-banner" style="display: none; background: rgba(244, 63, 94, 0.2); border: 1px solid var(--neon-pink); padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center; box-shadow: 0 0 15px rgba(244,63,94,0.3);">
+                <i class="fa-solid fa-triangle-exclamation" style="color: var(--neon-pink); font-size: 2rem; margin-bottom: 10px;"></i>
+                <h3 style="color: var(--neon-pink); font-family: 'Orbitron'; margin-bottom: 5px;">CUENTA CONGELADA</h3>
+                <p style="color: #fff; font-size: 0.9rem;">Tienes deudas vencidas. Solo puedes recargar y pagar para restablecer tu crédito.</p>
+            </div>
             <div class="nav-header">
                 <button class="neon-btn neon-btn-danger" style="width: auto; padding: 8px 14px; font-size: 0.85rem; margin:0;" onclick="handleLogout()">
                     <i class="fa-solid fa-power-off"></i> Cerrar Sesión
@@ -561,9 +566,13 @@
 
             <!-- Línea de Crédito -->
             <div class="balance-card credit">
-                <div style="color: var(--neon-cyan); font-size: 0.9rem; font-weight:700;">LÍNEA DE CRÉDITO DISPONIBLE</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <div style="color: var(--neon-cyan); font-size: 0.9rem; font-weight:700;">LÍNEA DE CRÉDITO DISPONIBLE</div>
+                    <div id="buyer-level-badge" style="background: var(--neon-cyan); color: #000; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-family: 'Orbitron'; font-size: 0.75rem;">NIVEL 1</div>
+                </div>
                 <div class="val-large" id="buyer-credit-usd" style="color: var(--neon-cyan);">$0.00 USD</div>
                 <div class="val-sub" id="buyer-credit-bs" style="color: var(--neon-cyan);">0.00 Bs</div>
+                <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 8px;">Plazo de pago: <span id="buyer-plazo-dias" style="color: var(--neon-cyan); font-weight: bold;">3 Días</span></div>
             </div>
 
             <!-- Dashboard Actions -->
@@ -671,7 +680,12 @@
             <h3 style="color: var(--neon-cyan); margin-bottom: 12px; font-family:'Orbitron';">NUEVA VENTA</h3>
             <div class="input-group">
                 <label>Teléfono del Comprador</label>
-                <input type="tel" id="venta-buyer-phone" class="input-field" placeholder="04123456789">
+                <div style="display: flex; gap: 10px;">
+                    <input type="tel" id="venta-buyer-phone" class="input-field" placeholder="04123456789" style="flex: 1;">
+                    <button class="neon-btn" style="width: auto; padding: 0 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--neon-cyan); color: var(--neon-cyan);" onclick="verReputacionComprador()">
+                        <i class="fa-solid fa-star"></i>
+                    </button>
+                </div>
             </div>
             <div class="input-group">
                 <label>Monto de la Venta ($ USD)</label>
@@ -705,12 +719,62 @@
         </div>
     </div>
 
+    <!-- MODAL INFORMATIVO CUENTA CONGELADA (VENDEDOR) -->
+    <div id="modal-cuenta-congelada" class="modal-overlay">
+        <div class="modal-box" style="border-color: var(--neon-pink); box-shadow: 0 0 30px rgba(244,63,94,0.4); text-align: center;">
+            <i class="fa-solid fa-circle-xmark" style="color: var(--neon-pink); font-size: 4rem; margin-bottom: 15px; text-shadow: 0 0 15px rgba(244,63,94,0.6);"></i>
+            <h2 style="color: var(--neon-pink); margin-bottom: 12px; font-family:'Orbitron'; font-size: 1.8rem;">OPERACIÓN DENEGADA</h2>
+            <p style="color: #fff; margin-bottom: 15px; font-size: 1.15rem; line-height: 1.4;">
+                El usuario tiene <strong>pagos pendientes vencidos</strong>.
+            </p>
+            <p style="color: var(--text-dim); margin-bottom: 25px; font-size: 1rem;">
+                Por este motivo, la compra no se puede procesar hasta que el cliente regularice su situación (recargue saldo y pague su deuda).
+            </p>
+            <button class="neon-btn neon-btn-danger" style="font-size: 1.1rem; padding: 14px;" onclick="closeModal('modal-cuenta-congelada')">
+                <i class="fa-solid fa-xmark"></i> ANULAR COMPRA
+            </button>
+        </div>
+    </div>
+
     <!-- GENERIC LIST MODAL (FOR PENDING/COMPLETED TRANSACTIONS & CLIENTS) -->
     <div id="modal-list-view" class="modal-overlay">
         <div class="modal-box" style="max-width: 450px; text-align: left;">
             <h3 id="list-modal-title" style="color: var(--neon-cyan); margin-bottom: 15px; font-family:'Orbitron'; text-align: center;">REGISTROS</h3>
             <div id="list-modal-content" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"></div>
             <button class="neon-btn" onclick="closeModal('modal-list-view')">CERRAR</button>
+        </div>
+    </div>
+
+    <!-- REPUTATION MODAL -->
+    <div id="modal-reputacion" class="modal-overlay">
+        <div class="modal-box" style="background: radial-gradient(circle at top, rgba(15,23,42,1) 0%, rgba(11,15,25,1) 100%); border: 1px solid var(--neon-cyan); box-shadow: 0 0 25px rgba(0, 243, 255, 0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: var(--neon-cyan); font-family:'Orbitron'; margin: 0;"><i class="fa-solid fa-id-card"></i> REPUTACIÓN</h3>
+                <div id="rep-nivel-badge" style="background: var(--neon-cyan); color: #000; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-family: 'Orbitron'; font-size: 0.9rem;">NIVEL 1</div>
+            </div>
+            <h2 id="rep-phone-display" style="color: #fff; text-align: center; margin-bottom: 20px; font-size: 1.5rem; letter-spacing: 2px;">0412-XXXXXXX</h2>
+            
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="text-align: center; width: 48%;">
+                    <div style="color: var(--neon-green); font-size: 0.8rem; font-weight: bold; margin-bottom: 5px;">PAGOS A TIEMPO</div>
+                    <div id="rep-stars-green" style="color: var(--text-dim); font-size: 1.2rem; letter-spacing: 2px;">
+                        <i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i>
+                    </div>
+                    <div id="rep-count-green" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 5px;">0 / 60 tx</div>
+                </div>
+                <div style="width: 1px; background: rgba(255,255,255,0.1);"></div>
+                <div style="text-align: center; width: 48%;">
+                    <div style="color: var(--neon-pink); font-size: 0.8rem; font-weight: bold; margin-bottom: 5px;">ATRASOS</div>
+                    <div id="rep-stars-red" style="color: var(--text-dim); font-size: 1.2rem; letter-spacing: 2px;">
+                        <i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i>
+                    </div>
+                    <div id="rep-count-red" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 5px;">0 / 60 tx</div>
+                </div>
+            </div>
+            <div style="text-align: center; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 20px;">
+                Plazo de pago actual: <strong id="rep-plazo-dias" style="color: var(--neon-cyan);">3 Días</strong>
+            </div>
+            <button class="neon-btn" onclick="closeModal('modal-reputacion')">CERRAR</button>
         </div>
     </div>
 
@@ -1091,6 +1155,60 @@
                 document.getElementById('buyer-balance-bs').innerText = balBs + " Bs";
                 document.getElementById('buyer-credit-usd').innerText = "$" + credUSD.toFixed(2) + " USD";
                 document.getElementById('buyer-credit-bs').innerText = credBs + " Bs";
+
+                // Calcular Nivel y Días
+                let nivel = 1 + Math.floor((currentUserData.totalDeudaPagada || 0) / 20);
+                if (nivel > 12) nivel = 12;
+                const badge = document.getElementById('buyer-level-badge');
+                const plazoSpan = document.getElementById('buyer-plazo-dias');
+                if(badge) badge.innerText = "NIVEL " + nivel;
+                if(plazoSpan) plazoSpan.innerText = (2 + nivel) + " Días";
+
+                // Verificar pagos pendientes vencidos para cambiar el diseño a rojo
+                db.ref('pending_payments/' + currentUserData.phone).once('value', snapshot => {
+                    let cuentaCongelada = false;
+                    const ahora = Date.now();
+                    snapshot.forEach(deuda => {
+                        if (deuda.val().expiresAt && ahora > deuda.val().expiresAt) {
+                            cuentaCongelada = true;
+                        }
+                    });
+
+                    const banner = document.getElementById('frozen-warning-banner');
+                    const creditCard = document.querySelector('.balance-card.credit');
+                    const container = document.getElementById('buyer-card-container');
+                    
+                    if (cuentaCongelada) {
+                        if(banner) banner.style.display = 'block';
+                        if(creditCard) {
+                            creditCard.style.borderColor = 'rgba(244, 63, 94, 0.8)';
+                            creditCard.style.boxShadow = '0 0 15px rgba(244, 63, 94, 0.2)';
+                            document.getElementById('buyer-credit-usd').style.color = 'var(--neon-pink)';
+                            document.getElementById('buyer-credit-bs').style.color = 'var(--neon-pink)';
+                            creditCard.querySelector('div').style.color = 'var(--neon-pink)';
+                            creditCard.querySelector('div').innerText = 'LÍNEA DE CRÉDITO (CONGELADA)';
+                        }
+                        if(container) {
+                            container.style.border = '1px solid rgba(244, 63, 94, 0.5)';
+                            container.style.boxShadow = '0 0 25px rgba(244, 63, 94, 0.2), inset 0 0 15px rgba(244, 63, 94, 0.05)';
+                        }
+                    } else {
+                        if(banner) banner.style.display = 'none';
+                        if(creditCard) {
+                            creditCard.style.borderColor = 'rgba(0, 243, 255, 0.4)';
+                            creditCard.style.boxShadow = 'none';
+                            document.getElementById('buyer-credit-usd').style.color = 'var(--neon-cyan)';
+                            document.getElementById('buyer-credit-bs').style.color = 'var(--neon-cyan)';
+                            creditCard.querySelector('div').style.color = 'var(--neon-cyan)';
+                            creditCard.querySelector('div').innerText = 'LÍNEA DE CRÉDITO DISPONIBLE';
+                        }
+                        if(container) {
+                            container.style.border = '1px solid var(--border-glow)';
+                            container.style.boxShadow = '0 0 25px rgba(0, 243, 255, 0.15), inset 0 0 15px rgba(0, 243, 255, 0.05)';
+                        }
+                    }
+                });
+
             } else {
                 document.getElementById('seller-disp-phone').innerText = currentUserData.phone;
                 document.getElementById('seller-disp-name').innerText = currentUserData.fullname;
@@ -1226,13 +1344,13 @@
                             cuentaCongelada = true;
                         }
                     });
-                    
                     if (cuentaCongelada) {
-                        showCustomModal("El comprador tiene deudas vencidas. Cuenta congelada (solo puede recargar y pagar deuda).");
+                        document.getElementById('modal-cuenta-congelada').classList.add('active');
                         return;
                     }
 
                     const code = Math.floor(100000 + Math.random() * 900000).toString();
+                    
                     const txRef = db.ref('transactions').push();
                     
                     activeTxId = txRef.key;
@@ -1306,7 +1424,12 @@ function confirmarTransaccionVendedor() {
                     
                     const updates = {};
                     const ahora = Date.now();
-                    const tresDiasMs = 3 * 24 * 60 * 60 * 1000;
+                    
+                    // Cálculo Dinámico de Días de Plazo según el Nivel
+                    let nivelComprador = 1 + Math.floor((buyer.totalDeudaPagada || 0) / 20);
+                    if (nivelComprador > 12) nivelComprador = 12;
+                    const diasPlazo = 2 + nivelComprador; 
+                    const plazoMs = diasPlazo * 24 * 60 * 60 * 1000;
 
                     if (tx.method === 'digital') {
                         if (buyerBal < half) {
@@ -1340,15 +1463,15 @@ updates['commissions/espera/' + activeTxId] = {
                         timestamp: ahora,
                         buyerPhone: tx.buyerPhone,
                         buyerName: buyer.fullname,
-                        expiresAt: ahora + tresDiasMs
+                        expiresAt: ahora + plazoMs
                     };
                     updates['pending_payments/' + tx.buyerPhone + '/' + activeTxId] = {
                       txId: activeTxId,
                         amountUSD: half,
-                        comisionTx: commission, // Guardamos la comisión exacta aquí
+                        comisionTx: commission, 
                         status: 'pendiente',
                         timestamp: ahora,
-                        expiresAt: ahora + tresDiasMs
+                        expiresAt: ahora + plazoMs
                     };
                     updates['transactions/' + activeTxId + '/status'] = 'completada';
                     updates['frequent_clients/' + tx.sellerPhone + '/' + tx.buyerPhone] = {
@@ -1379,6 +1502,50 @@ updates['commissions/espera/' + activeTxId] = {
             }
             document.getElementById('modal-dynamic-code').classList.remove('active');
             showCustomModal("Transacción anulada.");
+        }
+
+        // Sistema de Reputación Visual
+        function verReputacionComprador() {
+            const phone = document.getElementById('venta-buyer-phone').value.trim().replace(/\s+/g, '');
+            if (!phone) {
+                showCustomModal("Ingrese el número del comprador primero.");
+                return;
+            }
+            db.ref('users/' + phone).once('value', snap => {
+                if (!snap.exists() || snap.val().role !== 'comprador') {
+                    showCustomModal("Comprador no encontrado.");
+                    return;
+                }
+                const buyer = snap.val();
+                let nivel = 1 + Math.floor((buyer.totalDeudaPagada || 0) / 20);
+                if (nivel > 12) nivel = 12;
+                
+                document.getElementById('rep-nivel-badge').innerText = "NIVEL " + nivel;
+                document.getElementById('rep-phone-display').innerText = buyer.phone;
+                document.getElementById('rep-plazo-dias').innerText = (2 + nivel) + " Días";
+
+                const txVerdes = buyer.txPagadasA_Tiempo || 0;
+                const txRojas = buyer.txAtrasadas || 0; 
+                
+                const estrellasVerdes = Math.min(3, Math.floor(txVerdes / 20));
+                const estrellasRojas = Math.min(3, Math.floor(txRojas / 20));
+
+                let htmlVerdes = '';
+                for(let i=0; i<3; i++) {
+                    htmlVerdes += i < estrellasVerdes ? '<i class="fa-solid fa-star" style="color: var(--neon-green);"></i>' : '<i class="fa-regular fa-star"></i>';
+                }
+                document.getElementById('rep-stars-green').innerHTML = htmlVerdes;
+                document.getElementById('rep-count-green').innerText = txVerdes + " / 60 tx";
+
+                let htmlRojas = '';
+                for(let i=0; i<3; i++) {
+                    htmlRojas += i < estrellasRojas ? '<i class="fa-solid fa-star" style="color: var(--neon-pink);"></i>' : '<i class="fa-regular fa-star"></i>';
+                }
+                document.getElementById('rep-stars-red').innerHTML = htmlRojas;
+                document.getElementById('rep-count-red').innerText = txRojas + " / 60 tx";
+
+                document.getElementById('modal-reputacion').classList.add('active');
+            });
         }
 
         // View Pending Payments
@@ -1428,6 +1595,13 @@ function payPendingDebt(key, amountUSD) {
                 
                 updates['users/' + currentUserData.phone + '/balanceUSD'] = currentUserData.balanceUSD - amountUSD;
                 updates['users/' + currentUserData.phone + '/creditUSD'] = currentUserData.creditUSD + amountUSD;
+                
+                // Sistema de Reputación: Sumar al pagar
+                const totalPagado = (currentUserData.totalDeudaPagada || 0) + amountUSD;
+                const txVerdes = (currentUserData.txPagadasA_Tiempo || 0) + 1;
+                updates['users/' + currentUserData.phone + '/totalDeudaPagada'] = totalPagado;
+                updates['users/' + currentUserData.phone + '/txPagadasA_Tiempo'] = txVerdes;
+
                 updates['pending_payments/' + currentUserData.phone + '/' + key] = null;
                 if (txId) updates['commissions/espera/' + txId] = null;
 

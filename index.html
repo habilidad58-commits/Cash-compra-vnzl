@@ -810,8 +810,6 @@
             }, 1200);
 
             listenToApprovedUsersCount();
-        
-            listenToExchangeRate();
         });
 
         // Toggle visibility of passwords
@@ -1119,6 +1117,7 @@
                     });
 
                     listenToActiveTransactions(phone);
+                    listenToExchangeRate();
 
                     if (user.role === 'comprador') {
                         switchView('view-buyer-dashboard');

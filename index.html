@@ -1320,7 +1320,7 @@
             document.getElementById('modal-crear-venta').classList.add('active');
         }
 
-        function iniciarCobroVenta() {
+        async function iniciarCobroVenta() {
             const buyerPhone = document.getElementById('venta-buyer-phone').value.trim().replace(/\s+/g, '');
             const montoUSD = parseFloat(document.getElementById('venta-monto-usd').value);
             const metodo = document.getElementById('venta-metodo').value;
@@ -1330,49 +1330,40 @@
                 return;
             }
 
-            db.ref('users/' + buyerPhone).once('value', snapshot => {
-                if (!snapshot.exists() || snapshot.val().role !== 'comprador') {
-                    showCustomModal("El teléfono ingresado no corresponde a un comprador registrado.");
-                    return;
-                }
-
-                db.ref('pending_payments/' + buyerPhone).once('value', deudasSnap => {
-                    let cuentaCongelada = false;
-                    const ahora = Date.now();
-                    deudasSnap.forEach(deuda => {
-                        if (deuda.val().expiresAt && ahora > deuda.val().expiresAt) {
-                            cuentaCongelada = true;
-                        }
-                    });
-                    if (cuentaCongelada) {
-                        document.getElementById('modal-cuenta-congelada').classList.add('active');
-                        return;
-                    }
-
-                    const code = Math.floor(100000 + Math.random() * 900000).toString();
-                    
-                    const txRef = db.ref('transactions').push();
-                    
-                    activeTxId = txRef.key;
-                    txRef.set({
+            try {
+                const response = await fetch('/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'iniciarCobroVenta',
                         sellerPhone: currentUserData.phone,
                         buyerPhone: buyerPhone,
-                        amountUSD: montoUSD,
-                        method: metodo,
-                        code: code,
-                        status: 'esperando_codigo',
-                        timestamp: firebase.database.ServerValue.TIMESTAMP
-                    }).then(() => {
-                        closeModal('modal-crear-venta');
-                        
-                        document.getElementById('dynamic-code-text').innerText = `Venta a ${buyerPhone} por $${montoUSD.toFixed(2)}. Ingrese el código de 6 dígitos que ve el cliente:`;
-                        document.getElementById('seller-code-input-group').style.display = 'block';
-                        document.getElementById('buyer-code-display').style.display = 'none';
-                        document.getElementById('btn-confirm-tx').style.display = 'block';
-                        document.getElementById('modal-dynamic-code').classList.add('active');
-                    });
+                        montoUSD: montoUSD,
+                        metodo: metodo
+                    })
                 });
-            });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    activeTxId = data.txId;
+                    closeModal('modal-crear-venta');
+                    
+                    document.getElementById('dynamic-code-text').innerText = `Venta a ${buyerPhone} por $${montoUSD.toFixed(2)}. Ingrese el código de 6 dígitos que ve el cliente:`;
+                    document.getElementById('seller-code-input-group').style.display = 'block';
+                    document.getElementById('buyer-code-display').style.display = 'none';
+                    document.getElementById('btn-confirm-tx').style.display = 'block';
+                    document.getElementById('modal-dynamic-code').classList.add('active');
+                } else if (data.cuentaCongelada) {
+                    document.getElementById('modal-cuenta-congelada').classList.add('active');
+                } else {
+                    showCustomModal(data.error || "Error al procesar la solicitud de cobro.");
+                }
+            } catch (error) {
+                showCustomModal("Error de conexión con el servidor: " + error.message);
+            }
         }
 
         // Real-time listener for buyer & seller active transactions

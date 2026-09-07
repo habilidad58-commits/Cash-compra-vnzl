@@ -979,33 +979,43 @@
                 auth.currentUser.updatePassword(pass).catch(e => console.log("Password update:", e));
             }
 
-            // Guardamos temporalmente en la base de datos
-            const userData = {
-                uid: document.getElementById('reg-uid').value || 'por_asignar',
-                role: role,
-                firstname: firstname,
-                lastname: lastname,
-                fullname: firstname + " " + lastname,
-                dob: dob,
-                location: location,
-                phone: cleanPhone,
-                bank: role === 'vendedor' ? bank : '',
-                idImage: idBase64,
-                faceImage: faceBase64,
-                email: email,
-                password: pass, // Necesario para crear la cuenta Auth después
-                status: 'pendiente',
-                balanceUSD: 0,
-                creditUSD: 0,
-                verificationCode: '',
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            };
-
-            db.ref('users/' + cleanPhone).set(userData).then(() => {
-                showCustomModal("Solicitud enviada exitosamente. Espera el mensaje de verificación en WhatsApp.", "SOLICITUD RECIBIDA");
-                listenForPreApprovalCode(cleanPhone);
-            }).catch(err => {
-                showCustomModal("Error al enviar la solicitud: " + err.message);
+            // Guardamos temporalmente en la base de datos a través de Vercel
+            const uid = document.getElementById('reg-uid').value || 'por_asignar';
+            
+            fetch('/api', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'handleRegistrationSubmit',
+                    payload: {
+                        uid: uid,
+                        role: role,
+                        firstname: firstname,
+                        lastname: lastname,
+                        dob: dob,
+                        location: location,
+                        phone: cleanPhone,
+                        bank: bank,
+                        idImage: idBase64,
+                        faceImage: faceBase64,
+                        email: email,
+                        password: pass
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showCustomModal("Solicitud enviada exitosamente. Espera el mensaje de verificación en WhatsApp.", "SOLICITUD RECIBIDA");
+                    listenForPreApprovalCode(cleanPhone);
+                } else {
+                    showCustomModal(data.error || "Error al enviar la solicitud.");
+                }
+            })
+            .catch(err => {
+                showCustomModal("Error de conexión con el servidor: " + err.message);
             });
         }
 
@@ -1022,50 +1032,44 @@
             });
         }
 
-        // Verify WhatsApp 6-digit Code
-        function verifyWhatsAppCode() {
+        // Verify WhatsApp 6-digit Code (Llamada Serverless a Vercel)
+        async function verifyWhatsAppCode() {
             const inputCode = document.getElementById('verification-code-input').value.trim();
             const phone = window.activeUserPhoneReg;
 
             if (!phone) return;
+            
+            if (!inputCode) {
+                showCustomModal("Por favor, ingresa el código de verificación.");
+                return;
+            }
 
-            db.ref('users/' + phone).once('value', snapshot => {
-                const user = snapshot.val();
-                if (user && user.verificationCode === inputCode && inputCode !== '') {
-                    
-                    // AHORA creamos la cuenta en Auth (o la usamos si ya existe porque entraron con Google)
-                    auth.createUserWithEmailAndPassword(user.email, user.password).then((userCredential) => {
-                        return db.ref('users/' + phone).update({
-                            status: 'aprobado',
-                            uid: userCredential.user.uid,
-                            verificationCode: ''
-                        });
-                    }).then(() => {
-                        auth.signOut(); 
-                        document.getElementById('modal-verification-code').classList.remove('active');
-                        showCustomModal("¡Tu cuenta ha sido aprobada con éxito! Ya puedes ingresar con tu número y contraseña.", "¡FELICITACIONES!");
-                        switchView('view-login');
-                    }).catch(err => {
-                        if (err.code === 'auth/email-already-in-use') {
-                            // La cuenta ya existe vía Google, solo actualizamos la aprobación
-                            db.ref('users/' + phone).update({
-                                status: 'aprobado',
-                                verificationCode: ''
-                            }).then(() => {
-                                auth.signOut();
-                                document.getElementById('modal-verification-code').classList.remove('active');
-                                showCustomModal("¡Tu cuenta ha sido aprobada con éxito! Usa tu número y contraseña para ingresar.", "¡FELICITACIONES!");
-                                switchView('view-login');
-                            });
-                        } else {
-                            showCustomModal("Error al crear cuenta Auth: " + err.message);
-                        }
-                    });
+            try {
+                const response = await fetch('/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'verifyWhatsAppCode',
+                        phone: phone,
+                        inputCode: inputCode
+                    })
+                });
 
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    auth.signOut();
+                    document.getElementById('modal-verification-code').classList.remove('active');
+                    showCustomModal("¡Tu cuenta ha sido aprobada con éxito! Ya puedes ingresar con tu número y contraseña.", "¡FELICITACIONES!");
+                    switchView('view-login');
                 } else {
-                    showCustomModal("El código de verificación ingresado es incorrecto.");
+                    showCustomModal(data.error || "El código de verificación ingresado es incorrecto.");
                 }
-            });
+            } catch (err) {
+                showCustomModal("Error de conexión con el servidor: " + err.message);
+            }
         }
 
         function cancelRegistrationProcess() {
@@ -1255,7 +1259,7 @@
             });
         }
 
-        function submitRetiroRequest() {
+        async function submitRetiroRequest() {
             const monto = parseFloat(document.getElementById('retiro-monto-usd').value);
             if (!monto || monto <= 0) {
                 showCustomModal("Ingrese un monto numérico válido mayor a cero.");
@@ -1267,30 +1271,32 @@
                 return;
             }
 
-            // Descontar temporalmente el saldo de la cuenta del vendedor al crear el retiro
-            const nuevoSaldo = currentUserData.balanceUSD - monto;
-            const retiroRef = db.ref('retiros').push();
+            try {
+                const response = await fetch('/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'submitRetiroRequest',
+                        phone: currentUserData.phone,
+                        amountUSD: monto
+                    })
+                });
 
-            const updates = {};
-            updates['retiros/' + retiroRef.key] = {
-                sellerPhone: currentUserData.phone,
-                sellerName: currentUserData.fullname,
-                bankInfo: currentUserData.bank || 'No especificado',
-                amountUSD: monto,
-                status: 'pendiente',
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            };
-            updates['users/' + currentUserData.phone + '/balanceUSD'] = nuevoSaldo;
+                const data = await response.json();
 
-            db.ref().update(updates).then(() => {
-                closeModal('modal-retirar');
-                document.getElementById('retiro-monto-usd').value = '';
-                showCustomModal("Solicitud de retiro de $" + monto.toFixed(2) + " USD enviada. El saldo ha sido retenido temporalmente de tu cuenta.", "SOLICITUD REGISTRADA");
-            }).catch(err => {
-                showCustomModal("Error al solicitar retiro: " + err.message);
-            });
+                if (response.ok && data.success) {
+                    closeModal('modal-retirar');
+                    document.getElementById('retiro-monto-usd').value = '';
+                    showCustomModal(data.message, "SOLICITUD REGISTRADA");
+                } else {
+                    showCustomModal(data.error || "Error al solicitar retiro.");
+                }
+            } catch (error) {
+                showCustomModal("Error de conexión con el servidor: " + error.message);
+            }
         }
-
         // Ver Lista de Retiros Pendientes/Rechazados
         function openRetirosPendientesModal() {
             db.ref('retiros').orderByChild('sellerPhone').equalTo(currentUserData.phone).once('value', snapshot => {
@@ -1516,45 +1522,39 @@ async function confirmarTransaccionVendedor() {
             });
         }
 
-        
-function payPendingDebt(key, amountUSD) {
+        async function payPendingDebt(key, amountUSD) {
             if (currentUserData.balanceUSD < amountUSD) {
                 showCustomModal("Saldo insuficiente para cancelar la deuda. Por favor recarga saldo.");
                 return;
             }
 
-            db.ref('pending_payments/' + currentUserData.phone + '/' + key).once('value', snap => {
-                if (!snap.exists()) return;
-                
-                const txData = snap.val();
-                const txId = txData.txId;
-                const commissionToMove = txData.comisionTx || (amountUSD * 0.30); // 30% de la mitad = 15% del total
-                const updates = {};
-                
-                updates['users/' + currentUserData.phone + '/balanceUSD'] = currentUserData.balanceUSD - amountUSD;
-                updates['users/' + currentUserData.phone + '/creditUSD'] = currentUserData.creditUSD + amountUSD;
-                
-                // Sistema de Reputación: Sumar al pagar
-                const totalPagado = (currentUserData.totalDeudaPagada || 0) + amountUSD;
-                const txVerdes = (currentUserData.txPagadasA_Tiempo || 0) + 1;
-                updates['users/' + currentUserData.phone + '/totalDeudaPagada'] = totalPagado;
-                updates['users/' + currentUserData.phone + '/txPagadasA_Tiempo'] = txVerdes;
-
-                updates['pending_payments/' + currentUserData.phone + '/' + key] = null;
-                if (txId) updates['commissions/espera/' + txId] = null;
-
-                db.ref().update(updates).then(() => {
-                    // Suma el valor de la comisión neta de forma atómica e incremental al total global
-                    db.ref('commissions/neta_total').transaction(curr => (curr || 0) + commissionToMove);
-                    
-                    closeModal('modal-list-view');
-                    showCustomModal("¡Deuda saldada exitosamente! Tu línea de crédito ha sido restablecida.", "PAGO DE DEUDA");
-                }).catch(err => {
-
-        showCustomModal("Error al pagar la deuda: " + err.message);
+            try {
+                const response = await fetch('/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'payPendingDebt',
+                        phone: currentUserData.phone,
+                        key: key,
+                        amountUSD: amountUSD
+                    })
                 });
-            });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    closeModal('modal-list-view');
+                    showCustomModal(data.message || "¡Deuda saldada exitosamente! Tu línea de crédito ha sido restablecida.", "PAGO DE DEUDA");
+                } else {
+                    showCustomModal(data.error || "Error al procesar el pago de la deuda.");
+                }
+            } catch (error) {
+                showCustomModal("Error de conexión con el servidor: " + error.message);
+            }
         }
+
         function openCompletedPaymentsModal() {
             db.ref('transactions').orderByChild('buyerPhone').equalTo(currentUserData.phone).once('value', snapshot => {
                 let html = '';

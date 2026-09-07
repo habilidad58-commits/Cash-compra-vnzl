@@ -1,12 +1,8 @@
 {
-  "name": "cash-compra-backend",
+  "name": "backend-plataforma-financiera",
   "version": "1.0.0",
-  "scripts": {
-    "start": "node api/index.js"
-  },
+  "private": true,
   "dependencies": {
-    "express": "^4.18.2",
-    "firebase-admin": "^11.10.1",
-    "cors": "^2.8.5"
+    "firebase-admin": "^11.11.1"
   }
 }

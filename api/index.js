@@ -65,10 +65,10 @@ export default async function handler(req, res) {
         return res.status(501).json({ error: 'Función verifyWhatsAppCode aún no migrada.' });
 
       // ==========================================================
-      // UVI 6: INICIAR COBRO DE VENTA (Siguiente a migrar)
+      // UVI 6: INICIAR COBRO DE VENTA
       // ==========================================================
       case 'iniciarCobroVenta':
-        return res.status(501).json({ error: 'Función iniciarCobroVenta aún no migrada.' });
+        return await iniciarCobroVenta(req.body, res);
 
       default:
         return res.status(400).json({ error: 'Acción no reconocida o no especificada.' });
@@ -150,5 +150,66 @@ async function confirmarTransaccionVendedor(payload, res) {
   return res.status(200).json({
     success: true,
     message: 'Transacción confirmada y saldo liberado exitosamente.'
+  });
+}
+
+// =========================================================================
+// DESARROLLO DE LA FUNCIÓN 6: iniciarCobroVenta (CÓDIGO SERVIDOR)
+// =========================================================================
+async function iniciarCobroVenta(body, res) {
+  const { sellerPhone, buyerPhone, montoUSD, metodo } = body;
+
+  if (!sellerPhone || !buyerPhone || !montoUSD) {
+    return res.status(400).json({ error: 'Faltan parámetros requeridos (sellerPhone, buyerPhone, montoUSD).' });
+  }
+
+  // 1. Consultar si el comprador existe
+  const buyerSnap = await db.ref(`users/${buyerPhone}`).once('value');
+  if (!buyerSnap.exists()) {
+    return res.status(404).json({ error: 'El comprador no existe en la base de datos.' });
+  }
+  
+  // 2. Validar si la cuenta está congelada (pagos vencidos)
+  const pendingSnap = await db.ref(`pending_payments/${buyerPhone}`).once('value');
+  let cuentaCongelada = false;
+  const ahora = Date.now();
+  
+  if (pendingSnap.exists()) {
+    pendingSnap.forEach(deuda => {
+      if (deuda.val().expiresAt && ahora > deuda.val().expiresAt) {
+        cuentaCongelada = true;
+      }
+    });
+  }
+
+  if (cuentaCongelada) {
+    return res.status(403).json({ cuentaCongelada: true, error: 'El usuario tiene pagos pendientes vencidos.' });
+  }
+
+  // 3. Generar código exacto de 6 dígitos usando matemáticas seguras
+  const codigoSeguro = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // 4. Crear la transacción en la base de datos usando admin.database()
+  const txRef = db.ref('transactions').push();
+  const txId = txRef.key;
+
+  const nuevaTransaccion = {
+    amountUSD: parseFloat(montoUSD),
+    buyerPhone: buyerPhone,
+    sellerPhone: sellerPhone,
+    method: metodo || 'digital',
+    status: 'esperando_codigo',
+    code: codigoSeguro, 
+    verificationCode: codigoSeguro, // Emparejado para confirmarTransaccionVendedor
+    timestamp: admin.database.ServerValue.TIMESTAMP
+  };
+
+  await txRef.set(nuevaTransaccion);
+
+  // 5. Retornar el ID de transacción al frontend (QuickEdit)
+  return res.status(200).json({
+    success: true,
+    txId: txId,
+    message: 'Cobro iniciado correctamente.'
   });
 }

@@ -1402,98 +1402,42 @@
             });
         }
 
-        // Corrección de confirmación de transacción y reset de variable activeTxId
-function confirmarTransaccionVendedor() {
+        // Confirmar transacción conectando a la API Serverless en Vercel
+async function confirmarTransaccionVendedor() {
     const enteredCode = document.getElementById('tx-code-seller-input').value.trim();
     if (!activeTxId) return;
 
-    db.ref('transactions/' + activeTxId).once('value', snapshot => {
-        const tx = snapshot.val();
-        if (tx && tx.code === enteredCode) {
-            db.ref('users/' + tx.buyerPhone).once('value', bSnap => {
-                const buyer = bSnap.val();
-                db.ref('users/' + tx.sellerPhone).once('value', sSnap => {
-                    const seller = sSnap.val();
-                    
-                    const amount = tx.amountUSD;
-                    let half = amount / 2;
-                    let commission = amount * 0.15; // 15% de comisión de la venta total
-                    let buyerBal = parseFloat(buyer.balanceUSD || 0);
-                    let buyerCredit = parseFloat(buyer.creditUSD || 0);
-                    let sellerBal = parseFloat(seller.balanceUSD || 0);
-                    
-                    const updates = {};
-                    const ahora = Date.now();
-                    
-                    // Cálculo Dinámico de Días de Plazo según el Nivel
-                    let nivelComprador = 1 + Math.floor((buyer.totalDeudaPagada || 0) / 20);
-                    if (nivelComprador > 12) nivelComprador = 12;
-                    const diasPlazo = 2 + nivelComprador; 
-                    const plazoMs = diasPlazo * 24 * 60 * 60 * 1000;
+    if (!enteredCode) {
+        showCustomModal("Por favor ingresa el código de confirmación.");
+        return;
+    }
 
-                    if (tx.method === 'digital') {
-                        if (buyerBal < half) {
-                            showCustomModal("El comprador no tiene suficiente saldo digital ($" + half.toFixed(2) + " USD).");
-                            return;
-                        }
-                        if (buyerCredit < half) {
-                            showCustomModal("El comprador no tiene suficiente línea de crédito ($" + half.toFixed(2) + " USD).");
-                            return;
-                        }
-                        let sellerPay = amount - commission;
-                        if (sellerPay < 0) sellerPay = 0;
-                        
-                        updates['users/' + tx.buyerPhone + '/balanceUSD'] = buyerBal - half;
-                        updates['users/' + tx.buyerPhone + '/creditUSD'] = buyerCredit - half;
-                        updates['users/' + tx.sellerPhone + '/balanceUSD'] = sellerBal + sellerPay;
-                    } else {
-                        if (buyerCredit < half) {
-                            showCustomModal("El comprador no tiene suficiente crédito disponible.");
-                            return;
-                        }
-                        let sellerDigitalShare = amount - half - commission;
-                        if (sellerDigitalShare < 0) sellerDigitalShare = 0;
-                        
-                        updates['users/' + tx.buyerPhone + '/creditUSD'] = buyerCredit - half;
-                        updates['users/' + tx.sellerPhone + '/balanceUSD'] = sellerBal + sellerDigitalShare;
-                    }
-updates['commissions/espera/' + activeTxId] = { 
-                        amount: commission, 
-                        txId: activeTxId, 
-                        timestamp: ahora,
-                        buyerPhone: tx.buyerPhone,
-                        buyerName: buyer.fullname,
-                        expiresAt: ahora + plazoMs
-                    };
-                    updates['pending_payments/' + tx.buyerPhone + '/' + activeTxId] = {
-                      txId: activeTxId,
-                        amountUSD: half,
-                        comisionTx: commission, 
-                        status: 'pendiente',
-                        timestamp: ahora,
-                        expiresAt: ahora + plazoMs
-                    };
-                    updates['transactions/' + activeTxId + '/status'] = 'completada';
-                    updates['frequent_clients/' + tx.sellerPhone + '/' + tx.buyerPhone] = {
-                        fullname: buyer.fullname,
-                        phone: buyer.phone,
-                        lastTx: ahora
-                    };
+    try {
+        const response = await fetch('/api', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'confirmarTransaccionVendedor',
+                activeTxId: activeTxId,
+                enteredCode: enteredCode
+            })
+        });
 
-                    db.ref().update(updates).then(() => {
-                        document.getElementById('modal-dynamic-code').classList.remove('active');
-                        document.getElementById('tx-code-seller-input').value = '';
-                        activeTxId = null; // Reset necesario para evitar colisión
-                        showCustomModal("¡Venta procesada exitosamente!", "ÉXITO");
-                    }).catch(error => {
-                        showCustomModal("Error procesando: " + error.message);
-                    });
-                });
-            });
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            document.getElementById('modal-dynamic-code').classList.remove('active');
+            document.getElementById('tx-code-seller-input').value = '';
+            activeTxId = null;
+            showCustomModal(data.message || "¡Venta procesada exitosamente!", "ÉXITO");
         } else {
-            showCustomModal("El código de confirmación ingresado no coincide.");
+            showCustomModal(data.error || "Error al procesar la transacción.");
         }
-    });
+    } catch (error) {
+        showCustomModal("Error de conexión con el servidor: " + error.message);
+    }
 }
 
         function anularTransaccion() {

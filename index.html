@@ -1411,8 +1411,11 @@ async function confirmarTransaccionVendedor() {
             },
             body: JSON.stringify({
                 action: 'confirmarTransaccionVendedor',
+                transactionId: activeTxId,
                 activeTxId: activeTxId,
-                enteredCode: enteredCode
+                inputCode: enteredCode,
+                enteredCode: enteredCode,
+                sellerPhone: currentUserData ? currentUserData.phone : ''
             })
         });
 

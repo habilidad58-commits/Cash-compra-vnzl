@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       // UVI 1: CONFIRMAR TRANSACCIÓN VENDEDOR
       // ==========================================================
       case 'confirmarTransaccionVendedor':
-        return await confirmarTransaccionVendedor(payload, res);
+        return await confirmarTransaccionVendedor(req.body, res);
 
       // ==========================================================
       // UVI 2: PAGAR DEUDA PENDIENTE (Siguiente a migrar)
@@ -82,14 +82,16 @@ export default async function handler(req, res) {
 // =========================================================================
 // DESARROLLO DE LA FUNCIÓN 1: confirmarTransaccionVendedor (CÓDIGO SERVIDOR)
 // =========================================================================
-async function confirmarTransaccionVendedor(payload, res) {
-  const { transactionId, inputCode, sellerPhone } = payload;
+async function confirmarTransaccionVendedor(body, res) {
+  const transactionId = body.transactionId || body.activeTxId || (body.payload && (body.payload.transactionId || body.payload.activeTxId));
+  const inputCode = body.inputCode || body.enteredCode || (body.payload && (body.payload.inputCode || body.payload.enteredCode));
+  const sellerPhone = body.sellerPhone || (body.payload && body.payload.sellerPhone);
 
-  if (!transactionId || !inputCode || !sellerPhone) {
-    return res.status(400).json({ error: 'Faltan parámetros requeridos (transactionId, inputCode, sellerPhone).' });
+  if (!transactionId || !inputCode) {
+    return res.status(400).json({ error: 'Faltan parámetros requeridos (transactionId, inputCode).' });
   }
 
-  // 1. Consultar la transacción en la base de datos de manera segura
+  // 1. Consultar la transacción en la base de datos
   const txRef = db.ref(`transactions/${transactionId}`);
   const txSnapshot = await txRef.once('value');
 
@@ -104,11 +106,12 @@ async function confirmarTransaccionVendedor(payload, res) {
     return res.status(400).json({ error: 'La transacción ya no está pendiente o ya fue procesada.' });
   }
 
-  if (String(tx.verificationCode) !== String(inputCode).trim()) {
+  const codigoValido = tx.verificationCode || tx.code;
+  if (String(codigoValido).trim() !== String(inputCode).trim()) {
     return res.status(400).json({ error: 'El código de confirmación es incorrecto.' });
   }
 
-  if (tx.sellerPhone !== sellerPhone) {
+  if (sellerPhone && tx.sellerPhone !== sellerPhone) {
     return res.status(403).json({ error: 'No tienes permisos para autorizar esta transacción.' });
   }
 
@@ -125,31 +128,66 @@ async function confirmarTransaccionVendedor(payload, res) {
   const buyer = buyerSnap.val();
   const seller = sellerSnap.val();
 
-  // 4. Cálculos Financieros Backend
   const monto = parseFloat(tx.amountUSD) || 0;
-  const nuevoSaldoVendedor = (parseFloat(seller.balanceUSD) || 0) + monto;
-
-  // Objeto con todas las actualizaciones atómicas
   const updates = {};
 
-  // Actualizar saldo del vendedor
-  updates[`users/${sellerPhone}/balanceUSD`] = nuevoSaldoVendedor;
+  // 4. Lógica de Cobro al Comprador (Si el método es Digital)
+  if (tx.method === 'digital') {
+    const balanceDisponible = parseFloat(buyer.balanceUSD || 0);
+    const creditoDisponible = parseFloat(buyer.creditUSD || 0);
 
-  // Marcar la transacción como completada
-  updates[`transactions/${transactionId}/status`] = 'completada';
-  updates[`transactions/${transactionId}/completedAt`] = new Date().toISOString();
+    if (balanceDisponible + creditoDisponible < monto) {
+      return res.status(400).json({ error: 'El comprador no posee suficiente saldo ni línea de crédito disponible.' });
+    }
 
-  // Si aplica cliente frecuente
-  if (tx.buyerPhone) {
-    updates[`users/${sellerPhone}/frequentClients/${tx.buyerPhone}`] = true;
+    if (balanceDisponible >= monto) {
+      // Se descuenta totalmente del saldo digital
+      updates[`users/${tx.buyerPhone}/balanceUSD`] = balanceDisponible - monto;
+    } else {
+      // Se consume todo el saldo digital y el resto de la línea de crédito
+      const restanteDeuda = monto - balanceDisponible;
+      updates[`users/${tx.buyerPhone}/balanceUSD`] = 0;
+      updates[`users/${tx.buyerPhone}/creditUSD`] = creditoDisponible - restanteDeuda;
+
+      // Generar registro en pagos pendientes (pending_payments)
+      const nivel = Math.min(12, 1 + Math.floor((buyer.totalDeudaPagada || 0) / 20));
+      const diasPlazo = 2 + nivel;
+      const ahora = Date.now();
+      const expiresAt = ahora + (diasPlazo * 24 * 60 * 60 * 1000);
+      const comisionTx = restanteDeuda * 0.30;
+
+      updates[`pending_payments/${tx.buyerPhone}/${transactionId}`] = {
+        amountUSD: restanteDeuda,
+        timestamp: admin.database.ServerValue.TIMESTAMP,
+        expiresAt: expiresAt,
+        status: 'pendiente',
+        comisionTx: comisionTx,
+        txId: transactionId
+      };
+    }
   }
 
-  // 5. Ejecutar la actualización en Firebase Admin
+  // 5. Acreditación de Saldo al Vendedor
+  const nuevoSaldoVendedor = (parseFloat(seller.balanceUSD) || 0) + monto;
+  updates[`users/${tx.sellerPhone}/balanceUSD`] = nuevoSaldoVendedor;
+
+  // Registrar cliente frecuente
+  updates[`users/${tx.sellerPhone}/frequentClients/${tx.buyerPhone}`] = true;
+  updates[`frequent_clients/${tx.sellerPhone}/${tx.buyerPhone}`] = {
+    fullname: buyer.fullname || `${buyer.firstname || ''} ${buyer.lastname || ''}`.trim(),
+    phone: tx.buyerPhone
+  };
+
+  // 6. Finalizar la transacción
+  updates[`transactions/${transactionId}/status`] = 'completada';
+  updates[`transactions/${transactionId}/completedAt`] = admin.database.ServerValue.TIMESTAMP;
+
+  // 7. Guardar cambios en la base de datos usando admin.database()
   await db.ref().update(updates);
 
   return res.status(200).json({
     success: true,
-    message: 'Transacción confirmada y saldo liberado exitosamente.'
+    message: '¡Venta procesada exitosamente y saldo acreditado!'
   });
 }
 

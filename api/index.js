@@ -47,7 +47,7 @@ export default async function handler(req, res) {
         return await payPendingDebt(req.body, res);
     
 // ==========================================================
-      // UVI 3: SOLICITAR RETIRO (Siguiente a migrar)
+      // UVI 3: SOLICITAR RETIRO (MIGRADÓ A SERVIDOR)
       // ==========================================================
       case 'submitRetiroRequest':
         return await submitRetiroRequest(req.body, res);
@@ -64,14 +64,28 @@ export default async function handler(req, res) {
       case 'verifyWhatsAppCode':
         return await verifyWhatsAppCode(req.body, res);
 
-      // ==========================================================
+   
+         // ==========================================================
       // UVI 6: INICIAR COBRO DE VENTA
       // ==========================================================
       case 'iniciarCobroVenta':
         return await iniciarCobroVenta(req.body, res);
 
+      // ==========================================================
+      // UVI 7: CANCELAR PROCESO DE REGISTRO
+      // ==========================================================
+      case 'cancelRegistrationProcess':
+        return await cancelRegistrationProcess(req.body, res);
+
+      // ==========================================================
+      // UVI 8: ANULAR TRANSACCIÓN
+      // ==========================================================
+      case 'anularTransaccion':
+        return await anularTransaccion(req.body, res);
+
       default:
-        return res.status(400).json({ error: 'Acción no reconocida o no especificada.' });
+
+     return res.status(400).json({ error: 'Acción no reconocida o no especificada.' });
     }
   } catch (error) {
     console.error("Error en Vercel Function:", error);
@@ -83,119 +97,130 @@ export default async function handler(req, res) {
 // DESARROLLO DE LA FUNCIÓN 1: confirmarTransaccionVendedor (CÓDIGO SERVIDOR)
 // =========================================================================
 async function confirmarTransaccionVendedor(body, res) {
-  const transactionId = body.transactionId || body.activeTxId || (body.payload && (body.payload.transactionId || body.payload.activeTxId));
-  const inputCode = body.inputCode || body.enteredCode || (body.payload && (body.payload.inputCode || body.payload.enteredCode));
-  const sellerPhone = body.sellerPhone || (body.payload && body.payload.sellerPhone);
+  const payloadData = body.payload || body;
+  const transactionId = payloadData.transactionId || payloadData.activeTxId;
+  const inputCode = payloadData.inputCode || payloadData.enteredCode;
+  const sellerPhone = payloadData.sellerPhone;
 
   if (!transactionId || !inputCode) {
-    return res.status(400).json({ error: 'Faltan parámetros requeridos (transactionId, inputCode).' });
+    return res.status(400).json({ error: 'Faltan parámetros requeridos.' });
   }
 
-  // 1. Consultar la transacción en la base de datos
-  const txRef = db.ref(`transactions/${transactionId}`);
-  const txSnapshot = await txRef.once('value');
+  try {
+    const txRef = db.ref(`transactions/${transactionId}`);
+    const txSnapshot = await txRef.once('value');
 
-  if (!txSnapshot.exists()) {
-    return res.status(404).json({ error: 'La transacción no existe.' });
-  }
-
-  const tx = txSnapshot.val();
-
-  // 2. Validaciones de Seguridad
-  if (tx.status !== 'esperando_codigo') {
-    return res.status(400).json({ error: 'La transacción ya no está pendiente o ya fue procesada.' });
-  }
-
-  const codigoValido = tx.verificationCode || tx.code;
-  if (String(codigoValido).trim() !== String(inputCode).trim()) {
-    return res.status(400).json({ error: 'El código de confirmación es incorrecto.' });
-  }
-
-  if (sellerPhone && tx.sellerPhone !== sellerPhone) {
-    return res.status(403).json({ error: 'No tienes permisos para autorizar esta transacción.' });
-  }
-
-  // 3. Obtener los datos del comprador y del vendedor
-  const [buyerSnap, sellerSnap] = await Promise.all([
-    db.ref(`users/${tx.buyerPhone}`).once('value'),
-    db.ref(`users/${tx.sellerPhone}`).once('value')
-  ]);
-
-  if (!buyerSnap.exists() || !sellerSnap.exists()) {
-    return res.status(404).json({ error: 'Comprador o vendedor no encontrados.' });
-  }
-
-  const buyer = buyerSnap.val();
-  const seller = sellerSnap.val();
-
-  const monto = parseFloat(tx.amountUSD) || 0;
-  const updates = {};
-
-  // 4. Lógica de Cobro al Comprador (Si el método es Digital)
-  if (tx.method === 'digital') {
-    const balanceDisponible = parseFloat(buyer.balanceUSD || 0);
-    const creditoDisponible = parseFloat(buyer.creditUSD || 0);
-
-    if (balanceDisponible + creditoDisponible < monto) {
-      return res.status(400).json({ error: 'El comprador no posee suficiente saldo ni línea de crédito disponible.' });
+    if (!txSnapshot.exists()) {
+      return res.status(404).json({ error: 'La transacción no existe.' });
     }
 
-    if (balanceDisponible >= monto) {
-      // Se descuenta totalmente del saldo digital
-      updates[`users/${tx.buyerPhone}/balanceUSD`] = balanceDisponible - monto;
+    const tx = txSnapshot.val();
+
+    if (tx.status !== 'esperando_codigo') {
+      return res.status(400).json({ error: 'La transacción ya no está pendiente.' });
+    }
+
+    // Validación estricta del código idéntica al front
+    if (String(tx.code).trim() !== String(inputCode).trim()) {
+      return res.status(400).json({ error: 'El código de confirmación ingresado no coincide.' });
+    }
+
+    // Permisos del vendedor para procesar la venta
+    if (sellerPhone && tx.sellerPhone !== sellerPhone) {
+      return res.status(403).json({ error: 'No tienes permisos para esta transacción.' });
+    }
+
+    const [buyerSnap, sellerSnap] = await Promise.all([
+      db.ref(`users/${tx.buyerPhone}`).once('value'),
+      db.ref(`users/${tx.sellerPhone}`).once('value')
+    ]);
+
+    if (!buyerSnap.exists() || !sellerSnap.exists()) {
+      return res.status(404).json({ error: 'Comprador o vendedor no encontrados.' });
+    }
+
+    const buyer = buyerSnap.val();
+    const seller = sellerSnap.val();
+
+    const amount = parseFloat(tx.amountUSD);
+    let half = amount / 2;
+    let commission = amount * 0.15; // 15% de comisión de la venta total
+    let buyerBal = parseFloat(buyer.balanceUSD || 0);
+    let buyerCredit = parseFloat(buyer.creditUSD || 0);
+    let sellerBal = parseFloat(seller.balanceUSD || 0);
+
+    const updates = {};
+    const ahora = Date.now();
+
+    // Cálculo Dinámico de Días de Plazo según el Nivel idéntico al frontend
+    let nivelComprador = 1 + Math.floor((buyer.totalDeudaPagada || 0) / 20);
+    if (nivelComprador > 12) nivelComprador = 12;
+    const diasPlazo = 2 + nivelComprador; 
+    const plazoMs = diasPlazo * 24 * 60 * 60 * 1000;
+
+    if (tx.method === 'digital') {
+      if (buyerBal < half) {
+        return res.status(400).json({ error: `El comprador no tiene suficiente saldo digital ($${half.toFixed(2)} USD).` });
+      }
+      if (buyerCredit < half) {
+        return res.status(400).json({ error: `El comprador no tiene suficiente línea de crédito ($${half.toFixed(2)} USD).` });
+      }
+      let sellerPay = amount - commission;
+      if (sellerPay < 0) sellerPay = 0;
+      
+      updates[`users/${tx.buyerPhone}/balanceUSD`] = buyerBal - half;
+      updates[`users/${tx.buyerPhone}/creditUSD`] = buyerCredit - half;
+      updates[`users/${tx.sellerPhone}/balanceUSD`] = sellerBal + sellerPay;
     } else {
-      // Se consume todo el saldo digital y el resto de la línea de crédito
-      const restanteDeuda = monto - balanceDisponible;
-      updates[`users/${tx.buyerPhone}/balanceUSD`] = 0;
-      updates[`users/${tx.buyerPhone}/creditUSD`] = creditoDisponible - restanteDeuda;
-
-      // Generar registro en pagos pendientes (pending_payments)
-      const nivel = Math.min(12, 1 + Math.floor((buyer.totalDeudaPagada || 0) / 20));
-      const diasPlazo = 2 + nivel;
-      const ahora = Date.now();
-      const expiresAt = ahora + (diasPlazo * 24 * 60 * 60 * 1000);
-      const comisionTx = restanteDeuda * 0.30;
-
-      updates[`pending_payments/${tx.buyerPhone}/${transactionId}`] = {
-        amountUSD: restanteDeuda,
-        timestamp: admin.database.ServerValue.TIMESTAMP,
-        expiresAt: expiresAt,
-        status: 'pendiente',
-        comisionTx: comisionTx,
-        txId: transactionId
-      };
+      if (buyerCredit < half) {
+        return res.status(400).json({ error: 'El comprador no tiene suficiente crédito disponible.' });
+      }
+      let sellerDigitalShare = amount - half - commission;
+      if (sellerDigitalShare < 0) sellerDigitalShare = 0;
+      
+      updates[`users/${tx.buyerPhone}/creditUSD`] = buyerCredit - half;
+      updates[`users/${tx.sellerPhone}/balanceUSD`] = sellerBal + sellerDigitalShare;
     }
+
+    updates[`commissions/espera/${transactionId}`] = { 
+      amount: commission, 
+      txId: transactionId, 
+      timestamp: ahora,
+      buyerPhone: tx.buyerPhone,
+      buyerName: buyer.fullname,
+      expiresAt: ahora + plazoMs
+    };
+    updates[`pending_payments/${tx.buyerPhone}/${transactionId}`] = {
+      txId: transactionId,
+      amountUSD: half,
+      comisionTx: commission, 
+      status: 'pendiente',
+      timestamp: ahora,
+      expiresAt: ahora + plazoMs
+    };
+    updates[`transactions/${transactionId}/status`] = 'completada';
+    updates[`frequent_clients/${tx.sellerPhone}/${tx.buyerPhone}`] = {
+      fullname: buyer.fullname,
+      phone: buyer.phone,
+      lastTx: ahora
+    };
+
+    // Usando admin.database() a través de 'db' para guardar los datos de forma segura
+    await db.ref().update(updates);
+
+    return res.status(200).json({ success: true, message: '¡Venta procesada exitosamente!' });
+  } catch (error) {
+    console.error("Error confirmando transacción UVI 1:", error);
+    return res.status(500).json({ error: 'Error interno del servidor procesando la venta.' });
   }
-
-  // 5. Acreditación de Saldo al Vendedor
-  const nuevoSaldoVendedor = (parseFloat(seller.balanceUSD) || 0) + monto;
-  updates[`users/${tx.sellerPhone}/balanceUSD`] = nuevoSaldoVendedor;
-
-  // Registrar cliente frecuente
-  updates[`users/${tx.sellerPhone}/frequentClients/${tx.buyerPhone}`] = true;
-  updates[`frequent_clients/${tx.sellerPhone}/${tx.buyerPhone}`] = {
-    fullname: buyer.fullname || `${buyer.firstname || ''} ${buyer.lastname || ''}`.trim(),
-    phone: tx.buyerPhone
-  };
-
-  // 6. Finalizar la transacción
-  updates[`transactions/${transactionId}/status`] = 'completada';
-  updates[`transactions/${transactionId}/completedAt`] = admin.database.ServerValue.TIMESTAMP;
-
-  // 7. Guardar cambios en la base de datos usando admin.database()
-  await db.ref().update(updates);
-
-  return res.status(200).json({
-    success: true,
-    message: '¡Venta procesada exitosamente y saldo acreditado!'
-  });
 }
 
 // =========================================================================
 // DESARROLLO DE LA FUNCIÓN 2: payPendingDebt (CÓDIGO SERVIDOR)
 // =========================================================================
 async function payPendingDebt(body, res) {
-  const { phone, key, amountUSD } = body;
+  const payloadData = body.payload || body;
+  const { phone, key, amountUSD } = payloadData;
 
   if (!phone || !key || !amountUSD) {
     return res.status(400).json({ error: 'Faltan parámetros requeridos (phone, key, amountUSD).' });
@@ -266,12 +291,13 @@ async function payPendingDebt(body, res) {
     return res.status(500).json({ error: 'Error interno del servidor al procesar el pago.' });
   }
 }
-
+ 
 // =========================================================================
 // DESARROLLO DE LA FUNCIÓN 3: submitRetiroRequest (CÓDIGO SERVIDOR)
 // =========================================================================
 async function submitRetiroRequest(body, res) {
-  const { phone, amountUSD } = body;
+  const payloadData = body.payload || body;
+  const { phone, amountUSD } = payloadData;
 
   if (!phone || !amountUSD || amountUSD <= 0) {
     return res.status(400).json({ error: 'Faltan parámetros requeridos o monto inválido.' });
@@ -322,11 +348,22 @@ async function submitRetiroRequest(body, res) {
 // DESARROLLO DE LA FUNCIÓN 4: handleRegistrationSubmit (CÓDIGO SERVIDOR)
 // =========================================================================
 async function handleRegistrationSubmit(body, res) {
-  const payload = body.payload || body;
-  const { uid, role, firstname, lastname, dob, location, phone, bank, idImage, faceImage, email, password } = payload;
+  const payloadData = body.payload || body;
+  const { uid, role, firstname, lastname, dob, location, phone, bank, idImage, faceImage, email, password } = payloadData;
 
   if (!firstname || !lastname || !dob || !location || !phone || !password || !email || !idImage || !faceImage) {
-    return res.status(400).json({ error: 'Faltan campos obligatorios para el registro.' });
+    return res.status(400).json({ error: 'Por favor complete todos los campos obligatorios.' });
+  }
+
+  // Verificación de edad >= 18 en el servidor (Idéntica a la lógica del frontend)
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+  
+  if (age < 18) {
+    return res.status(400).json({ error: 'Debes ser mayor de edad para registrarte.' });
   }
 
   try {
@@ -336,7 +373,7 @@ async function handleRegistrationSubmit(body, res) {
     const userRef = db.ref(`users/${cleanPhone}`);
     const snapshot = await userRef.once('value');
     if (snapshot.exists()) {
-      return res.status(400).json({ error: 'El número de teléfono ya está registrado.' });
+      return res.status(400).json({ error: 'El número de teléfono ya se encuentra registrado.' });
     }
 
     const userData = {
@@ -360,24 +397,26 @@ async function handleRegistrationSubmit(body, res) {
       timestamp: admin.database.ServerValue.TIMESTAMP
     };
 
-    // Guardar en la base de datos usando admin SDK
+    // Guardar en la base de datos usando el Admin SDK
     await userRef.set(userData);
 
     return res.status(200).json({
       success: true,
-      message: 'Solicitud de registro creada exitosamente.'
+      message: 'Solicitud enviada exitosamente. Espera el mensaje de verificación en WhatsApp.'
     });
   } catch (error) {
-    console.error("Error en handleRegistrationSubmit:", error);
-    return res.status(500).json({ error: 'Error interno al procesar el registro.' });
+    console.error("Error en UVI 4 handleRegistrationSubmit:", error);
+    return res.status(500).json({ error: 'Error interno del servidor al procesar el registro.' });
   }
 }
+
 
 // =========================================================================
 // DESARROLLO DE LA FUNCIÓN 5: verifyWhatsAppCode (CÓDIGO SERVIDOR)
 // =========================================================================
 async function verifyWhatsAppCode(body, res) {
-  const { phone, inputCode } = body;
+  const payloadData = body.payload || body;
+  const { phone, inputCode } = payloadData;
 
   if (!phone || !inputCode) {
     return res.status(400).json({ error: 'Faltan parámetros requeridos (phone, inputCode).' });
@@ -393,40 +432,48 @@ async function verifyWhatsAppCode(body, res) {
 
     const user = userSnap.val();
 
-    if (String(user.verificationCode).trim() !== String(inputCode).trim() || inputCode === '') {
+    if (user && String(user.verificationCode).trim() === String(inputCode).trim() && inputCode !== '') {
+      let uid = user.uid;
+
+      try {
+        // AHORA creamos la cuenta en Auth (o la usamos si ya existe porque entraron con Google)
+        const userRecord = await admin.auth().createUser({
+          email: user.email,
+          password: user.password
+        });
+        uid = userRecord.uid;
+
+        // Actualizamos estado y UID
+        await userRef.update({
+          status: 'aprobado',
+          uid: uid,
+          verificationCode: ''
+        });
+
+        return res.status(200).json({
+          success: true,
+          message: '¡Tu cuenta ha sido aprobada con éxito! Ya puedes ingresar con tu número y contraseña.'
+        });
+
+      } catch (authError) {
+        if (authError.code === 'auth/email-already-exists' || authError.code === 'auth/email-already-in-use') {
+          // La cuenta ya existe vía Google, solo actualizamos la aprobación
+          await userRef.update({
+            status: 'aprobado',
+            verificationCode: ''
+          });
+
+          return res.status(200).json({
+            success: true,
+            message: '¡Tu cuenta ha sido aprobada con éxito! Usa tu número y contraseña para ingresar.'
+          });
+        } else {
+          return res.status(400).json({ error: "Error al crear cuenta Auth: " + authError.message });
+        }
+      }
+    } else {
       return res.status(400).json({ error: 'El código de verificación ingresado es incorrecto.' });
     }
-
-    let uid = user.uid;
-
-    // Manejo de Firebase Auth desde el servidor (Admin SDK)
-    try {
-      const userRecord = await admin.auth().createUser({
-        email: user.email,
-        password: user.password
-      });
-      uid = userRecord.uid;
-    } catch (authError) {
-      if (authError.code === 'auth/email-already-exists') {
-        // Si el usuario ya existe (ej. por Google Sign-In), obtenemos su UID
-        const existingUser = await admin.auth().getUserByEmail(user.email);
-        uid = existingUser.uid;
-      } else {
-        throw authError;
-      }
-    }
-
-    // Actualizar el estado en la base de datos
-    await userRef.update({
-      status: 'aprobado',
-      uid: uid,
-      verificationCode: ''
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Cuenta aprobada con éxito.'
-    });
 
   } catch (error) {
     console.error('Error al verificar código WhatsApp:', error);
@@ -439,59 +486,130 @@ async function verifyWhatsAppCode(body, res) {
 // DESARROLLO DE LA FUNCIÓN 6: iniciarCobroVenta (CÓDIGO SERVIDOR)
 // =========================================================================
 async function iniciarCobroVenta(body, res) {
-  const { sellerPhone, buyerPhone, montoUSD, metodo } = body;
+  const payloadData = body.payload || body;
+  const { sellerPhone, buyerPhone, montoUSD, metodo } = payloadData;
 
   if (!sellerPhone || !buyerPhone || !montoUSD) {
-    return res.status(400).json({ error: 'Faltan parámetros requeridos (sellerPhone, buyerPhone, montoUSD).' });
+    return res.status(400).json({ error: 'Faltan parámetros requeridos.' });
   }
 
-  // 1. Consultar si el comprador existe
-  const buyerSnap = await db.ref(`users/${buyerPhone}`).once('value');
-  if (!buyerSnap.exists()) {
-    return res.status(404).json({ error: 'El comprador no existe en la base de datos.' });
+  if (montoUSD < 0.10 || montoUSD > 20) {
+    return res.status(400).json({ error: 'Monto inválido (Mínimo $0.10 y Máximo $20).' });
   }
-  
-  // 2. Validar si la cuenta está congelada (pagos vencidos)
-  const pendingSnap = await db.ref(`pending_payments/${buyerPhone}`).once('value');
-  let cuentaCongelada = false;
-  const ahora = Date.now();
-  
-  if (pendingSnap.exists()) {
-    pendingSnap.forEach(deuda => {
-      if (deuda.val().expiresAt && ahora > deuda.val().expiresAt) {
-        cuentaCongelada = true;
-      }
+
+  try {
+    // 1. Consultar si el comprador existe y validar el rol (Igual al frontend)
+    const buyerSnap = await db.ref(`users/${buyerPhone}`).once('value');
+    if (!buyerSnap.exists() || buyerSnap.val().role !== 'comprador') {
+      return res.status(404).json({ error: 'El teléfono ingresado no corresponde a un comprador registrado.' });
+    }
+    
+    // 2. Validar si la cuenta está congelada (pagos vencidos)
+    const pendingSnap = await db.ref(`pending_payments/${buyerPhone}`).once('value');
+    let cuentaCongelada = false;
+    const ahora = Date.now();
+    
+    if (pendingSnap.exists()) {
+      pendingSnap.forEach(deuda => {
+        if (deuda.val().expiresAt && ahora > deuda.val().expiresAt) {
+          cuentaCongelada = true;
+        }
+      });
+    }
+
+    if (cuentaCongelada) {
+      return res.status(403).json({ cuentaCongelada: true, error: 'El usuario tiene pagos pendientes vencidos.' });
+    }
+   
+    // 3. Generar código exacto de 6 dígitos
+    const codigoSeguro = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 4. Crear la transacción en la base de datos usando admin.database()
+    const txRef = db.ref('transactions').push();
+    const txId = txRef.key;
+
+    const nuevaTransaccion = {
+      sellerPhone: sellerPhone,
+      buyerPhone: buyerPhone,
+      amountUSD: parseFloat(montoUSD),
+      method: metodo || 'digital',
+      code: codigoSeguro,
+      status: 'esperando_codigo',
+      timestamp: admin.database.ServerValue.TIMESTAMP
+    };
+
+    await txRef.set(nuevaTransaccion);
+
+    // 5. Retornar el ID de transacción al frontend
+    return res.status(200).json({
+      success: true,
+      txId: txId,
+      message: 'Cobro iniciado correctamente.'
     });
+  } catch (error) {
+    console.error('Error en iniciarCobroVenta UVI 6:', error);
+    return res.status(500).json({ error: 'Error interno del servidor al iniciar el cobro.' });
+  }
+}
+
+// =========================================================================
+// DESARROLLO DE LA FUNCIÓN 7: cancelRegistrationProcess (CÓDIGO SERVIDOR)
+// =========================================================================
+async function cancelRegistrationProcess(body, res) {
+  const payloadData = body.payload || body;
+  const { phone } = payloadData;
+
+  if (!phone) {
+    return res.status(400).json({ error: 'Falta el número de teléfono para cancelar el registro.' });
   }
 
-  if (cuentaCongelada) {
-    return res.status(403).json({ cuentaCongelada: true, error: 'El usuario tiene pagos pendientes vencidos.' });
+  try {
+    // Usando admin.database() para eliminar el registro de forma segura desde el backend
+    const userRef = db.ref(`users/${phone}`);
+    const userSnap = await userRef.once('value');
+
+    if (userSnap.exists()) {
+      await userRef.remove();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Proceso de registro cancelado exitosamente.'
+    });
+  } catch (error) {
+    console.error("Error en UVI 7 cancelRegistrationProcess:", error);
+    return res.status(500).json({ error: 'Error interno del servidor al cancelar el registro.' });
+  }
+}
+
+// =========================================================================
+// DESARROLLO DE LA FUNCIÓN 8: anularTransaccion (CÓDIGO SERVIDOR)
+// =========================================================================
+async function anularTransaccion(body, res) {
+  const payloadData = body.payload || body;
+  const { transactionId } = payloadData;
+
+  if (!transactionId) {
+    return res.status(400).json({ error: 'Falta el ID de la transacción para anular.' });
   }
 
-  // 3. Generar código exacto de 6 dígitos usando matemáticas seguras
-  const codigoSeguro = Math.floor(100000 + Math.random() * 900000).toString();
+  try {
+    const txRef = db.ref(`transactions/${transactionId}`);
+    const txSnapshot = await txRef.once('value');
 
-  // 4. Crear la transacción en la base de datos usando admin.database()
-  const txRef = db.ref('transactions').push();
-  const txId = txRef.key;
+    if (!txSnapshot.exists()) {
+      return res.status(404).json({ error: 'La transacción no existe.' });
+    }
 
-  const nuevaTransaccion = {
-    amountUSD: parseFloat(montoUSD),
-    buyerPhone: buyerPhone,
-    sellerPhone: sellerPhone,
-    method: metodo || 'digital',
-    status: 'esperando_codigo',
-    code: codigoSeguro, 
-    verificationCode: codigoSeguro, // Emparejado para confirmarTransaccionVendedor
-    timestamp: admin.database.ServerValue.TIMESTAMP
-  };
+    // Usando admin.database() para anular desde el servidor
+    await txRef.update({ status: 'anulada' });
 
-  await txRef.set(nuevaTransaccion);
-
-  // 5. Retornar el ID de transacción al frontend (QuickEdit)
-  return res.status(200).json({
-    success: true,
-    txId: txId,
-    message: 'Cobro iniciado correctamente.'
-  });
+    return res.status(200).json({
+      success: true,
+      message: 'Transacción anulada exitosamente.'
+    });
+  } catch (error) {
+    console.error("Error en UVI 8 anularTransaccion:", error);
+    return res.status(500).json({ error: 'Error interno del servidor al anular la transacción.' });
+  }
 }

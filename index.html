@@ -810,6 +810,8 @@
             }, 1200);
 
             listenToApprovedUsersCount();
+        
+            listenToExchangeRate();
         });
 
         // Toggle visibility of passwords
@@ -924,8 +926,8 @@
                 showCustomModal("Error al iniciar con Google: " + error.message, "ERROR");
             });
         }
-        // Submit Registration Form con Firebase Auth UID integrado
-        function handleRegistrationSubmit() {
+        // Submit Registration Form con Firebase Auth UID integrado (MIGRADO A VERCEL UVI 4)
+        async function handleRegistrationSubmit() {
             const role = document.getElementById('reg-role').value;
             const firstname = document.getElementById('reg-firstname').value.trim();
             const lastname = document.getElementById('reg-lastname').value.trim();
@@ -977,44 +979,45 @@
                 auth.currentUser.updatePassword(pass).catch(e => console.log("Password update:", e));
             }
 
-            // Guardamos temporalmente en la base de datos a través de Vercel
-            const uid = document.getElementById('reg-uid').value || 'por_asignar';
-            
-            fetch('/api', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    action: 'handleRegistrationSubmit',
-                    payload: {
-                        uid: uid,
-                        role: role,
-                        firstname: firstname,
-                        lastname: lastname,
-                        dob: dob,
-                        location: location,
-                        phone: cleanPhone,
-                        bank: bank,
-                        idImage: idBase64,
-                        faceImage: faceBase64,
-                        email: email,
-                        password: pass
-                    }
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
+            const payload = {
+                action: 'handleRegistrationSubmit',
+                payload: {
+                    uid: document.getElementById('reg-uid').value || 'por_asignar',
+                    role: role,
+                    firstname: firstname,
+                    lastname: lastname,
+                    dob: dob,
+                    location: location,
+                    phone: cleanPhone,
+                    bank: role === 'vendedor' ? bank : '',
+                    idImage: idBase64,
+                    faceImage: faceBase64,
+                    email: email,
+                    password: pass
+                }
+            };
+
+            try {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
                     showCustomModal("Solicitud enviada exitosamente. Espera el mensaje de verificación en WhatsApp.", "SOLICITUD RECIBIDA");
                     listenForPreApprovalCode(cleanPhone);
                 } else {
-                    showCustomModal(data.error || "Error al enviar la solicitud.");
+                    showCustomModal(result.error || "Error al enviar la solicitud de registro.");
                 }
-            })
-            .catch(err => {
-                showCustomModal("Error de conexión con el servidor: " + err.message);
-            });
+            } catch (error) {
+                showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+                console.error("Vercel Fetch Error:", error);
+            }
         }
 
         // Listen for Admin Pre-Approval WhatsApp Code
@@ -1030,50 +1033,83 @@
             });
         }
 
-        // Verify WhatsApp 6-digit Code (Llamada Serverless a Vercel)
+        // Verify WhatsApp 6-digit Code (MIGRADO A VERCEL UVI 5)
         async function verifyWhatsAppCode() {
             const inputCode = document.getElementById('verification-code-input').value.trim();
             const phone = window.activeUserPhoneReg;
 
             if (!phone) return;
-            
-            if (!inputCode) {
-                showCustomModal("Por favor, ingresa el código de verificación.");
+
+            if (inputCode === '') {
+                showCustomModal("Por favor ingresa el código de verificación.");
                 return;
             }
 
+            const payload = {
+                action: 'verifyWhatsAppCode',
+                payload: {
+                    phone: phone,
+                    inputCode: inputCode
+                }
+            };
+
             try {
-                const response = await fetch('/api', {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        action: 'verifyWhatsAppCode',
-                        phone: phone,
-                        inputCode: inputCode
-                    })
+                    body: JSON.stringify(payload)
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (response.ok && data.success) {
-                    auth.signOut();
+                if (response.ok && result.success) {
+                    if (auth.currentUser) {
+                        auth.signOut();
+                    }
                     document.getElementById('modal-verification-code').classList.remove('active');
-                    showCustomModal("¡Tu cuenta ha sido aprobada con éxito! Ya puedes ingresar con tu número y contraseña.", "¡FELICITACIONES!");
+                    showCustomModal(result.message, "¡FELICITACIONES!");
                     switchView('view-login');
                 } else {
-                    showCustomModal(data.error || "El código de verificación ingresado es incorrecto.");
+                    showCustomModal(result.error || "El código de verificación ingresado es incorrecto.");
                 }
-            } catch (err) {
-                showCustomModal("Error de conexión con el servidor: " + err.message);
+            } catch (error) {
+                showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+                console.error("Vercel Fetch Error:", error);
             }
         }
 
-        function cancelRegistrationProcess() {
+        async function cancelRegistrationProcess() {
             if (window.activeUserPhoneReg) {
-                db.ref('users/' + window.activeUserPhoneReg).remove();
+                const payload = {
+                    action: 'cancelRegistrationProcess',
+                    payload: {
+                        phone: window.activeUserPhoneReg
+                    }
+                };
+
+                try {
+                    const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        window.activeUserPhoneReg = null;
+                    } else {
+                        showCustomModal(result.error || "Error al cancelar el registro.");
+                    }
+                } catch (error) {
+                    console.error("Vercel Fetch Error:", error);
+                }
             }
+            
             document.getElementById('modal-verification-code').classList.remove('active');
             switchView('view-login');
         }
@@ -1117,7 +1153,6 @@
                     });
 
                     listenToActiveTransactions(phone);
-                    listenToExchangeRate();
 
                     if (user.role === 'comprador') {
                         switchView('view-buyer-dashboard');
@@ -1270,32 +1305,38 @@
                 return;
             }
 
+            const payload = {
+                action: 'submitRetiroRequest',
+                payload: {
+                    phone: currentUserData.phone,
+                    amountUSD: monto
+                }
+            };
+
             try {
-                const response = await fetch('/api', {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        action: 'submitRetiroRequest',
-                        phone: currentUserData.phone,
-                        amountUSD: monto
-                    })
+                    body: JSON.stringify(payload)
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (response.ok && data.success) {
+                if (response.ok && result.success) {
                     closeModal('modal-retirar');
                     document.getElementById('retiro-monto-usd').value = '';
-                    showCustomModal(data.message, "SOLICITUD REGISTRADA");
+                    showCustomModal(result.message, "SOLICITUD REGISTRADA");
                 } else {
-                    showCustomModal(data.error || "Error al solicitar retiro.");
+                    showCustomModal(result.error || "Error al procesar la solicitud de retiro.");
                 }
             } catch (error) {
-                showCustomModal("Error de conexión con el servidor: " + error.message);
+                showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+                console.error("Vercel Fetch Error:", error);
             }
         }
+
         // Ver Lista de Retiros Pendientes/Rechazados
         function openRetirosPendientesModal() {
             db.ref('retiros').orderByChild('sellerPhone').equalTo(currentUserData.phone).once('value', snapshot => {
@@ -1325,7 +1366,7 @@
             document.getElementById('modal-crear-venta').classList.add('active');
         }
 
-        async function iniciarCobroVenta() {
+                async function iniciarCobroVenta() {
             const buyerPhone = document.getElementById('venta-buyer-phone').value.trim().replace(/\s+/g, '');
             const montoUSD = parseFloat(document.getElementById('venta-monto-usd').value);
             const metodo = document.getElementById('venta-metodo').value;
@@ -1335,25 +1376,29 @@
                 return;
             }
 
+            const payload = {
+                action: 'iniciarCobroVenta',
+                payload: {
+                    sellerPhone: currentUserData.phone,
+                    buyerPhone: buyerPhone,
+                    montoUSD: montoUSD,
+                    metodo: metodo
+                }
+            };
+
             try {
-                const response = await fetch('/api', {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        action: 'iniciarCobroVenta',
-                        sellerPhone: currentUserData.phone,
-                        buyerPhone: buyerPhone,
-                        montoUSD: montoUSD,
-                        metodo: metodo
-                    })
+                    body: JSON.stringify(payload)
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (response.ok && data.success) {
-                    activeTxId = data.txId;
+                if (response.ok && result.success) {
+                    activeTxId = result.txId;
                     closeModal('modal-crear-venta');
                     
                     document.getElementById('dynamic-code-text').innerText = `Venta a ${buyerPhone} por $${montoUSD.toFixed(2)}. Ingrese el código de 6 dígitos que ve el cliente:`;
@@ -1361,15 +1406,17 @@
                     document.getElementById('buyer-code-display').style.display = 'none';
                     document.getElementById('btn-confirm-tx').style.display = 'block';
                     document.getElementById('modal-dynamic-code').classList.add('active');
-                } else if (data.cuentaCongelada) {
+                } else if (result.cuentaCongelada) {
                     document.getElementById('modal-cuenta-congelada').classList.add('active');
                 } else {
-                    showCustomModal(data.error || "Error al procesar la solicitud de cobro.");
+                    showCustomModal(result.error || "Error al iniciar el cobro.");
                 }
             } catch (error) {
-                showCustomModal("Error de conexión con el servidor: " + error.message);
+                showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+                console.error("Vercel Fetch Error:", error);
             }
         }
+
 
         // Real-time listener for buyer & seller active transactions
         function listenToActiveTransactions(phone) {
@@ -1398,7 +1445,7 @@
             });
         }
 
-        // Confirmar transacción conectando a la API Serverless en Vercel
+        // Corrección de confirmación de transacción y reset de variable activeTxId (MIGRADO A VERCEL)
 async function confirmarTransaccionVendedor() {
     const enteredCode = document.getElementById('tx-code-seller-input').value.trim();
     if (!activeTxId) return;
@@ -1408,44 +1455,74 @@ async function confirmarTransaccionVendedor() {
         return;
     }
 
+    const payload = {
+        action: 'confirmarTransaccionVendedor',
+        payload: {
+            transactionId: activeTxId,
+            inputCode: enteredCode,
+            sellerPhone: currentUserData.phone
+        }
+    };
+
     try {
-        const response = await fetch('/api', {
+        const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                action: 'confirmarTransaccionVendedor',
-                transactionId: activeTxId,
-                activeTxId: activeTxId,
-                inputCode: enteredCode,
-                enteredCode: enteredCode,
-                sellerPhone: currentUserData ? currentUserData.phone : ''
-            })
+            body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
+        const result = await response.json();
 
-        if (response.ok && data.success) {
+        if (response.ok && result.success) {
             document.getElementById('modal-dynamic-code').classList.remove('active');
             document.getElementById('tx-code-seller-input').value = '';
-            activeTxId = null;
-            showCustomModal(data.message || "¡Venta procesada exitosamente!", "ÉXITO");
+            activeTxId = null; // Reset necesario para evitar colisión
+            showCustomModal("¡Venta procesada exitosamente!", "ÉXITO");
         } else {
-            showCustomModal(data.error || "Error al procesar la transacción.");
+            showCustomModal(result.error || "Error al procesar la venta.");
         }
     } catch (error) {
-        showCustomModal("Error de conexión con el servidor: " + error.message);
+        showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+        console.error("Vercel Fetch Error:", error);
     }
 }
 
-        function anularTransaccion() {
-            if (activeTxId) {
-                db.ref('transactions/' + activeTxId).update({ status: 'anulada' });
+                async function anularTransaccion() {
+            if (!activeTxId) return;
+
+            const payload = {
+                action: 'anularTransaccion',
+                payload: {
+                    transactionId: activeTxId
+                }
+            };
+
+            try {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    document.getElementById('modal-dynamic-code').classList.remove('active');
+                    showCustomModal("Transacción anulada.");
+                    activeTxId = null; 
+                } else {
+                    showCustomModal(result.error || "Error al anular la transacción.");
+                }
+            } catch (error) {
+                showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+                console.error("Vercel Fetch Error:", error);
             }
-            document.getElementById('modal-dynamic-code').classList.remove('active');
-            showCustomModal("Transacción anulada.");
         }
+
 
         // Sistema de Reputación Visual
         function verReputacionComprador() {
@@ -1521,39 +1598,46 @@ async function confirmarTransaccionVendedor() {
             });
         }
 
-        async function payPendingDebt(key, amountUSD) {
+
+async function payPendingDebt(key, amountUSD) {
             if (currentUserData.balanceUSD < amountUSD) {
                 showCustomModal("Saldo insuficiente para cancelar la deuda. Por favor recarga saldo.");
                 return;
             }
 
+            const payload = {
+                action: 'payPendingDebt',
+                payload: {
+                    phone: currentUserData.phone,
+                    key: key,
+                    amountUSD: amountUSD
+                }
+            };
+
             try {
-                const response = await fetch('/api', {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        action: 'payPendingDebt',
-                        phone: currentUserData.phone,
-                        key: key,
-                        amountUSD: amountUSD
-                    })
+                    body: JSON.stringify(payload)
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (response.ok && data.success) {
+                if (response.ok && result.success) {
                     closeModal('modal-list-view');
-                    showCustomModal(data.message || "¡Deuda saldada exitosamente! Tu línea de crédito ha sido restablecida.", "PAGO DE DEUDA");
+                    showCustomModal(result.message, "PAGO DE DEUDA");
                 } else {
-                    showCustomModal(data.error || "Error al procesar el pago de la deuda.");
+                    showCustomModal(result.error || "Error al pagar la deuda.");
                 }
             } catch (error) {
-                showCustomModal("Error de conexión con el servidor: " + error.message);
+                showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+                console.error("Vercel Fetch Error:", error);
             }
         }
-
+ 
+        
         function openCompletedPaymentsModal() {
             db.ref('transactions').orderByChild('buyerPhone').equalTo(currentUserData.phone).once('value', snapshot => {
                 let html = '';
@@ -1584,7 +1668,7 @@ async function confirmarTransaccionVendedor() {
                 document.getElementById('list-modal-content').innerHTML = html;
                 document.getElementById('modal-list-view').classList.add('active');
             });
-        }
+        } 
 
         function openUsuariosFrecuentesModal() {
             db.ref('frequent_clients/' + currentUserData.phone).once('value', snapshot => {

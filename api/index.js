@@ -9,6 +9,8 @@ if (!admin.apps.length) {
   });
 }
 
+
+
 const db = admin.database();
 
 export default async function handler(req, res) {
@@ -297,7 +299,7 @@ async function payPendingDebt(body, res) {
 // =========================================================================
 async function submitRetiroRequest(body, res) {
   const payloadData = body.payload || body;
-  const { phone, amountUSD } = payloadData;
+  const { phone, amountUSD, cedula } = payloadData;
 
   if (!phone || !amountUSD || amountUSD <= 0) {
     return res.status(400).json({ error: 'Faltan parámetros requeridos o monto inválido.' });
@@ -325,6 +327,7 @@ async function submitRetiroRequest(body, res) {
     updates[`retiros/${retiroRef.key}`] = {
         sellerPhone: phone,
         sellerName: userData.fullname || '',
+        cedula: cedula || userData.cedula || 'N/A',
         bankInfo: userData.bank || 'No especificado',
         amountUSD: amountUSD,
         status: 'pendiente',
@@ -349,12 +352,11 @@ async function submitRetiroRequest(body, res) {
 // =========================================================================
 async function handleRegistrationSubmit(body, res) {
   const payloadData = body.payload || body;
-  const { uid, role, firstname, lastname, dob, location, phone, bank, idImage, faceImage, email, password } = payloadData;
+  const { uid, role, firstname, lastname, cedula, dob, location, phone, bank, idImage, faceImage, email, password } = payloadData;
 
-  if (!firstname || !lastname || !dob || !location || !phone || !password || !email || !idImage || !faceImage) {
+  if (!firstname || !lastname || !cedula || !dob || !location || !phone || !password || !email || !idImage || !faceImage) {
     return res.status(400).json({ error: 'Por favor complete todos los campos obligatorios.' });
   }
-
   // Verificación de edad >= 18 en el servidor (Idéntica a la lógica del frontend)
   const birthDate = new Date(dob);
   const today = new Date();
@@ -382,6 +384,7 @@ async function handleRegistrationSubmit(body, res) {
       firstname: firstname,
       lastname: lastname,
       fullname: `${firstname} ${lastname}`,
+      cedula: cedula,
       dob: dob,
       location: location,
       phone: cleanPhone,

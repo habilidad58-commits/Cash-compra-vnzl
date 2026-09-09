@@ -13,6 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     
+    
     <style>
         :root {
             --bg-dark: #0b0f19;
@@ -455,6 +456,11 @@
                     <label>Apellidos</label>
                     <input type="text" id="reg-lastname" class="input-field" placeholder="Pérez">
                 </div>
+            </div>
+
+            <div class="input-group">
+                <label><i class="fa-solid fa-id-card"></i> Cédula de Identidad</label>
+                <input type="text" id="reg-cedula" class="input-field" placeholder="Ej: 12345678">
             </div>
 
             <div class="input-group">
@@ -931,6 +937,7 @@
             const role = document.getElementById('reg-role').value;
             const firstname = document.getElementById('reg-firstname').value.trim();
             const lastname = document.getElementById('reg-lastname').value.trim();
+            const cedula = document.getElementById('reg-cedula').value.trim();
             const dob = document.getElementById('reg-dob').value;
             const location = document.getElementById('reg-location').value.trim();
             const phone = document.getElementById('reg-phone').value.trim();
@@ -941,7 +948,7 @@
             const pass = document.getElementById('reg-pass').value;
             const confirmPass = document.getElementById('reg-confirm-pass').value;
 
-            if (!firstname || !lastname || !dob || !location || !phone || !pass) {
+            if (!firstname || !lastname || !cedula || !dob || !location || !phone || !pass) {
                 showCustomModal("Por favor complete todos los campos obligatorios.");
                 return;
             }
@@ -986,6 +993,7 @@
                     role: role,
                     firstname: firstname,
                     lastname: lastname,
+                    cedula: cedula,
                     dob: dob,
                     location: location,
                     phone: cleanPhone,
@@ -1309,7 +1317,8 @@
                 action: 'submitRetiroRequest',
                 payload: {
                     phone: currentUserData.phone,
-                    amountUSD: monto
+                    amountUSD: monto,
+                    cedula: currentUserData.cedula || 'N/A'
                 }
             };
 

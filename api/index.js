@@ -85,6 +85,54 @@ export default async function handler(req, res) {
       case 'anularTransaccion':
         return await anularTransaccion(req.body, res);
 
+      // ==========================================================
+      // NUEVO: RETENCIÓN Y LIBERACIÓN DE SALDO
+      // ==========================================================
+      case 'iniciarRetencion': {
+        const { phone, montoUSD, dias } = payload;
+        const userRef = db.ref(`users/${phone}`);
+        const snap = await userRef.once('value');
+        const user = snap.val();
+        
+        if (!user || user.balanceUSD < montoUSD) {
+            return res.status(400).json({ success: false, error: 'Saldo insuficiente en su cuenta digital.' });
+        }
+        
+        // Tiempo exacto del servidor de Vercel + los días en milisegundos
+        const fechaLiberacion = Date.now() + (dias * 24 * 60 * 60 * 1000);
+        
+        await userRef.update({
+            balanceUSD: user.balanceUSD - montoUSD,
+            retencion: {
+                activa: true,
+                montoUSD: montoUSD,
+                liberacion: fechaLiberacion
+            }
+        });
+        
+        return res.status(200).json({ success: true });
+      }
+
+      case 'liberarRetencion': {
+        const { phone } = payload;
+        const userRef = db.ref(`users/${phone}`);
+        const snap = await userRef.once('value');
+        const user = snap.val();
+        
+        if (user && user.retencion && user.retencion.activa) {
+            if (Date.now() >= user.retencion.liberacion) {
+                await userRef.update({
+                    balanceUSD: (user.balanceUSD || 0) + user.retencion.montoUSD,
+                    retencion: null
+                });
+                return res.status(200).json({ success: true });
+            } else {
+                return res.status(400).json({ success: false, error: 'El cronómetro aún no ha terminado.' });
+            }
+        }
+        return res.status(200).json({ success: false });
+      }
+
       default:
 
      return res.status(400).json({ error: 'Acción no reconocida o no especificada.' });
@@ -160,7 +208,21 @@ async function confirmarTransaccionVendedor(body, res) {
     const diasPlazo = 2 + nivelComprador; 
     const plazoMs = diasPlazo * 24 * 60 * 60 * 1000;
 
-    if (tx.method === 'digital') {
+    
+if (tx.method === 'directo') {
+      if (buyerBal < amount) {
+        return res.status(400).json({ error: `COMPRA RECHAZADA: El cliente no posee saldo digital suficiente ($${amount.toFixed(2)} USD) para el Pago Directo.` });
+      }
+      let sellerPay = amount - commission;
+      if (sellerPay < 0) sellerPay = 0;
+      
+      updates[`users/${tx.buyerPhone}/balanceUSD`] = buyerBal - amount;
+      updates[`users/${tx.sellerPhone}/balanceUSD`] = sellerBal + sellerPay;
+      
+      // Sin deuda: la comisión pasa directo a la plataforma
+      updates[`commissions/neta_total`] = admin.database.ServerValue.increment(commission);
+
+    } else if (tx.method === 'digital') {
       if (buyerBal < half) {
         return res.status(400).json({ error: `El comprador no tiene suficiente saldo digital ($${half.toFixed(2)} USD).` });
       }
@@ -173,6 +235,23 @@ async function confirmarTransaccionVendedor(body, res) {
       updates[`users/${tx.buyerPhone}/balanceUSD`] = buyerBal - half;
       updates[`users/${tx.buyerPhone}/creditUSD`] = buyerCredit - half;
       updates[`users/${tx.sellerPhone}/balanceUSD`] = sellerBal + sellerPay;
+      
+      updates[`commissions/espera/${transactionId}`] = { 
+        amount: commission, 
+        txId: transactionId, 
+        timestamp: ahora,
+        buyerPhone: tx.buyerPhone,
+        buyerName: buyer.fullname,
+        expiresAt: ahora + plazoMs
+      };
+      updates[`pending_payments/${tx.buyerPhone}/${transactionId}`] = {
+        txId: transactionId,
+        amountUSD: half,
+        comisionTx: commission, 
+        status: 'pendiente',
+        timestamp: ahora,
+        expiresAt: ahora + plazoMs
+      };
     } else {
       if (buyerCredit < half) {
         return res.status(400).json({ error: 'El comprador no tiene suficiente crédito disponible.' });
@@ -182,31 +261,31 @@ async function confirmarTransaccionVendedor(body, res) {
       
       updates[`users/${tx.buyerPhone}/creditUSD`] = buyerCredit - half;
       updates[`users/${tx.sellerPhone}/balanceUSD`] = sellerBal + sellerDigitalShare;
+      
+      updates[`commissions/espera/${transactionId}`] = { 
+        amount: commission, 
+        txId: transactionId, 
+        timestamp: ahora,
+        buyerPhone: tx.buyerPhone,
+        buyerName: buyer.fullname,
+        expiresAt: ahora + plazoMs
+      };
+      updates[`pending_payments/${tx.buyerPhone}/${transactionId}`] = {
+        txId: transactionId,
+        amountUSD: half,
+        comisionTx: commission, 
+        status: 'pendiente',
+        timestamp: ahora,
+        expiresAt: ahora + plazoMs
+      };
     }
 
-    updates[`commissions/espera/${transactionId}`] = { 
-      amount: commission, 
-      txId: transactionId, 
-      timestamp: ahora,
-      buyerPhone: tx.buyerPhone,
-      buyerName: buyer.fullname,
-      expiresAt: ahora + plazoMs
-    };
-    updates[`pending_payments/${tx.buyerPhone}/${transactionId}`] = {
-      txId: transactionId,
-      amountUSD: half,
-      comisionTx: commission, 
-      status: 'pendiente',
-      timestamp: ahora,
-      expiresAt: ahora + plazoMs
-    };
     updates[`transactions/${transactionId}/status`] = 'completada';
     updates[`frequent_clients/${tx.sellerPhone}/${tx.buyerPhone}`] = {
       fullname: buyer.fullname,
       phone: buyer.phone,
       lastTx: ahora
     };
-
     // Usando admin.database() a través de 'db' para guardar los datos de forma segura
     await db.ref().update(updates);
 

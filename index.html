@@ -591,9 +591,14 @@
                 </button>
             </div>
 
-            <button class="neon-btn neon-btn-green" onclick="openRecargaModal()">
-                <i class="fa-solid fa-wallet"></i> RECARGAR SALDO
-            </button>
+            <div class="grid-2">
+                <button class="neon-btn neon-btn-green" onclick="openRecargaModal()">
+                    <i class="fa-solid fa-wallet"></i> RECARGAR SALDO
+                </button>
+                <button class="neon-btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);" onclick="openRetencionView()">
+                    <i class="fa-solid fa-lock"></i> RETENER SALDO
+                </button>
+            </div>
         </div>
     </div>
 
@@ -636,6 +641,52 @@
                 <button class="neon-btn" style="font-size:0.85rem; grid-column: span 2;" onclick="openRetirosPendientesModal()">
                     <i class="fa-solid fa-clock-rotate-left"></i> Historial de Retiros
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 5: BÓVEDA DE RETENCIÓN -->
+    <div id="view-retencion" class="view">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid rgba(139, 92, 246, 0.3); background: rgba(11, 15, 25, 0.95); position: sticky; top: 0; z-index: 10;">
+            <button onclick="switchView('view-buyer-dashboard')" style="background: none; border: none; color: #8b5cf6; font-size: 1.1rem; font-weight: bold; cursor: pointer;">
+                <i class="fa-solid fa-arrow-left"></i> REGRESAR
+            </button>
+            <div id="retencion-timer-display" style="color: var(--neon-green); font-family: 'Orbitron'; font-size: 1.2rem; font-weight: bold; text-shadow: 0 0 10px rgba(0,255,102,0.5); display: none;">
+                00:00:00
+            </div>
+        </div>
+
+        <div class="neon-card" style="border-color: rgba(139, 92, 246, 0.5); box-shadow: 0 0 25px rgba(139, 92, 246, 0.2);">
+            <h2 class="neon-title" style="color: #c4b5fd; text-shadow: 0 0 15px #8b5cf6; margin-bottom: 20px; font-size: 1.5rem;"><i class="fa-solid fa-vault"></i> BÓVEDA SEGURA</h2>
+            
+            <div id="retencion-form">
+                <div class="balance-card" style="border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1);">
+                    <div style="color: var(--text-light); font-size: 0.9rem; font-weight: bold;">SALDO DISPONIBLE PARA RETENER</div>
+                    <div class="val-large" id="ret-disp-usd" style="color: #c4b5fd;">$0.00 USD</div>
+                    <div class="val-sub" id="ret-disp-bs" style="color: #8b5cf6;">0.00 Bs</div>
+                </div>
+
+                <div class="input-group">
+                    <label style="color: #c4b5fd;">Monto a Retener (en Bs)</label>
+                    <input type="number" id="retencion-monto-bs" class="input-field" placeholder="0.00" style="border-color: #8b5cf6;">
+                </div>
+                
+                <div class="input-group">
+                    <label style="color: #c4b5fd;">Tiempo de Retención (Días)</label>
+                    <input type="number" id="retencion-dias" class="input-field" placeholder="Ej: 7" style="border-color: #8b5cf6;" min="1">
+                </div>
+                
+                <button class="neon-btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #5b21b6 100%); box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4);" onclick="iniciarRetencion()">
+                    <i class="fa-solid fa-lock"></i> BLOQUEAR SALDO AHORA
+                </button>
+            </div>
+
+            <div id="retencion-activa-info" style="display: none; text-align: center; padding: 10px 0;">
+                <i class="fa-solid fa-lock" style="font-size: 3.5rem; color: #8b5cf6; margin-bottom: 15px; text-shadow: 0 0 15px rgba(139,92,246,0.6);"></i>
+                <h3 style="color: #c4b5fd; margin-bottom: 10px; font-family: 'Orbitron';">SALDO PROTEGIDO</h3>
+                <div class="val-large" id="ret-activa-monto" style="color: #fff; margin-bottom: 5px;">$0.00 USD</div>
+                <div style="color: var(--text-dim); font-size: 0.95rem; margin-bottom: 15px;">Fecha de liberación calculada:<br><span id="ret-activa-fecha" style="color: #c4b5fd; font-weight: bold;">--</span></div>
+                <p style="color: #8b5cf6; font-size: 0.85rem;">Tu saldo se devolverá automáticamente a tu cuenta digital al finalizar el cronómetro superior.</p>
             </div>
         </div>
     </div>
@@ -700,7 +751,8 @@
             <div class="input-group">
                 <label>Método de Pago</label>
                 <select id="venta-metodo" class="input-field">
-                    <option value="digital">Pago Digital (Saldo/Crédito)</option>
+                    <option value="digital">Pago Digital (Saldo + Crédito)</option>
+                    <option value="directo">Pago Directo (Solo de su Saldo Digital)</option>
                     <option value="efectivo">Pago Efectivo</option>
                 </select>
             </div>
@@ -1210,6 +1262,11 @@
                 if(badge) badge.innerText = "NIVEL " + nivel;
                 if(plazoSpan) plazoSpan.innerText = (2 + nivel) + " Días";
 
+                // Si la vista de retención está activa, actualizarla para que vea el descuento instantáneo
+                if (document.getElementById('view-retencion').classList.contains('active')) {
+                    actualizarVistaRetencion();
+                }
+
                 // Verificar pagos pendientes vencidos para cambiar el diseño a rojo
                 db.ref('pending_payments/' + currentUserData.phone).once('value', snapshot => {
                     let cuentaCongelada = false;
@@ -1273,6 +1330,126 @@
                 nextActionCallback();
             };
         }
+
+        // --- INICIO LÓGICA DE RETENCIÓN DE SALDO ---
+        let retencionInterval = null;
+
+        function openRetencionView() {
+            switchView('view-retencion');
+            actualizarVistaRetencion();
+        }
+
+        function actualizarVistaRetencion() {
+            if (!currentUserData) return;
+            const balUSD = parseFloat(currentUserData.balanceUSD || 0);
+            const balBs = (balUSD * currentTasa).toFixed(2);
+            
+            document.getElementById('ret-disp-usd').innerText = "$" + balUSD.toFixed(2) + " USD";
+            document.getElementById('ret-disp-bs').innerText = balBs + " Bs";
+
+            if (currentUserData.retencion && currentUserData.retencion.activa) {
+                document.getElementById('retencion-form').style.display = 'none';
+                document.getElementById('retencion-activa-info').style.display = 'block';
+                document.getElementById('retencion-timer-display').style.display = 'block';
+                
+                document.getElementById('ret-activa-monto').innerText = "$" + parseFloat(currentUserData.retencion.montoUSD).toFixed(2) + " USD";
+                
+                const fechaLib = new Date(currentUserData.retencion.liberacion);
+                document.getElementById('ret-activa-fecha').innerText = fechaLib.toLocaleDateString() + " a las " + fechaLib.toLocaleTimeString();
+                
+                iniciarCronometroVisual(currentUserData.retencion.liberacion);
+            } else {
+                document.getElementById('retencion-form').style.display = 'block';
+                document.getElementById('retencion-activa-info').style.display = 'none';
+                document.getElementById('retencion-timer-display').style.display = 'none';
+                if (retencionInterval) clearInterval(retencionInterval);
+            }
+        }
+
+        function iniciarCronometroVisual(fechaFinMs) {
+            if (retencionInterval) clearInterval(retencionInterval);
+            const timerDisplay = document.getElementById('retencion-timer-display');
+            
+            retencionInterval = setInterval(() => {
+                const ahora = Date.now();
+                const diff = fechaFinMs - ahora;
+                
+                if (diff <= 0) {
+                    clearInterval(retencionInterval);
+                    timerDisplay.innerText = "LIBERADO";
+                    timerDisplay.style.color = "var(--neon-green)";
+                    liberarRetencionVencida(); 
+                    return;
+                }
+                
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                timerDisplay.innerText = `${d}D ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        async function iniciarRetencion() {
+            const montoBs = parseFloat(document.getElementById('retencion-monto-bs').value);
+            const dias = parseInt(document.getElementById('retencion-dias').value);
+            
+            if (!montoBs || montoBs <= 0) {
+                showCustomModal("Ingrese un monto válido en Bolívares.");
+                return;
+            }
+            if (!dias || dias <= 0) {
+                showCustomModal("Ingrese una cantidad de días válida.");
+                return;
+            }
+
+            const montoUSD = montoBs / currentTasa;
+            if (montoUSD > currentUserData.balanceUSD) {
+                showCustomModal("El monto a retener supera su saldo digital disponible.");
+                return;
+            }
+
+            const payload = {
+                action: 'iniciarRetencion',
+                payload: {
+                    phone: currentUserData.phone,
+                    montoUSD: montoUSD,
+                    dias: dias
+                }
+            };
+
+            try {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showCustomModal("Saldo retenido exitosamente. Se ha descontado de tu saldo principal y protegido en la bóveda.", "BÓVEDA ACTIVA");
+                    document.getElementById('retencion-monto-bs').value = '';
+                    document.getElementById('retencion-dias').value = '';
+                } else {
+                    showCustomModal(result.error || "Error al retener saldo.");
+                }
+            } catch (error) {
+                showCustomModal("Error de conexión: " + error.message);
+            }
+        }
+
+        async function liberarRetencionVencida() {
+            const payload = { action: 'liberarRetencion', payload: { phone: currentUserData.phone } };
+            try {
+                await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (e) { console.error("Error liberando retención:", e); }
+        }
+        // --- FIN LÓGICA DE RETENCIÓN ---
 
         // Recarga WhatsApp link
         function openRecargaModal() {

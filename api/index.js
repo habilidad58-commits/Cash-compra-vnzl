@@ -1,697 +1,1878 @@
-const admin = require('firebase-admin');
-
-// Inicialización segura del Firebase Admin SDK
-if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: process.env.FIREBASE_DATABASE_URL
-  });
-}
-
-
-
-const db = admin.database();
-
-export default async function handler(req, res) {
-  // Configuración de cabeceras CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
-
-  // Manejo de petición preliminar CORS
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método no permitido. Utiliza POST.' });
-  }
-
-  const { action, payload } = req.body;
-
-  try {
-    switch (action) {
-      // ==========================================================
-      // UVI 1: CONFIRMAR TRANSACCIÓN VENDEDOR
-      // ==========================================================
-      case 'confirmarTransaccionVendedor':
-        return await confirmarTransaccionVendedor(req.body, res);
-
-      // ==========================================================
-      // UVI 2: PAGAR DEUDA PENDIENTE (Siguiente a migrar)
-      // ==========================================================
-      case 'payPendingDebt':
-        return await payPendingDebt(req.body, res);
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash-Compra - Plataforma Micro-Crédito</title>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     
-// ==========================================================
-      // UVI 3: SOLICITAR RETIRO (MIGRADÓ A SERVIDOR)
-      // ==========================================================
-      case 'submitRetiroRequest':
-        return await submitRetiroRequest(req.body, res);
-
-  // ==========================================================
-      // UVI 4: REGISTRO DE USUARIOS (Siguiente a migrar)
-      // ==========================================================
-      case 'handleRegistrationSubmit':
-        return await handleRegistrationSubmit(req.body, res);
-  
-      // ==========================================================
-      // UVI 5: VERIFICAR CÓDIGO WHATSAPP
-      // ==========================================================
-      case 'verifyWhatsAppCode':
-        return await verifyWhatsAppCode(req.body, res);
-
-   
-         // ==========================================================
-      // UVI 6: INICIAR COBRO DE VENTA
-      // ==========================================================
-      case 'iniciarCobroVenta':
-        return await iniciarCobroVenta(req.body, res);
-
-      // ==========================================================
-      // UVI 7: CANCELAR PROCESO DE REGISTRO
-      // ==========================================================
-      case 'cancelRegistrationProcess':
-        return await cancelRegistrationProcess(req.body, res);
-
-      // ==========================================================
-      // UVI 8: ANULAR TRANSACCIÓN
-      // ==========================================================
-      case 'anularTransaccion':
-        return await anularTransaccion(req.body, res);
-
-      // ==========================================================
-      // NUEVO: RETENCIÓN Y LIBERACIÓN DE SALDO
-      // ==========================================================
-      case 'iniciarRetencion': {
-        const { phone, montoUSD, dias } = payload;
-        const userRef = db.ref(`users/${phone}`);
-        const snap = await userRef.once('value');
-        const user = snap.val();
-        
-        if (!user || user.balanceUSD < montoUSD) {
-            return res.status(400).json({ success: false, error: 'Saldo insuficiente en su cuenta digital.' });
+    
+    <style>
+        :root {
+            --bg-dark: #0b0f19;
+            --card-bg: rgba(15, 23, 42, 0.85);
+            --neon-green: #10b981;
+            --neon-cyan: #3b82f6;
+            --neon-pink: #f43f5e;
+            --neon-amber: #f59e0b;
+            --text-light: #f8fafc;
+            --text-dim: #94a3b8;
+            --border-glow: rgba(59, 130, 246, 0.3);
         }
-        
-        // Tiempo exacto del servidor de Vercel + los días en milisegundos
-        const fechaLiberacion = Date.now() + (dias * 24 * 60 * 60 * 1000);
-        
-        await userRef.update({
-            balanceUSD: user.balanceUSD - montoUSD,
-            retencion: {
-                activa: true,
-                montoUSD: montoUSD,
-                liberacion: fechaLiberacion
-            }
-        });
-        
-        return res.status(200).json({ success: true });
-      }
 
-      case 'liberarRetencion': {
-        const { phone } = payload;
-        const userRef = db.ref(`users/${phone}`);
-        const snap = await userRef.once('value');
-        const user = snap.val();
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Rajdhani', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #0f172a 0%, #0b0f19 100%);
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px 10px; 
+            overflow-x: hidden;
+            overflow-y: auto; 
+        }
+
+        /* Neon UI Elements */
+        .neon-title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan), 0 0 30px var(--neon-cyan);
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .neon-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 16px;
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.15), inset 0 0 15px rgba(0, 243, 255, 0.05);
+            backdrop-filter: blur(12px);
+            padding: 24px;
+            width: 100%;
+            max-width: 450px;
+            margin: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .neon-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.05rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 10px;
+            padding: 14px 20px;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.2);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .neon-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.6);
+        }
+
+        .neon-btn-green {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+            color: #fff;
+        }
+
+        .neon-btn-danger {
+            background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+            color: #fff;
+            box-shadow: 0 5px 15px rgba(244, 63, 94, 0.4);
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--neon-cyan);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+
+        .pass-wrapper {
+            position: relative;
+        }
+
+        .toggle-pass {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--text-dim);
+        }
+
+        /* Splash Screen */
+        #splash-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-dark);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+
+        .loader-ring {
+            width: 100px;
+            height: 100px;
+            border: 4px solid rgba(0, 243, 255, 0.1);
+            border-top: 4px solid var(--neon-cyan);
+            border-right: 4px solid var(--neon-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Views management */
+        .view {
+            display: none;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* Custom Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            z-index: 8000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+
+        #custom-modal {
+            z-index: 99999 !important; 
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-box {
+            background: var(--card-bg);
+            border: 1px solid var(--neon-cyan);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 0 30px rgba(0,243,255,0.3);
+            text-align: center;
+        }
+
+        /* Badges & Stats */
+        .badge-counter {
+            background: rgba(0, 255, 102, 0.1);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: inline-block;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+
+        .balance-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(0, 255, 102, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .balance-card.credit {
+            border-color: rgba(0, 243, 255, 0.4);
+        }
+
+        .val-large {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+            margin: 5px 0;
+        }
+
+        .val-sub {
+            color: var(--neon-green);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .google-verified-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: rgba(0,255,102,0.2);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            display: none;
+        }
+
+        .file-preview {
+            max-width: 100%;
+            max-height: 120px;
+            border-radius: 8px;
+            border: 1px solid var(--neon-cyan);
+            margin-top: 8px;
+            display: none;
+        }
+
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .user-info-text {
+            text-align: right;
+        }
+
+        .user-info-text .phone {
+            font-weight: 700;
+            color: var(--neon-cyan);
+            font-size: 1.1rem;
+        }
+
+        .user-info-text .fullname {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .hidden-uid {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="loader-ring"></div>
+        <h2 class="neon-title" style="margin-top: 20px; font-size: 1.5rem;">CASH-COMPRA</h2>
+        <p style="color: var(--neon-cyan); font-size: 0.9rem; margin-top: 8px;">Cargando sistema seguro...</p>
+    </div>
+
+    <!-- Notification Toast / Custom Modal -->
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modal-title" style="color: var(--neon-cyan); margin-bottom: 10px; font-family:'Orbitron';">NOTIFICACIÓN</h3>
+            <p id="modal-msg" style="color: var(--text-light); margin-bottom: 20px; font-size: 1.05rem;"></p>
+            <button class="neon-btn" onclick="closeCustomModal()">ACEPTAR</button>
+        </div>
+    </div>
+
+    <!-- VIEW 0: WELCOME / PUBLICIDAD -->
+    <div id="view-welcome" class="view active" style="max-width: 100%; margin: -20px -10px; padding: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid rgba(0, 243, 255, 0.1); background: rgba(11, 15, 25, 0.95); position: sticky; top: 0; z-index: 10;">
+            <div class="neon-title" style="font-size: 1.2rem; margin: 0; text-align: left;">
+                <i class="fa-solid fa-wallet" style="color: var(--neon-green);"></i> CASH
+            </div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <span style="color: var(--text-light); font-weight: 600; font-size: 0.95rem; cursor: pointer;" onclick="switchView('view-login')">Entrar</span>
+                <button class="neon-btn neon-btn-green" style="margin: 0; padding: 8px 16px; font-size: 0.85rem; width: auto; border-radius: 8px;" onclick="startGoogleRegistration()">Registro</button>
+            </div>
+        </div>
+
+        <div style="text-align: center; padding: 40px 15px; display: flex; flex-direction: column; align-items: center; overflow: hidden;">
+            <h1 class="neon-title" style="font-size: 2.3rem; line-height: 1.2; margin-bottom: 15px; text-shadow: 0 0 15px rgba(0, 243, 255, 0.4);">Descubre la libertad de tu saldo digital</h1>
+            <p style="color: var(--text-dim); font-size: 1.05rem; margin-bottom: 30px; max-width: 400px;">La plataforma más rápida y segura para tus micro-créditos y compras diarias.</p>
+            
+            <div style="position: relative; margin-top: 10px; width: 280px; height: 550px; background: var(--bg-dark); border: 8px solid #1e293b; border-radius: 40px; box-shadow: 0 20px 50px rgba(0, 243, 255, 0.2), inset 0 0 20px rgba(0,0,0,0.8); overflow: hidden; transform: perspective(1000px) rotateX(15deg) rotateY(-12deg) rotateZ(3deg); transition: transform 0.5s ease;">
+                <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 25px; background: #1e293b; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; z-index: 2;"></div>
+                
+                <div style="padding: 40px 15px 15px; height: 100%; display: flex; flex-direction: column; background: radial-gradient(circle at top, rgba(15,23,42,1) 0%, rgba(11,15,25,1) 100%); pointer-events: none;">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div style="width: 35px; height: 35px; border-radius: 50%; background: rgba(244,63,94,0.1); border: 1px solid var(--neon-pink); display: flex; justify-content: center; align-items: center;">
+                            <i class="fa-solid fa-power-off" style="color: var(--neon-pink); font-size: 0.8rem;"></i>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.85rem; color: var(--neon-cyan); font-weight: bold;">0412-XXXXXXX</div>
+                            <div style="font-size: 0.7rem; color: var(--text-light);">Cargando...</div>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(0, 255, 102, 0.3); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px;">
+                        <div style="font-size: 0.7rem; color: var(--text-dim);">SALDO DISPONIBLE DIGITAL</div>
+                        <div style="font-family: 'Orbitron'; font-size: 1.5rem; font-weight: 700; color: #fff; margin: 5px 0;">$150.00 USD</div>
+                        <div style="color: var(--neon-green); font-size: 0.95rem; font-weight: 600;">5,400.00 Bs</div>
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(0, 243, 255, 0.4); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px;">
+                        <div style="font-size: 0.7rem; color: var(--neon-cyan); font-weight:700;">LÍNEA DE CRÉDITO</div>
+                        <div style="font-family: 'Orbitron'; font-size: 1.5rem; font-weight: 700; color: var(--neon-cyan); margin: 5px 0;">$50.00 USD</div>
+                    </div>
+
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); height: 45px; border-radius: 10px; display: flex; justify-content: center; align-items: center; box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);">
+                        <i class="fa-solid fa-wallet" style="color: #fff; font-size: 1.2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 1: LOGIN -->
+    <div id="view-login" class="view">
+        <div class="neon-card">
+            <h1 class="neon-title" style="font-size: 1.8rem; margin-bottom: 25px;">CASH-COMPRA</h1>
+            
+            <div class="input-group">
+                <label><i class="fa-solid fa-phone"></i> Teléfono Móvil</label>
+                <input type="tel" id="login-phone" class="input-field" placeholder="Ej: 04123456789">
+            </div>
+
+            <div class="input-group">
+                <label><i class="fa-solid fa-lock"></i> Contraseña</label>
+                <div class="pass-wrapper">
+                    <input type="password" id="login-pass" class="input-field" placeholder="••••••••">
+                    <i class="fa-solid fa-eye toggle-pass" onclick="togglePassVisibility('login-pass', this)"></i>
+                </div>
+            </div>
+
+            <button class="neon-btn neon-btn-green" onclick="handleLogin()">
+                <i class="fa-solid fa-right-to-bracket"></i> INGRESAR
+            </button>
+
+            <div style="margin-top: 20px; text-align: center;">
+                <a href="#" onclick="showForgotPasswordModal()" style="color: var(--text-dim); text-decoration: none; font-size: 0.9rem; display: block; margin-bottom: 12px;">¿Olvidaste tu contraseña?</a>
+                <button class="neon-btn" style="background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);" onclick="switchView('view-welcome')">
+                    <i class="fa-solid fa-house"></i> VOLVER AL INICIO
+                </button>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <div class="badge-counter">
+                    <i class="fa-solid fa-users"></i> Usuarios Aprobados: <span id="approved-users-count">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 2: REGISTER -->
+    <div id="view-register" class="view">
+        <div class="neon-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                <button onclick="switchView('view-login')" style="background: none; border: none; color: var(--neon-cyan); font-size: 1.2rem; cursor: pointer;">
+                    <i class="fa-solid fa-arrow-left"></i> Volver
+                </button>
+                <h2 class="neon-title" style="font-size: 1.3rem;">CASH-COMPRA</h2>
+                <div style="width: 30px;"></div>
+            </div>
+
+            <h3 style="text-align: center; color: var(--text-dim); margin-bottom: 15px; font-size: 1rem;">REGISTRO DE USUARIO</h3>
+
+            <div class="input-group">
+                <label><i class="fa-solid fa-id-badge"></i> Tipo de Perfil</label>
+                <select id="reg-role" class="input-field" onchange="toggleRoleFields()">
+                    <option value="comprador">Comprador</option>
+                    <option value="vendedor">Vendedor</option>
+                </select>
+            </div>
+
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>Nombres</label>
+                    <input type="text" id="reg-firstname" class="input-field" placeholder="Juan">
+                </div>
+                <div class="input-group">
+                    <label>Apellidos</label>
+                    <input type="text" id="reg-lastname" class="input-field" placeholder="Pérez">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label><i class="fa-solid fa-id-card"></i> Cédula de Identidad</label>
+                <input type="text" id="reg-cedula" class="input-field" placeholder="Ej: 12345678">
+            </div>
+
+            <div class="input-group">
+                <label><i class="fa-solid fa-calendar"></i> Fecha de Nacimiento</label>
+                <input type="date" id="reg-dob" class="input-field">
+            </div>
+
+            <div class="input-group">
+                <label><i class="fa-solid fa-location-dot"></i> Ubicación / Dirección</label>
+                <input type="text" id="reg-location" class="input-field" placeholder="Ciudad, Sector">
+            </div>
+
+            <div class="input-group">
+                <label><i class="fa-solid fa-mobile"></i> Teléfono (04XX XXXXXXX)</label>
+                <input type="tel" id="reg-phone" class="input-field" placeholder="04123456789">
+            </div>
+
+            <div id="vendedor-bank-group" class="input-group" style="display: none;">
+                <label><i class="fa-solid fa-building-columns"></i> Banco / Datos Pago Móvil</label>
+                <input type="text" id="reg-bank" class="input-field" placeholder="Banco, Cédula, Teléfono">
+            </div>
+
+            <!-- Photos upload compressed via Canvas Base64 -->
+            <div class="input-group">
+                <label><i class="fa-solid fa-address-card"></i> Foto de Cédula</label>
+                <input type="file" id="reg-id-file" accept="image/*" class="input-field" onchange="processImageCanvas(this, 'id-preview', 'id-base64')">
+                <input type="hidden" id="id-base64">
+                <img id="id-preview" class="file-preview">
+            </div>
+
+            <div class="input-group">
+                <label><i class="fa-solid fa-camera"></i> Foto de Rostro (Selfie)</label>
+                <input type="file" id="reg-face-file" accept="image/*" class="input-field" onchange="processImageCanvas(this, 'face-preview', 'face-base64')">
+                <input type="hidden" id="face-base64">
+                <img id="face-preview" class="file-preview">
+            </div>
+
+            <!-- Google Account Linked (Automático) -->
+            <div class="input-group" style="margin-top: 15px; display: flex; align-items: center; justify-content: center; background: rgba(0,255,102,0.1); border: 1px solid var(--neon-green); border-radius: 8px; padding: 10px;">
+                <i class="fa-brands fa-google" style="color: var(--neon-green); font-size: 1.2rem; margin-right: 10px;"></i>
+                <span style="color: var(--neon-green); font-weight: 600;">Cuenta Google Vinculada</span>
+                <input type="hidden" id="reg-email-uid">
+                <input type="hidden" id="reg-uid">
+            </div>
+
+            <div class="input-group">
+                <label><i class="fa-solid fa-lock"></i> Contraseña</label>
+                <div class="pass-wrapper">
+                    <input type="password" id="reg-pass" class="input-field" placeholder="••••••••">
+                    <i class="fa-solid fa-eye toggle-pass" onclick="togglePassVisibility('reg-pass', this)"></i>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label><i class="fa-solid fa-lock"></i> Confirmar Contraseña</label>
+                <div class="pass-wrapper">
+                    <input type="password" id="reg-confirm-pass" class="input-field" placeholder="••••••••">
+                    <i class="fa-solid fa-eye toggle-pass" onclick="togglePassVisibility('reg-confirm-pass', this)"></i>
+                </div>
+            </div>
+
+            <button class="neon-btn neon-btn-green" onclick="handleRegistrationSubmit()">
+                <i class="fa-solid fa-paper-plane"></i> ENVIAR SOLICITUD DE REGISTRO
+            </button>
+        </div>
+    </div>
+
+    <!-- VERIFICATION CODE MODAL AFTER REGISTRATION -->
+    <div id="modal-verification-code" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color: var(--neon-cyan); margin-bottom: 12px; font-family:'Orbitron';">VERIFICACIÓN WHATSAPP</h3>
+            <p style="color: var(--text-dim); font-size: 0.95rem; margin-bottom: 15px;">
+                Tu solicitud ha sido pre-aprobada. Ingresa el código de 6 dígitos enviado a tu WhatsApp. (Válido por 30 mins)
+            </p>
+            <div class="input-group">
+                <input type="text" id="verification-code-input" class="input-field" placeholder="123456" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 5px;">
+            </div>
+            <button class="neon-btn neon-btn-green" onclick="verifyWhatsAppCode()">VERIFICAR CÓDIGO</button>
+            <button class="neon-btn neon-btn-danger" style="margin-top: 10px;" onclick="cancelRegistrationProcess()">CANCELAR REGISTRO</button>
+        </div>
+    </div>
+
+    <!-- VIEW 3: BUYER DASHBOARD -->
+    <div id="view-buyer-dashboard" class="view">
+        <div class="neon-card" id="buyer-card-container">
+            <div id="frozen-warning-banner" style="display: none; background: rgba(244, 63, 94, 0.2); border: 1px solid var(--neon-pink); padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center; box-shadow: 0 0 15px rgba(244,63,94,0.3);">
+                <i class="fa-solid fa-triangle-exclamation" style="color: var(--neon-pink); font-size: 2rem; margin-bottom: 10px;"></i>
+                <h3 style="color: var(--neon-pink); font-family: 'Orbitron'; margin-bottom: 5px;">CUENTA CONGELADA</h3>
+                <p style="color: #fff; font-size: 0.9rem;">Tienes deudas vencidas. Solo puedes recargar y pagar para restablecer tu crédito.</p>
+            </div>
+            <div class="nav-header">
+                <button class="neon-btn neon-btn-danger" style="width: auto; padding: 8px 14px; font-size: 0.85rem; margin:0;" onclick="handleLogout()">
+                    <i class="fa-solid fa-power-off"></i> Cerrar Sesión
+                </button>
+                <div class="user-info-text">
+                    <div class="phone" id="buyer-disp-phone">04XX-XXXXXXX</div>
+                    <div class="fullname" id="buyer-disp-name">Nombre Comprador</div>
+                    <span class="hidden-uid" id="buyer-disp-uid"></span>
+                </div>
+            </div>
+
+            <!-- Balance Digital -->
+            <div class="balance-card">
+                <div style="color: var(--text-dim); font-size: 0.9rem;">SALDO DISPONIBLE DIGITAL</div>
+                <div class="val-large" id="buyer-balance-usd">$0.00 USD</div>
+                <div class="val-sub" id="buyer-balance-bs">0.00 Bs</div>
+                <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">Tasa actual: <span id="buyer-tasa-val">0</span> Bs/$</div>
+            </div>
+
+            <!-- Línea de Crédito -->
+            <div class="balance-card credit">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <div style="color: var(--neon-cyan); font-size: 0.9rem; font-weight:700;">LÍNEA DE CRÉDITO DISPONIBLE</div>
+                    <div id="buyer-level-badge" style="background: var(--neon-cyan); color: #000; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-family: 'Orbitron'; font-size: 0.75rem;">NIVEL 1</div>
+                </div>
+                <div class="val-large" id="buyer-credit-usd" style="color: var(--neon-cyan);">$0.00 USD</div>
+                <div class="val-sub" id="buyer-credit-bs" style="color: var(--neon-cyan);">0.00 Bs</div>
+                <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 8px;">Plazo de pago: <span id="buyer-plazo-dias" style="color: var(--neon-cyan); font-weight: bold;">3 Días</span></div>
+            </div>
+
+            <!-- Dashboard Actions -->
+            <div class="grid-2" style="margin-bottom: 12px;">
+                <button class="neon-btn" style="font-size:0.85rem;" onclick="openPendingPaymentsModal()">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Pagos Pendientes
+                </button>
+                <button class="neon-btn" style="font-size:0.85rem;" onclick="openCompletedPaymentsModal()">
+                    <i class="fa-solid fa-circle-check"></i> Pagos Completados
+                </button>
+            </div>
+
+            <div class="grid-2">
+                <button class="neon-btn neon-btn-green" onclick="openRecargaModal()">
+                    <i class="fa-solid fa-wallet"></i> RECARGAR SALDO
+                </button>
+                <button class="neon-btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);" onclick="openRetencionView()">
+                    <i class="fa-solid fa-lock"></i> RETENER SALDO
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 4: SELLER DASHBOARD -->
+    <div id="view-seller-dashboard" class="view">
+        <div class="neon-card">
+            <div class="nav-header">
+                <button class="neon-btn neon-btn-danger" style="width: auto; padding: 8px 14px; font-size: 0.85rem; margin:0;" onclick="handleLogout()">
+                    <i class="fa-solid fa-power-off"></i> Cerrar Sesión
+                </button>
+                <div class="user-info-text">
+                    <div class="phone" id="seller-disp-phone">04XX-XXXXXXX</div>
+                    <div class="fullname" id="seller-disp-name">Nombre Vendedor</div>
+                    <span class="hidden-uid" id="seller-disp-uid"></span>
+                </div>
+            </div>
+
+            <!-- Balance Vendedor -->
+            <div class="balance-card">
+                <div style="color: var(--text-dim); font-size: 0.9rem;">SALDO VENTAS ACUMULADO</div>
+                <div class="val-large" id="seller-balance-usd">$0.00 USD</div>
+                <div class="val-sub" id="seller-balance-bs">0.00 Bs</div>
+                <button class="neon-btn" style="margin-top: 12px; font-size: 0.9rem;" onclick="openRetirarModal()">
+                    <i class="fa-solid fa-money-bill-transfer"></i> SOLICITAR RETIRO
+                </button>
+            </div>
+
+            <!-- Seller Actions -->
+            <button class="neon-btn neon-btn-green" style="margin-bottom: 12px; font-size: 1.1rem;" onclick="openCrearVentaModal()">
+                <i class="fa-solid fa-cart-plus"></i> CREAR VENTA
+            </button>
+
+            <div class="grid-2">
+                <button class="neon-btn" style="font-size:0.85rem;" onclick="openVentasCompletadasModal()">
+                    <i class="fa-solid fa-receipt"></i> Ventas
+                </button>
+                <button class="neon-btn" style="font-size:0.85rem;" onclick="openUsuariosFrecuentesModal()">
+                    <i class="fa-solid fa-users"></i> Clientes
+                </button>
+                <button class="neon-btn" style="font-size:0.85rem; grid-column: span 2;" onclick="openRetirosPendientesModal()">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Historial de Retiros
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 5: BÓVEDA DE RETENCIÓN -->
+    <div id="view-retencion" class="view">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid rgba(139, 92, 246, 0.3); background: rgba(11, 15, 25, 0.95); position: sticky; top: 0; z-index: 10;">
+            <button onclick="switchView('view-buyer-dashboard')" style="background: none; border: none; color: #8b5cf6; font-size: 1.1rem; font-weight: bold; cursor: pointer;">
+                <i class="fa-solid fa-arrow-left"></i> REGRESAR
+            </button>
+            <div id="retencion-timer-display" style="color: var(--neon-green); font-family: 'Orbitron'; font-size: 1.2rem; font-weight: bold; text-shadow: 0 0 10px rgba(0,255,102,0.5); display: none;">
+                00:00:00
+            </div>
+        </div>
+
+        <div class="neon-card" style="border-color: rgba(139, 92, 246, 0.5); box-shadow: 0 0 25px rgba(139, 92, 246, 0.2);">
+            <h2 class="neon-title" style="color: #c4b5fd; text-shadow: 0 0 15px #8b5cf6; margin-bottom: 20px; font-size: 1.5rem;"><i class="fa-solid fa-vault"></i> BÓVEDA SEGURA</h2>
+            
+            <div id="retencion-form">
+                <div class="balance-card" style="border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1);">
+                    <div style="color: var(--text-light); font-size: 0.9rem; font-weight: bold;">SALDO DISPONIBLE PARA RETENER</div>
+                    <div class="val-large" id="ret-disp-usd" style="color: #c4b5fd;">$0.00 USD</div>
+                    <div class="val-sub" id="ret-disp-bs" style="color: #8b5cf6;">0.00 Bs</div>
+                </div>
+
+                <div class="input-group">
+                    <label style="color: #c4b5fd;">Monto a Retener (en Bs)</label>
+                    <input type="number" id="retencion-monto-bs" class="input-field" placeholder="0.00" style="border-color: #8b5cf6;">
+                </div>
+                
+                <div class="input-group">
+                    <label style="color: #c4b5fd;">Tiempo de Retención (Días)</label>
+                    <input type="number" id="retencion-dias" class="input-field" placeholder="Ej: 7" style="border-color: #8b5cf6;" min="1">
+                </div>
+                
+                <button class="neon-btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #5b21b6 100%); box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4);" onclick="iniciarRetencion()">
+                    <i class="fa-solid fa-lock"></i> BLOQUEAR SALDO AHORA
+                </button>
+            </div>
+
+            <div id="retencion-activa-info" style="display: none; text-align: center; padding: 10px 0;">
+                <i class="fa-solid fa-lock" style="font-size: 3.5rem; color: #8b5cf6; margin-bottom: 15px; text-shadow: 0 0 15px rgba(139,92,246,0.6);"></i>
+                <h3 style="color: #c4b5fd; margin-bottom: 10px; font-family: 'Orbitron';">SALDO PROTEGIDO</h3>
+                <div class="val-large" id="ret-activa-monto" style="color: #fff; margin-bottom: 5px;">$0.00 USD</div>
+                <div style="color: var(--text-dim); font-size: 0.95rem; margin-bottom: 15px;">Fecha de liberación calculada:<br><span id="ret-activa-fecha" style="color: #c4b5fd; font-weight: bold;">--</span></div>
+                <p style="color: #8b5cf6; font-size: 0.85rem;">Tu saldo se devolverá automáticamente a tu cuenta digital al finalizar el cronómetro superior.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- RECARGA MODAL -->
+    <div id="modal-recarga" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color: var(--neon-cyan); margin-bottom: 12px; font-family:'Orbitron';">RECARGAR SALDO</h3>
+            <div class="input-group">
+                <label>Monto a recargar en Bolívares (Bs)</label>
+                <input type="number" id="recarga-monto-bs" class="input-field" placeholder="0.00">
+            </div>
+            <button class="neon-btn neon-btn-green" onclick="processRecargaWhatsApp()">
+                <i class="fa-brands fa-whatsapp"></i> CONTINUAR A WHATSAPP
+            </button>
+            <button class="neon-btn neon-btn-danger" style="margin-top: 10px;" onclick="closeModal('modal-recarga')">CANCELAR</button>
+        </div>
+    </div>
+
+    <!-- MODAL POLITICA DE TIEMPOS (RECARGAS Y RETIROS) -->
+    <div id="modal-policy-time" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color: var(--neon-cyan); margin-bottom: 12px; font-family:'Orbitron';"><i class="fa-solid fa-circle-info"></i> INFORMACIÓN IMPORTANTE</h3>
+            <p style="color: #fff; font-size: 1.05rem; margin-bottom: 15px;">Las solicitudes de <strong style="color: var(--neon-green);">Recarga</strong> y <strong style="color: var(--neon-cyan);">Retiro</strong> son verificadas manualmente y aprobadas en un lapso de <strong>10 minutos a 3 horas</strong>.</p>
+            <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 20px;">Por favor, presiona continuar si estás de acuerdo con el tiempo de espera.</p>
+            <button id="btn-policy-accept" class="neon-btn neon-btn-green">ENTENDIDO, CONTINUAR</button>
+            <button class="neon-btn neon-btn-danger" style="margin-top: 10px;" onclick="closeModal('modal-policy-time')">CANCELAR</button>
+        </div>
+    </div>
+
+    <!-- RETIRAR MODAL FOR SELLER -->
+    <div id="modal-retirar" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color: var(--neon-cyan); margin-bottom: 12px; font-family:'Orbitron';">SOLICITAR RETIRO</h3>
+            <div class="input-group">
+                <label>Monto a retirar ($ USD)</label>
+                <input type="number" id="retiro-monto-usd" class="input-field" placeholder="0.00">
+            </div>
+            <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 15px;">Se enviará la solicitud al Administrador para transferencia inmediata.</p>
+            <button class="neon-btn neon-btn-green" onclick="submitRetiroRequest()">ENVIAR SOLICITUD</button>
+            <button class="neon-btn neon-btn-danger" style="margin-top: 10px;" onclick="closeModal('modal-retirar')">CANCELAR</button>
+        </div>
+    </div>
+
+    <!-- CREAR VENTA MODAL FOR SELLER -->
+    <div id="modal-crear-venta" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color: var(--neon-cyan); margin-bottom: 12px; font-family:'Orbitron';">NUEVA VENTA</h3>
+            <div class="input-group">
+                <label>Teléfono del Comprador</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="tel" id="venta-buyer-phone" class="input-field" placeholder="04123456789" style="flex: 1;">
+                    <button class="neon-btn" style="width: auto; padding: 0 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--neon-cyan); color: var(--neon-cyan);" onclick="verReputacionComprador()">
+                        <i class="fa-solid fa-star"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Monto de la Venta ($ USD)</label>
+                <input type="number" id="venta-monto-usd" class="input-field" placeholder="0.00">
+            </div>
+            <div class="input-group">
+                <label>Método de Pago</label>
+                <select id="venta-metodo" class="input-field">
+                    <option value="digital">Pago Digital (Saldo + Crédito)</option>
+                    <option value="directo">Pago Directo (Solo de su Saldo Digital)</option>
+                    <option value="efectivo">Pago Efectivo</option>
+                </select>
+            </div>
+            <button class="neon-btn neon-btn-green" onclick="iniciarCobroVenta()">COBRAR</button>
+            <button class="neon-btn neon-btn-danger" style="margin-top: 10px;" onclick="closeModal('modal-crear-venta')">CANCELAR</button>
+        </div>
+    </div>
+
+    <!-- DYNAMIC TRANSACTION CODE PROMPT (SELLER & BUYER) -->
+    <div id="modal-dynamic-code" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color: var(--neon-cyan); margin-bottom: 12px; font-family:'Orbitron';">CÓDIGO DE CONFIRMACIÓN</h3>
+            <p id="dynamic-code-text" style="color: #fff; margin-bottom: 15px; font-size: 1.1rem;"></p>
+            <div id="seller-code-input-group" class="input-group" style="display: none;">
+                <input type="text" id="tx-code-seller-input" class="input-field" placeholder="Ingrese 6 dígitos del comprador" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 4px;">
+            </div>
+            <div id="buyer-code-display" style="font-family:'Orbitron'; font-size: 2.2rem; color: var(--neon-green); letter-spacing: 6px; margin: 15px 0; display: none;">------</div>
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-confirm-tx" class="neon-btn neon-btn-green" style="display: none;" onclick="confirmarTransaccionVendedor()">PROCESAR</button>
+                <button class="neon-btn neon-btn-danger" onclick="anularTransaccion()">ANULAR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL INFORMATIVO CUENTA CONGELADA (VENDEDOR) -->
+    <div id="modal-cuenta-congelada" class="modal-overlay">
+        <div class="modal-box" style="border-color: var(--neon-pink); box-shadow: 0 0 30px rgba(244,63,94,0.4); text-align: center;">
+            <i class="fa-solid fa-circle-xmark" style="color: var(--neon-pink); font-size: 4rem; margin-bottom: 15px; text-shadow: 0 0 15px rgba(244,63,94,0.6);"></i>
+            <h2 style="color: var(--neon-pink); margin-bottom: 12px; font-family:'Orbitron'; font-size: 1.8rem;">OPERACIÓN DENEGADA</h2>
+            <p style="color: #fff; margin-bottom: 15px; font-size: 1.15rem; line-height: 1.4;">
+                El usuario tiene <strong>pagos pendientes vencidos</strong>.
+            </p>
+            <p style="color: var(--text-dim); margin-bottom: 25px; font-size: 1rem;">
+                Por este motivo, la compra no se puede procesar hasta que el cliente regularice su situación (recargue saldo y pague su deuda).
+            </p>
+            <button class="neon-btn neon-btn-danger" style="font-size: 1.1rem; padding: 14px;" onclick="closeModal('modal-cuenta-congelada')">
+                <i class="fa-solid fa-xmark"></i> ANULAR COMPRA
+            </button>
+        </div>
+    </div>
+
+    <!-- GENERIC LIST MODAL (FOR PENDING/COMPLETED TRANSACTIONS & CLIENTS) -->
+    <div id="modal-list-view" class="modal-overlay">
+        <div class="modal-box" style="max-width: 450px; text-align: left;">
+            <h3 id="list-modal-title" style="color: var(--neon-cyan); margin-bottom: 15px; font-family:'Orbitron'; text-align: center;">REGISTROS</h3>
+            <div id="list-modal-content" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"></div>
+            <button class="neon-btn" onclick="closeModal('modal-list-view')">CERRAR</button>
+        </div>
+    </div>
+
+    <!-- REPUTATION MODAL -->
+    <div id="modal-reputacion" class="modal-overlay">
+        <div class="modal-box" style="background: radial-gradient(circle at top, rgba(15,23,42,1) 0%, rgba(11,15,25,1) 100%); border: 1px solid var(--neon-cyan); box-shadow: 0 0 25px rgba(0, 243, 255, 0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: var(--neon-cyan); font-family:'Orbitron'; margin: 0;"><i class="fa-solid fa-id-card"></i> REPUTACIÓN</h3>
+                <div id="rep-nivel-badge" style="background: var(--neon-cyan); color: #000; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-family: 'Orbitron'; font-size: 0.9rem;">NIVEL 1</div>
+            </div>
+            <h2 id="rep-phone-display" style="color: #fff; text-align: center; margin-bottom: 20px; font-size: 1.5rem; letter-spacing: 2px;">0412-XXXXXXX</h2>
+            
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="text-align: center; width: 48%;">
+                    <div style="color: var(--neon-green); font-size: 0.8rem; font-weight: bold; margin-bottom: 5px;">PAGOS A TIEMPO</div>
+                    <div id="rep-stars-green" style="color: var(--text-dim); font-size: 1.2rem; letter-spacing: 2px;">
+                        <i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i>
+                    </div>
+                    <div id="rep-count-green" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 5px;">0 / 60 tx</div>
+                </div>
+                <div style="width: 1px; background: rgba(255,255,255,0.1);"></div>
+                <div style="text-align: center; width: 48%;">
+                    <div style="color: var(--neon-pink); font-size: 0.8rem; font-weight: bold; margin-bottom: 5px;">ATRASOS</div>
+                    <div id="rep-stars-red" style="color: var(--text-dim); font-size: 1.2rem; letter-spacing: 2px;">
+                        <i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i>
+                    </div>
+                    <div id="rep-count-red" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 5px;">0 / 60 tx</div>
+                </div>
+            </div>
+            <div style="text-align: center; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 20px;">
+                Plazo de pago actual: <strong id="rep-plazo-dias" style="color: var(--neon-cyan);">3 Días</strong>
+            </div>
+            <button class="neon-btn" onclick="closeModal('modal-reputacion')">CERRAR</button>
+        </div>
+    </div>
+
+    <!-- FIREBASE JS IMPLEMENTATION -->
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDsGJH1YtK362EN8UGlHZbiXHy9KVSDhdA",
+            authDomain: "cash-compra.firebaseapp.com",
+            projectId: "cash-compra",
+            storageBucket: "cash-compra.firebasestorage.app",
+            messagingSenderId: "631782398170",
+            appId: "1:631782398170:web:3c09ca6537774baf68ede3",
+            databaseURL: "https://cash-compra-default-rtdb.firebaseio.com/"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        let currentUserData = null;
+        let activeTxId = null;
+// Hide Splash Screen on load
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                    switchView('view-welcome');
+                }, 500);
+            }, 1200);
+
+            listenToApprovedUsersCount();
         
-        if (user && user.retencion && user.retencion.activa) {
-            if (Date.now() >= user.retencion.liberacion) {
-                await userRef.update({
-                    balanceUSD: (user.balanceUSD || 0) + user.retencion.montoUSD,
-                    retencion: null
-                });
-                return res.status(200).json({ success: true });
+            listenToExchangeRate();
+        });
+
+        // Toggle visibility of passwords
+        function togglePassVisibility(inputId, icon) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
             } else {
-                return res.status(400).json({ success: false, error: 'El cronómetro aún no ha terminado.' });
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
             }
         }
-        return res.status(200).json({ success: false });
-      }
 
-      default:
+        // Custom Modal
+        function showCustomModal(msg, title = "NOTIFICACIÓN") {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerText = msg;
+            document.getElementById('custom-modal').classList.add('active');
+        }
 
-     return res.status(400).json({ error: 'Acción no reconocida o no especificada.' });
+        function closeCustomModal() {
+            document.getElementById('custom-modal').classList.remove('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        function toggleRoleFields() {
+            const role = document.getElementById('reg-role').value;
+            const bankGroup = document.getElementById('vendedor-bank-group');
+            bankGroup.style.display = (role === 'vendedor') ? 'block' : 'none';
+        }
+
+        // Canvas Image Compression to Base64
+        function processImageCanvas(fileInput, previewId, hiddenInputId) {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const max_size = 600; // compress image dimension
+
+                    if (width > height) {
+                        if (width > max_size) {
+                            height *= max_size / width;
+                            width = max_size;
+                        }
+                    } else {
+                        if (height > max_size) {
+                            width *= max_size / height;
+                            height = max_size;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const base64Str = canvas.toDataURL('image/jpeg', 0.6); // 60% quality compression
+                    document.getElementById(hiddenInputId).value = base64Str;
+                    const preview = document.getElementById(previewId);
+                    preview.src = base64Str;
+                    preview.style.display = 'block';
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Live approved users counter
+        function listenToApprovedUsersCount() {
+            db.ref('users').orderByChild('status').equalTo('aprobado').on('value', snapshot => {
+                const count = snapshot.exists() ? snapshot.numChildren() : 0;
+                document.getElementById('approved-users-count').innerText = count;
+            });
+        }
+
+        // Live exchange rate listener
+        let currentTasa = 1;
+        function listenToExchangeRate() {
+            db.ref('config/tasa_bs').on('value', snapshot => {
+                currentTasa = snapshot.val() || 1;
+                document.getElementById('buyer-tasa-val').innerText = currentTasa;
+                if (currentUserData) updateDashboardDisplay();
+            });
+        }
+
+        
+// Google Sign-In para Iniciar Registro desde la pestaña Welcome
+        function startGoogleRegistration() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then((result) => {
+                const email = result.user.email;
+                const uid = result.user.uid;
+                document.getElementById('reg-email-uid').value = email;
+                document.getElementById('reg-uid').value = uid;
+                switchView('view-register');
+            }).catch(error => {
+                showCustomModal("Error al iniciar con Google: " + error.message, "ERROR");
+            });
+        }
+        // Submit Registration Form con Firebase Auth UID integrado (MIGRADO A VERCEL UVI 4)
+        async function handleRegistrationSubmit() {
+            const role = document.getElementById('reg-role').value;
+            const firstname = document.getElementById('reg-firstname').value.trim();
+            const lastname = document.getElementById('reg-lastname').value.trim();
+            const cedula = document.getElementById('reg-cedula').value.trim();
+            const dob = document.getElementById('reg-dob').value;
+            const location = document.getElementById('reg-location').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const bank = document.getElementById('reg-bank').value.trim();
+            const idBase64 = document.getElementById('id-base64').value;
+            const faceBase64 = document.getElementById('face-base64').value;
+            const email = document.getElementById('reg-email-uid').value;
+            const pass = document.getElementById('reg-pass').value;
+            const confirmPass = document.getElementById('reg-confirm-pass').value;
+
+            if (!firstname || !lastname || !cedula || !dob || !location || !phone || !pass) {
+                showCustomModal("Por favor complete todos los campos obligatorios.");
+                return;
+            }
+
+            // Check Age >= 18
+            const birthDate = new Date(dob);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+            if (age < 18) {
+                showCustomModal("Debes ser mayor de edad para registrarte.");
+                return;
+            }
+
+            if (!idBase64 || !faceBase64) {
+                showCustomModal("Debe adjuntar la foto de cédula y rostro.");
+                return;
+            }
+
+            if (!email) {
+                showCustomModal("Debe seleccionar una cuenta de Google.");
+                return;
+            }
+
+            if (pass !== confirmPass) {
+                showCustomModal("Las contraseñas no coinciden.");
+                return;
+            }
+
+            const cleanPhone = phone.replace(/\s+/g, '');
+
+            // Vinculamos la contraseña a la cuenta de Google recién creada
+            if (auth.currentUser && auth.currentUser.email === email) {
+                auth.currentUser.updatePassword(pass).catch(e => console.log("Password update:", e));
+            }
+
+            const payload = {
+                action: 'handleRegistrationSubmit',
+                payload: {
+                    uid: document.getElementById('reg-uid').value || 'por_asignar',
+                    role: role,
+                    firstname: firstname,
+                    lastname: lastname,
+                    cedula: cedula,
+                    dob: dob,
+                    location: location,
+                    phone: cleanPhone,
+                    bank: role === 'vendedor' ? bank : '',
+                    idImage: idBase64,
+                    faceImage: faceBase64,
+                    email: email,
+                    password: pass
+                }
+            };
+
+            try {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showCustomModal("Solicitud enviada exitosamente. Espera el mensaje de verificación en WhatsApp.", "SOLICITUD RECIBIDA");
+                    listenForPreApprovalCode(cleanPhone);
+                } else {
+                    showCustomModal(result.error || "Error al enviar la solicitud de registro.");
+                }
+            } catch (error) {
+                showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+                console.error("Vercel Fetch Error:", error);
+            }
+        }
+
+        // Listen for Admin Pre-Approval WhatsApp Code
+        function listenForPreApprovalCode(phone) {
+            document.getElementById('modal-verification-code').classList.add('active');
+            window.activeUserPhoneReg = phone;
+
+            db.ref('users/' + phone + '/verificationCode').on('value', snapshot => {
+                const code = snapshot.val();
+                if (code) {
+                    showCustomModal("Código de verificación enviado a tu WhatsApp. Ingrésalo a continuación.", "CÓDIGO GENERADO");
+                }
+            });
+        }
+
+        // Verify WhatsApp 6-digit Code (MIGRADO A VERCEL UVI 5)
+        async function verifyWhatsAppCode() {
+            const inputCode = document.getElementById('verification-code-input').value.trim();
+            const phone = window.activeUserPhoneReg;
+
+            if (!phone) return;
+
+            if (inputCode === '') {
+                showCustomModal("Por favor ingresa el código de verificación.");
+                return;
+            }
+
+            const payload = {
+                action: 'verifyWhatsAppCode',
+                payload: {
+                    phone: phone,
+                    inputCode: inputCode
+                }
+            };
+
+            try {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    if (auth.currentUser) {
+                        auth.signOut();
+                    }
+                    document.getElementById('modal-verification-code').classList.remove('active');
+                    showCustomModal(result.message, "¡FELICITACIONES!");
+                    switchView('view-login');
+                } else {
+                    showCustomModal(result.error || "El código de verificación ingresado es incorrecto.");
+                }
+            } catch (error) {
+                showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+                console.error("Vercel Fetch Error:", error);
+            }
+        }
+
+        async function cancelRegistrationProcess() {
+            if (window.activeUserPhoneReg) {
+                const payload = {
+                    action: 'cancelRegistrationProcess',
+                    payload: {
+                        phone: window.activeUserPhoneReg
+                    }
+                };
+
+                try {
+                    const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        window.activeUserPhoneReg = null;
+                    } else {
+                        showCustomModal(result.error || "Error al cancelar el registro.");
+                    }
+                } catch (error) {
+                    console.error("Vercel Fetch Error:", error);
+                }
+            }
+            
+            document.getElementById('modal-verification-code').classList.remove('active');
+            switchView('view-login');
+        }
+
+        // Handle Login con Teléfono + Autenticación Auth silenciosa
+        function handleLogin() {
+            const phone = document.getElementById('login-phone').value.trim().replace(/\s+/g, '');
+            const pass = document.getElementById('login-pass').value.trim();
+
+            if (!phone || !pass) {
+                showCustomModal("Ingresa tu número de teléfono y contraseña.");
+                return;
+            }
+
+            db.ref('users/' + phone).once('value', snapshot => {
+                if (!snapshot.exists()) {
+                    showCustomModal("El usuario con este número no se encuentra registrado.");
+                    return;
+                }
+
+                const user = snapshot.val();
+
+                if (user.status !== 'aprobado') {
+                    showCustomModal("Tu solicitud aún se encuentra en estado: " + user.status.toUpperCase());
+                    return;
+                }
+
+                // Inicia la sesión real en Firebase Auth internamente usando el correo enlazado y la contraseña
+                auth.signInWithEmailAndPassword(user.email, pass).then((userCredential) => {
+                    currentUserData = user;
+                    currentUserData.keyPhone = phone;
+                    currentUserData.uid = userCredential.user.uid;
+
+                    // Escucha los cambios del usuario en tiempo real
+                    db.ref('users/' + phone).on('value', snap => {
+                        if (snap.exists()) {
+                            currentUserData = snap.val();
+                            currentUserData.keyPhone = phone;
+                            updateDashboardDisplay();
+                        }
+                    });
+
+                    listenToActiveTransactions(phone);
+
+                    if (user.role === 'comprador') {
+                        switchView('view-buyer-dashboard');
+                    } else {
+                        switchView('view-seller-dashboard');
+                    }
+                }).catch(err => {
+                    showCustomModal("Contraseña incorrecta o error de autenticación.");
+                });
+            });
+        }
+
+        function handleLogout() {
+            if (currentUserData) {
+                db.ref('users/' + currentUserData.keyPhone).off();
+            }
+            auth.signOut();
+            currentUserData = null;
+            document.getElementById('login-phone').value = '';
+            document.getElementById('login-pass').value = '';
+            switchView('view-login');
+        }  
+
+        // Update Dashboard Display Stats
+        function updateDashboardDisplay() {
+            if (!currentUserData) return;
+
+            const balUSD = parseFloat(currentUserData.balanceUSD || 0);
+            const credUSD = parseFloat(currentUserData.creditUSD || 0);
+            const balBs = (balUSD * currentTasa).toFixed(2);
+            const credBs = (credUSD * currentTasa).toFixed(2);
+
+            if (currentUserData.role === 'comprador') {
+                document.getElementById('buyer-disp-phone').innerText = currentUserData.phone;
+                document.getElementById('buyer-disp-name').innerText = currentUserData.fullname;
+                document.getElementById('buyer-disp-uid').innerText = currentUserData.email;
+                document.getElementById('buyer-balance-usd').innerText = "$" + balUSD.toFixed(2) + " USD";
+                document.getElementById('buyer-balance-bs').innerText = balBs + " Bs";
+                document.getElementById('buyer-credit-usd').innerText = "$" + credUSD.toFixed(2) + " USD";
+                document.getElementById('buyer-credit-bs').innerText = credBs + " Bs";
+
+                // Calcular Nivel y Días
+                let nivel = 1 + Math.floor((currentUserData.totalDeudaPagada || 0) / 20);
+                if (nivel > 12) nivel = 12;
+                const badge = document.getElementById('buyer-level-badge');
+                const plazoSpan = document.getElementById('buyer-plazo-dias');
+                if(badge) badge.innerText = "NIVEL " + nivel;
+                if(plazoSpan) plazoSpan.innerText = (2 + nivel) + " Días";
+
+                // Si la vista de retención está activa, actualizarla para que vea el descuento instantáneo
+                if (document.getElementById('view-retencion').classList.contains('active')) {
+                    actualizarVistaRetencion();
+                }
+
+                // Verificar pagos pendientes vencidos para cambiar el diseño a rojo
+                db.ref('pending_payments/' + currentUserData.phone).once('value', snapshot => {
+                    let cuentaCongelada = false;
+                    const ahora = Date.now();
+                    snapshot.forEach(deuda => {
+                        if (deuda.val().expiresAt && ahora > deuda.val().expiresAt) {
+                            cuentaCongelada = true;
+                        }
+                    });
+
+                    const banner = document.getElementById('frozen-warning-banner');
+                    const creditCard = document.querySelector('.balance-card.credit');
+                    const container = document.getElementById('buyer-card-container');
+                    
+                    if (cuentaCongelada) {
+                        if(banner) banner.style.display = 'block';
+                        if(creditCard) {
+                            creditCard.style.borderColor = 'rgba(244, 63, 94, 0.8)';
+                            creditCard.style.boxShadow = '0 0 15px rgba(244, 63, 94, 0.2)';
+                            document.getElementById('buyer-credit-usd').style.color = 'var(--neon-pink)';
+                            document.getElementById('buyer-credit-bs').style.color = 'var(--neon-pink)';
+                            creditCard.querySelector('div').style.color = 'var(--neon-pink)';
+                            creditCard.querySelector('div').innerText = 'LÍNEA DE CRÉDITO (CONGELADA)';
+                        }
+                        if(container) {
+                            container.style.border = '1px solid rgba(244, 63, 94, 0.5)';
+                            container.style.boxShadow = '0 0 25px rgba(244, 63, 94, 0.2), inset 0 0 15px rgba(244, 63, 94, 0.05)';
+                        }
+                    } else {
+                        if(banner) banner.style.display = 'none';
+                        if(creditCard) {
+                            creditCard.style.borderColor = 'rgba(0, 243, 255, 0.4)';
+                            creditCard.style.boxShadow = 'none';
+                            document.getElementById('buyer-credit-usd').style.color = 'var(--neon-cyan)';
+                            document.getElementById('buyer-credit-bs').style.color = 'var(--neon-cyan)';
+                            creditCard.querySelector('div').style.color = 'var(--neon-cyan)';
+                            creditCard.querySelector('div').innerText = 'LÍNEA DE CRÉDITO DISPONIBLE';
+                        }
+                        if(container) {
+                            container.style.border = '1px solid var(--border-glow)';
+                            container.style.boxShadow = '0 0 25px rgba(0, 243, 255, 0.15), inset 0 0 15px rgba(0, 243, 255, 0.05)';
+                        }
+                    }
+                });
+
+            } else {
+                document.getElementById('seller-disp-phone').innerText = currentUserData.phone;
+                document.getElementById('seller-disp-name').innerText = currentUserData.fullname;
+                document.getElementById('seller-disp-uid').innerText = currentUserData.email;
+                document.getElementById('seller-balance-usd').innerText = "$" + balUSD.toFixed(2) + " USD";
+                document.getElementById('seller-balance-bs').innerText = (balUSD * currentTasa).toFixed(2) + " Bs";
+            }
+        }
+
+        // Funciones para Ventana Bonita de Tiempos
+        function showPolicyModal(nextActionCallback) {
+            document.getElementById('modal-policy-time').classList.add('active');
+            const btn = document.getElementById('btn-policy-accept');
+            btn.onclick = function() {
+                closeModal('modal-policy-time');
+                nextActionCallback();
+            };
+        }
+
+        // --- INICIO LÓGICA DE RETENCIÓN DE SALDO ---
+        let retencionInterval = null;
+
+        function openRetencionView() {
+            switchView('view-retencion');
+            actualizarVistaRetencion();
+        }
+
+        function actualizarVistaRetencion() {
+            if (!currentUserData) return;
+            const balUSD = parseFloat(currentUserData.balanceUSD || 0);
+            const balBs = (balUSD * currentTasa).toFixed(2);
+            
+            document.getElementById('ret-disp-usd').innerText = "$" + balUSD.toFixed(2) + " USD";
+            document.getElementById('ret-disp-bs').innerText = balBs + " Bs";
+
+            if (currentUserData.retencion && currentUserData.retencion.activa) {
+                document.getElementById('retencion-form').style.display = 'none';
+                document.getElementById('retencion-activa-info').style.display = 'block';
+                document.getElementById('retencion-timer-display').style.display = 'block';
+                
+                document.getElementById('ret-activa-monto').innerText = "$" + parseFloat(currentUserData.retencion.montoUSD).toFixed(2) + " USD";
+                
+                const fechaLib = new Date(currentUserData.retencion.liberacion);
+                document.getElementById('ret-activa-fecha').innerText = fechaLib.toLocaleDateString() + " a las " + fechaLib.toLocaleTimeString();
+                
+                iniciarCronometroVisual(currentUserData.retencion.liberacion);
+            } else {
+                document.getElementById('retencion-form').style.display = 'block';
+                document.getElementById('retencion-activa-info').style.display = 'none';
+                document.getElementById('retencion-timer-display').style.display = 'none';
+                if (retencionInterval) clearInterval(retencionInterval);
+            }
+        }
+
+        function iniciarCronometroVisual(fechaFinMs) {
+            if (retencionInterval) clearInterval(retencionInterval);
+            const timerDisplay = document.getElementById('retencion-timer-display');
+            
+            retencionInterval = setInterval(() => {
+                const ahora = Date.now();
+                const diff = fechaFinMs - ahora;
+                
+                if (diff <= 0) {
+                    clearInterval(retencionInterval);
+                    timerDisplay.innerText = "LIBERADO";
+                    timerDisplay.style.color = "var(--neon-green)";
+                    liberarRetencionVencida(); 
+                    return;
+                }
+                
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                timerDisplay.innerText = `${d}D ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        async function iniciarRetencion() {
+            const montoBs = parseFloat(document.getElementById('retencion-monto-bs').value);
+            const dias = parseInt(document.getElementById('retencion-dias').value);
+            
+            if (!montoBs || montoBs <= 0) {
+                showCustomModal("Ingrese un monto válido en Bolívares.");
+                return;
+            }
+            if (!dias || dias <= 0) {
+                showCustomModal("Ingrese una cantidad de días válida.");
+                return;
+            }
+
+            const montoUSD = montoBs / currentTasa;
+            if (montoUSD > currentUserData.balanceUSD) {
+                showCustomModal("El monto a retener supera su saldo digital disponible.");
+                return;
+            }
+
+            const payload = {
+                action: 'iniciarRetencion',
+                payload: {
+                    phone: currentUserData.phone,
+                    montoUSD: montoUSD,
+                    dias: dias
+                }
+            };
+
+            try {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showCustomModal("Saldo retenido exitosamente. Se ha descontado de tu saldo principal y protegido en la bóveda.", "BÓVEDA ACTIVA");
+                    document.getElementById('retencion-monto-bs').value = '';
+                    document.getElementById('retencion-dias').value = '';
+                } else {
+                    showCustomModal(result.error || "Error al retener saldo.");
+                }
+            } catch (error) {
+                showCustomModal("Error de conexión: " + error.message);
+            }
+        }
+
+        async function liberarRetencionVencida() {
+            const payload = { action: 'liberarRetencion', payload: { phone: currentUserData.phone } };
+            try {
+                await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (e) { console.error("Error liberando retención:", e); }
+        }
+        // --- FIN LÓGICA DE RETENCIÓN ---
+
+        // Recarga WhatsApp link
+        function openRecargaModal() {
+            showPolicyModal(() => {
+                document.getElementById('modal-recarga').classList.add('active');
+            });
+        }
+
+        function processRecargaWhatsApp() {
+            const montoBs = document.getElementById('recarga-monto-bs').value;
+            if (!montoBs || montoBs <= 0) {
+                showCustomModal("Ingrese un monto válido en Bolívares.");
+                return;
+            }
+
+            const msg = encodeURIComponent(`Hola buen día, yo ${currentUserData.email} quiero hacer una recarga por el monto de ${montoBs} Bs en Cash-Compra.`);
+            const waUrl = `https://wa.me/584241959869?text=${msg}`;
+            closeModal('modal-recarga');
+            window.open(waUrl, '_blank');
+        }
+
+        // Retiro Modal for Seller
+        function openRetirarModal() {
+            showPolicyModal(() => {
+                document.getElementById('modal-retirar').classList.add('active');
+            });
+        }
+
+        async function submitRetiroRequest() {
+            const monto = parseFloat(document.getElementById('retiro-monto-usd').value);
+            if (!monto || monto <= 0) {
+                showCustomModal("Ingrese un monto numérico válido mayor a cero.");
+                return;
+            }
+
+            if (monto > currentUserData.balanceUSD) {
+                showCustomModal(`No puedes retirar esta cantidad. Tu saldo disponible es $${currentUserData.balanceUSD.toFixed(2)} USD.`);
+                return;
+            }
+
+            const payload = {
+                action: 'submitRetiroRequest',
+                payload: {
+                    phone: currentUserData.phone,
+                    amountUSD: monto,
+                    cedula: currentUserData.cedula || 'N/A'
+                }
+            };
+
+            try {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    closeModal('modal-retirar');
+                    document.getElementById('retiro-monto-usd').value = '';
+                    showCustomModal(result.message, "SOLICITUD REGISTRADA");
+                } else {
+                    showCustomModal(result.error || "Error al procesar la solicitud de retiro.");
+                }
+            } catch (error) {
+                showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+                console.error("Vercel Fetch Error:", error);
+            }
+        }
+
+        // Ver Lista de Retiros Pendientes/Rechazados
+        function openRetirosPendientesModal() {
+            db.ref('retiros').orderByChild('sellerPhone').equalTo(currentUserData.phone).once('value', snapshot => {
+                let html = '';
+                snapshot.forEach(child => {
+                    const r = child.val();
+                    if (r.status === 'pendiente' || r.status === 'rechazado') {
+                        const statusColor = r.status === 'pendiente' ? 'var(--neon-amber)' : 'var(--neon-pink)';
+                        html += `
+                            <div style="background:rgba(255,255,255,0.05); border:1px solid ${statusColor}; padding:10px; border-radius:8px; margin-bottom:8px;">
+                                <div><strong>Monto a Retirar:</strong> $${r.amountUSD.toFixed(2)} USD</div>
+                                <div style="font-size:0.85rem; color:var(--text-dim); margin-top: 4px;">Estado: <span style="color:${statusColor}; font-weight:bold;">${r.status.toUpperCase()}</span></div>
+                                ${r.rejectionReason ? `<div style="font-size:0.8rem; color:var(--neon-pink); margin-top:4px;">Motivo: ${r.rejectionReason}</div>` : ''}
+                            </div>
+                        `;
+                    }
+                });
+                if (!html) html = '<p style="color:var(--text-dim); text-align:center;">No tienes retiros pendientes o rechazados.</p>';
+                document.getElementById('list-modal-title').innerText = "HISTORIAL DE RETIROS";
+                document.getElementById('list-modal-content').innerHTML = html;
+                document.getElementById('modal-list-view').classList.add('active');
+            });
+        }
+
+        // Crear Venta Modal
+        function openCrearVentaModal() {
+            document.getElementById('modal-crear-venta').classList.add('active');
+        }
+
+                async function iniciarCobroVenta() {
+            const buyerPhone = document.getElementById('venta-buyer-phone').value.trim().replace(/\s+/g, '');
+            const montoUSD = parseFloat(document.getElementById('venta-monto-usd').value);
+            const metodo = document.getElementById('venta-metodo').value;
+
+            if (!buyerPhone || !montoUSD || montoUSD < 0.10 || montoUSD > 20) {
+                showCustomModal("Complete el teléfono del comprador y un monto válido (Mínimo $0.10 y Máximo $20).");
+                return;
+            }
+
+            const payload = {
+                action: 'iniciarCobroVenta',
+                payload: {
+                    sellerPhone: currentUserData.phone,
+                    buyerPhone: buyerPhone,
+                    montoUSD: montoUSD,
+                    metodo: metodo
+                }
+            };
+
+            try {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    activeTxId = result.txId;
+                    closeModal('modal-crear-venta');
+                    
+                    document.getElementById('dynamic-code-text').innerText = `Venta a ${buyerPhone} por $${montoUSD.toFixed(2)}. Ingrese el código de 6 dígitos que ve el cliente:`;
+                    document.getElementById('seller-code-input-group').style.display = 'block';
+                    document.getElementById('buyer-code-display').style.display = 'none';
+                    document.getElementById('btn-confirm-tx').style.display = 'block';
+                    document.getElementById('modal-dynamic-code').classList.add('active');
+                } else if (result.cuentaCongelada) {
+                    document.getElementById('modal-cuenta-congelada').classList.add('active');
+                } else {
+                    showCustomModal(result.error || "Error al iniciar el cobro.");
+                }
+            } catch (error) {
+                showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+                console.error("Vercel Fetch Error:", error);
+            }
+        }
+
+
+        // Real-time listener for buyer & seller active transactions
+        function listenToActiveTransactions(phone) {
+            db.ref('transactions').orderByChild('buyerPhone').equalTo(phone).on('value', snapshot => {
+                if (!snapshot.exists()) return;
+                snapshot.forEach(child => {
+                    const tx = child.val();
+                    if (tx.status === 'esperando_codigo' && currentUserData.role === 'comprador') {
+                        activeTxId = child.key;
+                        document.getElementById('dynamic-code-text').innerText = `Procesando compra por $${tx.amountUSD.toFixed(2)}. Entrega este código al vendedor:`;
+                        document.getElementById('seller-code-input-group').style.display = 'none';
+                        document.getElementById('buyer-code-display').innerText = tx.code;
+                        document.getElementById('buyer-code-display').style.display = 'block';
+                        document.getElementById('btn-confirm-tx').style.display = 'none';
+                        document.getElementById('modal-dynamic-code').classList.add('active');
+                    } else if (tx.status === 'anulada' || tx.status === 'completada') {
+                        if (activeTxId === child.key && currentUserData.role === 'comprador') {
+                            document.getElementById('modal-dynamic-code').classList.remove('active');
+                            if (tx.status === 'anulada') {
+                                showCustomModal("La transacción ha sido anulada por el vendedor.");
+                            }
+                            activeTxId = null;
+                        }
+                    }
+                });
+            });
+        }
+
+        // Corrección de confirmación de transacción y reset de variable activeTxId (MIGRADO A VERCEL)
+async function confirmarTransaccionVendedor() {
+    const enteredCode = document.getElementById('tx-code-seller-input').value.trim();
+    if (!activeTxId) return;
+
+    if (!enteredCode) {
+        showCustomModal("Por favor ingresa el código de confirmación.");
+        return;
     }
-  } catch (error) {
-    console.error("Error en Vercel Function:", error);
-    return res.status(500).json({ error: error.message || 'Error interno del servidor.' });
-  }
-}
 
-// =========================================================================
-// DESARROLLO DE LA FUNCIÓN 1: confirmarTransaccionVendedor (CÓDIGO SERVIDOR)
-// =========================================================================
-async function confirmarTransaccionVendedor(body, res) {
-  const payloadData = body.payload || body;
-  const transactionId = payloadData.transactionId || payloadData.activeTxId;
-  const inputCode = payloadData.inputCode || payloadData.enteredCode;
-  const sellerPhone = payloadData.sellerPhone;
-
-  if (!transactionId || !inputCode) {
-    return res.status(400).json({ error: 'Faltan parámetros requeridos.' });
-  }
-
-  try {
-    const txRef = db.ref(`transactions/${transactionId}`);
-    const txSnapshot = await txRef.once('value');
-
-    if (!txSnapshot.exists()) {
-      return res.status(404).json({ error: 'La transacción no existe.' });
-    }
-
-    const tx = txSnapshot.val();
-
-    if (tx.status !== 'esperando_codigo') {
-      return res.status(400).json({ error: 'La transacción ya no está pendiente.' });
-    }
-
-    // Validación estricta del código idéntica al front
-    if (String(tx.code).trim() !== String(inputCode).trim()) {
-      return res.status(400).json({ error: 'El código de confirmación ingresado no coincide.' });
-    }
-
-    // Permisos del vendedor para procesar la venta
-    if (sellerPhone && tx.sellerPhone !== sellerPhone) {
-      return res.status(403).json({ error: 'No tienes permisos para esta transacción.' });
-    }
-
-    const [buyerSnap, sellerSnap] = await Promise.all([
-      db.ref(`users/${tx.buyerPhone}`).once('value'),
-      db.ref(`users/${tx.sellerPhone}`).once('value')
-    ]);
-
-    if (!buyerSnap.exists() || !sellerSnap.exists()) {
-      return res.status(404).json({ error: 'Comprador o vendedor no encontrados.' });
-    }
-
-    const buyer = buyerSnap.val();
-    const seller = sellerSnap.val();
-
-    const amount = parseFloat(tx.amountUSD);
-    let half = amount / 2;
-    let commission = amount * 0.15; // 15% de comisión de la venta total
-    let buyerBal = parseFloat(buyer.balanceUSD || 0);
-    let buyerCredit = parseFloat(buyer.creditUSD || 0);
-    let sellerBal = parseFloat(seller.balanceUSD || 0);
-
-    const updates = {};
-    const ahora = Date.now();
-
-    // Cálculo Dinámico de Días de Plazo según el Nivel idéntico al frontend
-    let nivelComprador = 1 + Math.floor((buyer.totalDeudaPagada || 0) / 20);
-    if (nivelComprador > 12) nivelComprador = 12;
-    const diasPlazo = 2 + nivelComprador; 
-    const plazoMs = diasPlazo * 24 * 60 * 60 * 1000;
-
-    
-if (tx.method === 'directo') {
-      if (buyerBal < amount) {
-        return res.status(400).json({ error: `COMPRA RECHAZADA: El cliente no posee saldo digital suficiente ($${amount.toFixed(2)} USD) para el Pago Directo.` });
-      }
-      let sellerPay = amount - commission;
-      if (sellerPay < 0) sellerPay = 0;
-      
-      updates[`users/${tx.buyerPhone}/balanceUSD`] = buyerBal - amount;
-      updates[`users/${tx.sellerPhone}/balanceUSD`] = sellerBal + sellerPay;
-      
-      // Sin deuda: la comisión pasa directo a la plataforma
-      updates[`commissions/neta_total`] = admin.database.ServerValue.increment(commission);
-
-    } else if (tx.method === 'digital') {
-      if (buyerBal < half) {
-        return res.status(400).json({ error: `El comprador no tiene suficiente saldo digital ($${half.toFixed(2)} USD).` });
-      }
-      if (buyerCredit < half) {
-        return res.status(400).json({ error: `El comprador no tiene suficiente línea de crédito ($${half.toFixed(2)} USD).` });
-      }
-      let sellerPay = amount - commission;
-      if (sellerPay < 0) sellerPay = 0;
-      
-      updates[`users/${tx.buyerPhone}/balanceUSD`] = buyerBal - half;
-      updates[`users/${tx.buyerPhone}/creditUSD`] = buyerCredit - half;
-      updates[`users/${tx.sellerPhone}/balanceUSD`] = sellerBal + sellerPay;
-      
-      updates[`commissions/espera/${transactionId}`] = { 
-        amount: commission, 
-        txId: transactionId, 
-        timestamp: ahora,
-        buyerPhone: tx.buyerPhone,
-        buyerName: buyer.fullname,
-        expiresAt: ahora + plazoMs
-      };
-      updates[`pending_payments/${tx.buyerPhone}/${transactionId}`] = {
-        txId: transactionId,
-        amountUSD: half,
-        comisionTx: commission, 
-        status: 'pendiente',
-        timestamp: ahora,
-        expiresAt: ahora + plazoMs
-      };
-    } else {
-      if (buyerCredit < half) {
-        return res.status(400).json({ error: 'El comprador no tiene suficiente crédito disponible.' });
-      }
-      let sellerDigitalShare = amount - half - commission;
-      if (sellerDigitalShare < 0) sellerDigitalShare = 0;
-      
-      updates[`users/${tx.buyerPhone}/creditUSD`] = buyerCredit - half;
-      updates[`users/${tx.sellerPhone}/balanceUSD`] = sellerBal + sellerDigitalShare;
-      
-      updates[`commissions/espera/${transactionId}`] = { 
-        amount: commission, 
-        txId: transactionId, 
-        timestamp: ahora,
-        buyerPhone: tx.buyerPhone,
-        buyerName: buyer.fullname,
-        expiresAt: ahora + plazoMs
-      };
-      updates[`pending_payments/${tx.buyerPhone}/${transactionId}`] = {
-        txId: transactionId,
-        amountUSD: half,
-        comisionTx: commission, 
-        status: 'pendiente',
-        timestamp: ahora,
-        expiresAt: ahora + plazoMs
-      };
-    }
-
-    updates[`transactions/${transactionId}/status`] = 'completada';
-    updates[`frequent_clients/${tx.sellerPhone}/${tx.buyerPhone}`] = {
-      fullname: buyer.fullname,
-      phone: buyer.phone,
-      lastTx: ahora
+    const payload = {
+        action: 'confirmarTransaccionVendedor',
+        payload: {
+            transactionId: activeTxId,
+            inputCode: enteredCode,
+            sellerPhone: currentUserData.phone
+        }
     };
-    // Usando admin.database() a través de 'db' para guardar los datos de forma segura
-    await db.ref().update(updates);
 
-    return res.status(200).json({ success: true, message: '¡Venta procesada exitosamente!' });
-  } catch (error) {
-    console.error("Error confirmando transacción UVI 1:", error);
-    return res.status(500).json({ error: 'Error interno del servidor procesando la venta.' });
-  }
-}
-
-// =========================================================================
-// DESARROLLO DE LA FUNCIÓN 2: payPendingDebt (CÓDIGO SERVIDOR)
-// =========================================================================
-async function payPendingDebt(body, res) {
-  const payloadData = body.payload || body;
-  const { phone, key, amountUSD } = payloadData;
-
-  if (!phone || !key || !amountUSD) {
-    return res.status(400).json({ error: 'Faltan parámetros requeridos (phone, key, amountUSD).' });
-  }
-
-  try {
-    const userRef = db.ref(`users/${phone}`);
-    const pendingRef = db.ref(`pending_payments/${phone}/${key}`);
-
-    const [userSnap, pendingSnap] = await Promise.all([
-      userRef.once('value'),
-      pendingRef.once('value')
-    ]);
-
-    if (!userSnap.exists()) {
-      return res.status(404).json({ error: 'Usuario no encontrado.' });
-    }
-    if (!pendingSnap.exists()) {
-      return res.status(404).json({ error: 'La deuda pendiente no existe o ya fue pagada.' });
-    }
-
-    const userData = userSnap.val();
-    const pendingData = pendingSnap.val();
-    
-    // Verificación segura de saldos directamente en servidor
-    const deudaMonto = parseFloat(pendingData.amountUSD || 0);
-    const userBalance = parseFloat(userData.balanceUSD || 0);
-    const userCredit = parseFloat(userData.creditUSD || 0);
-
-    if (userBalance < deudaMonto) {
-      return res.status(400).json({ error: 'Saldo insuficiente para cancelar la deuda.' });
-    }
-
-    const txId = pendingData.txId;
-    const commissionToMove = pendingData.comisionTx || (deudaMonto * 0.30);
-    const updates = {};
-
-    // 1. Actualizaciones de saldo y crédito
-    updates[`users/${phone}/balanceUSD`] = userBalance - deudaMonto;
-    updates[`users/${phone}/creditUSD`] = userCredit + deudaMonto;
-
-    // 2. Sistema de Reputación: Sumar al pagar
-    const totalPagado = (userData.totalDeudaPagada || 0) + deudaMonto;
-    const txVerdes = (userData.txPagadasA_Tiempo || 0) + 1;
-    updates[`users/${phone}/totalDeudaPagada`] = totalPagado;
-    updates[`users/${phone}/txPagadasA_Tiempo`] = txVerdes;
-
-    // 3. Eliminar la deuda de pending_payments
-    updates[`pending_payments/${phone}/${key}`] = null;
-    
-    // 4. Eliminar la comisión en espera si existe un txId
-    if (txId) {
-      updates[`commissions/espera/${txId}`] = null;
-    }
-
-    // 5. Sumar comisión neta usando incremento atómico del Admin SDK
-    updates[`commissions/neta_total`] = admin.database.ServerValue.increment(commissionToMove);
-
-    // Guardar todos los cambios simultáneamente
-    await db.ref().update(updates);
-
-    return res.status(200).json({
-      success: true,
-      message: '¡Deuda saldada exitosamente! Tu línea de crédito ha sido restablecida.'
-    });
-  } catch (error) {
-    console.error('Error al pagar la deuda:', error);
-    return res.status(500).json({ error: 'Error interno del servidor al procesar el pago.' });
-  }
-}
- 
-// =========================================================================
-// DESARROLLO DE LA FUNCIÓN 3: submitRetiroRequest (CÓDIGO SERVIDOR)
-// =========================================================================
-async function submitRetiroRequest(body, res) {
-  const payloadData = body.payload || body;
-  const { phone, amountUSD, cedula } = payloadData;
-
-  if (!phone || !amountUSD || amountUSD <= 0) {
-    return res.status(400).json({ error: 'Faltan parámetros requeridos o monto inválido.' });
-  }
-
-  try {
-    const userRef = db.ref(`users/${phone}`);
-    const userSnap = await userRef.once('value');
-
-    if (!userSnap.exists()) {
-      return res.status(404).json({ error: 'Usuario no encontrado.' });
-    }
-
-    const userData = userSnap.val();
-    const userBalance = parseFloat(userData.balanceUSD || 0);
-
-    if (userBalance < amountUSD) {
-      return res.status(400).json({ error: `No puedes retirar esta cantidad. Tu saldo disponible es $${userBalance.toFixed(2)} USD.` });
-    }
-
-    const nuevoSaldo = userBalance - amountUSD;
-    const retiroRef = db.ref('retiros').push();
-    
-    const updates = {};
-    updates[`retiros/${retiroRef.key}`] = {
-        sellerPhone: phone,
-        sellerName: userData.fullname || '',
-        cedula: cedula || userData.cedula || 'N/A',
-        bankInfo: userData.bank || 'No especificado',
-        amountUSD: amountUSD,
-        status: 'pendiente',
-        timestamp: admin.database.ServerValue.TIMESTAMP
-    };
-    updates[`users/${phone}/balanceUSD`] = nuevoSaldo;
-
-    await db.ref().update(updates);
-
-    return res.status(200).json({
-      success: true,
-      message: `Solicitud de retiro de $${amountUSD.toFixed(2)} USD enviada. El saldo ha sido retenido temporalmente de tu cuenta.`
-    });
-  } catch (error) {
-    console.error('Error al procesar el retiro:', error);
-    return res.status(500).json({ error: 'Error interno del servidor al solicitar el retiro.' });
-  }
-}
-
-// =========================================================================
-// DESARROLLO DE LA FUNCIÓN 4: handleRegistrationSubmit (CÓDIGO SERVIDOR)
-// =========================================================================
-async function handleRegistrationSubmit(body, res) {
-  const payloadData = body.payload || body;
-  const { uid, role, firstname, lastname, cedula, dob, location, phone, bank, idImage, faceImage, email, password } = payloadData;
-
-  if (!firstname || !lastname || !cedula || !dob || !location || !phone || !password || !email || !idImage || !faceImage) {
-    return res.status(400).json({ error: 'Por favor complete todos los campos obligatorios.' });
-  }
-  // Verificación de edad >= 18 en el servidor (Idéntica a la lógica del frontend)
-  const birthDate = new Date(dob);
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const m = today.getMonth() - birthDate.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-  
-  if (age < 18) {
-    return res.status(400).json({ error: 'Debes ser mayor de edad para registrarte.' });
-  }
-
-  try {
-    const cleanPhone = phone.replace(/\s+/g, '');
-    
-    // Verificar si el usuario ya existe
-    const userRef = db.ref(`users/${cleanPhone}`);
-    const snapshot = await userRef.once('value');
-    if (snapshot.exists()) {
-      return res.status(400).json({ error: 'El número de teléfono ya se encuentra registrado.' });
-    }
-
-    const userData = {
-      uid: uid || 'por_asignar',
-      role: role || 'comprador',
-      firstname: firstname,
-      lastname: lastname,
-      fullname: `${firstname} ${lastname}`,
-      cedula: cedula,
-      dob: dob,
-      location: location,
-      phone: cleanPhone,
-      bank: role === 'vendedor' ? bank : '',
-      idImage: idImage,
-      faceImage: faceImage,
-      email: email,
-      password: password,
-      status: 'pendiente',
-      balanceUSD: 0,
-      creditUSD: 0,
-      verificationCode: '',
-      timestamp: admin.database.ServerValue.TIMESTAMP
-    };
-
-    // Guardar en la base de datos usando el Admin SDK
-    await userRef.set(userData);
-
-    return res.status(200).json({
-      success: true,
-      message: 'Solicitud enviada exitosamente. Espera el mensaje de verificación en WhatsApp.'
-    });
-  } catch (error) {
-    console.error("Error en UVI 4 handleRegistrationSubmit:", error);
-    return res.status(500).json({ error: 'Error interno del servidor al procesar el registro.' });
-  }
-}
-
-
-// =========================================================================
-// DESARROLLO DE LA FUNCIÓN 5: verifyWhatsAppCode (CÓDIGO SERVIDOR)
-// =========================================================================
-async function verifyWhatsAppCode(body, res) {
-  const payloadData = body.payload || body;
-  const { phone, inputCode } = payloadData;
-
-  if (!phone || !inputCode) {
-    return res.status(400).json({ error: 'Faltan parámetros requeridos (phone, inputCode).' });
-  }
-
-  try {
-    const userRef = db.ref(`users/${phone}`);
-    const userSnap = await userRef.once('value');
-
-    if (!userSnap.exists()) {
-      return res.status(404).json({ error: 'El usuario no existe.' });
-    }
-
-    const user = userSnap.val();
-
-    if (user && String(user.verificationCode).trim() === String(inputCode).trim() && inputCode !== '') {
-      let uid = user.uid;
-
-      try {
-        // AHORA creamos la cuenta en Auth (o la usamos si ya existe porque entraron con Google)
-        const userRecord = await admin.auth().createUser({
-          email: user.email,
-          password: user.password
-        });
-        uid = userRecord.uid;
-
-        // Actualizamos estado y UID
-        await userRef.update({
-          status: 'aprobado',
-          uid: uid,
-          verificationCode: ''
+    try {
+        const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
         });
 
-        return res.status(200).json({
-          success: true,
-          message: '¡Tu cuenta ha sido aprobada con éxito! Ya puedes ingresar con tu número y contraseña.'
-        });
+        const result = await response.json();
 
-      } catch (authError) {
-        if (authError.code === 'auth/email-already-exists' || authError.code === 'auth/email-already-in-use') {
-          // La cuenta ya existe vía Google, solo actualizamos la aprobación
-          await userRef.update({
-            status: 'aprobado',
-            verificationCode: ''
-          });
-
-          return res.status(200).json({
-            success: true,
-            message: '¡Tu cuenta ha sido aprobada con éxito! Usa tu número y contraseña para ingresar.'
-          });
+        if (response.ok && result.success) {
+            document.getElementById('modal-dynamic-code').classList.remove('active');
+            document.getElementById('tx-code-seller-input').value = '';
+            activeTxId = null; // Reset necesario para evitar colisión
+            showCustomModal("¡Venta procesada exitosamente!", "ÉXITO");
         } else {
-          return res.status(400).json({ error: "Error al crear cuenta Auth: " + authError.message });
+            showCustomModal(result.error || "Error al procesar la venta.");
         }
-      }
-    } else {
-      return res.status(400).json({ error: 'El código de verificación ingresado es incorrecto.' });
+    } catch (error) {
+        showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+        console.error("Vercel Fetch Error:", error);
     }
-
-  } catch (error) {
-    console.error('Error al verificar código WhatsApp:', error);
-    return res.status(500).json({ error: 'Error interno del servidor al verificar el código.' });
-  }
 }
 
+                async function anularTransaccion() {
+            if (!activeTxId) return;
 
-// =========================================================================
-// DESARROLLO DE LA FUNCIÓN 6: iniciarCobroVenta (CÓDIGO SERVIDOR)
-// =========================================================================
-async function iniciarCobroVenta(body, res) {
-  const payloadData = body.payload || body;
-  const { sellerPhone, buyerPhone, montoUSD, metodo } = payloadData;
+            const payload = {
+                action: 'anularTransaccion',
+                payload: {
+                    transactionId: activeTxId
+                }
+            };
 
-  if (!sellerPhone || !buyerPhone || !montoUSD) {
-    return res.status(400).json({ error: 'Faltan parámetros requeridos.' });
-  }
+            try {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
 
-  if (montoUSD < 0.10 || montoUSD > 20) {
-    return res.status(400).json({ error: 'Monto inválido (Mínimo $0.10 y Máximo $20).' });
-  }
+                const result = await response.json();
 
-  try {
-    // 1. Consultar si el comprador existe y validar el rol (Igual al frontend)
-    const buyerSnap = await db.ref(`users/${buyerPhone}`).once('value');
-    if (!buyerSnap.exists() || buyerSnap.val().role !== 'comprador') {
-      return res.status(404).json({ error: 'El teléfono ingresado no corresponde a un comprador registrado.' });
-    }
-    
-    // 2. Validar si la cuenta está congelada (pagos vencidos)
-    const pendingSnap = await db.ref(`pending_payments/${buyerPhone}`).once('value');
-    let cuentaCongelada = false;
-    const ahora = Date.now();
-    
-    if (pendingSnap.exists()) {
-      pendingSnap.forEach(deuda => {
-        if (deuda.val().expiresAt && ahora > deuda.val().expiresAt) {
-          cuentaCongelada = true;
+                if (response.ok && result.success) {
+                    document.getElementById('modal-dynamic-code').classList.remove('active');
+                    showCustomModal("Transacción anulada.");
+                    activeTxId = null; 
+                } else {
+                    showCustomModal(result.error || "Error al anular la transacción.");
+                }
+            } catch (error) {
+                showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+                console.error("Vercel Fetch Error:", error);
+            }
         }
-      });
-    }
 
-    if (cuentaCongelada) {
-      return res.status(403).json({ cuentaCongelada: true, error: 'El usuario tiene pagos pendientes vencidos.' });
-    }
-   
-    // 3. Generar código exacto de 6 dígitos
-    const codigoSeguro = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 4. Crear la transacción en la base de datos usando admin.database()
-    const txRef = db.ref('transactions').push();
-    const txId = txRef.key;
+        // Sistema de Reputación Visual
+        function verReputacionComprador() {
+            const phone = document.getElementById('venta-buyer-phone').value.trim().replace(/\s+/g, '');
+            if (!phone) {
+                showCustomModal("Ingrese el número del comprador primero.");
+                return;
+            }
+            db.ref('users/' + phone).once('value', snap => {
+                if (!snap.exists() || snap.val().role !== 'comprador') {
+                    showCustomModal("Comprador no encontrado.");
+                    return;
+                }
+                const buyer = snap.val();
+                let nivel = 1 + Math.floor((buyer.totalDeudaPagada || 0) / 20);
+                if (nivel > 12) nivel = 12;
+                
+                document.getElementById('rep-nivel-badge').innerText = "NIVEL " + nivel;
+                document.getElementById('rep-phone-display').innerText = buyer.phone;
+                document.getElementById('rep-plazo-dias').innerText = (2 + nivel) + " Días";
 
-    const nuevaTransaccion = {
-      sellerPhone: sellerPhone,
-      buyerPhone: buyerPhone,
-      amountUSD: parseFloat(montoUSD),
-      method: metodo || 'digital',
-      code: codigoSeguro,
-      status: 'esperando_codigo',
-      timestamp: admin.database.ServerValue.TIMESTAMP
-    };
+                const txVerdes = buyer.txPagadasA_Tiempo || 0;
+                const txRojas = buyer.txAtrasadas || 0; 
+                
+                const estrellasVerdes = Math.min(3, Math.floor(txVerdes / 20));
+                const estrellasRojas = Math.min(3, Math.floor(txRojas / 20));
 
-    await txRef.set(nuevaTransaccion);
+                let htmlVerdes = '';
+                for(let i=0; i<3; i++) {
+                    htmlVerdes += i < estrellasVerdes ? '<i class="fa-solid fa-star" style="color: var(--neon-green);"></i>' : '<i class="fa-regular fa-star"></i>';
+                }
+                document.getElementById('rep-stars-green').innerHTML = htmlVerdes;
+                document.getElementById('rep-count-green').innerText = txVerdes + " / 60 tx";
 
-    // 5. Retornar el ID de transacción al frontend
-    return res.status(200).json({
-      success: true,
-      txId: txId,
-      message: 'Cobro iniciado correctamente.'
-    });
-  } catch (error) {
-    console.error('Error en iniciarCobroVenta UVI 6:', error);
-    return res.status(500).json({ error: 'Error interno del servidor al iniciar el cobro.' });
-  }
-}
+                let htmlRojas = '';
+                for(let i=0; i<3; i++) {
+                    htmlRojas += i < estrellasRojas ? '<i class="fa-solid fa-star" style="color: var(--neon-pink);"></i>' : '<i class="fa-regular fa-star"></i>';
+                }
+                document.getElementById('rep-stars-red').innerHTML = htmlRojas;
+                document.getElementById('rep-count-red').innerText = txRojas + " / 60 tx";
 
-// =========================================================================
-// DESARROLLO DE LA FUNCIÓN 7: cancelRegistrationProcess (CÓDIGO SERVIDOR)
-// =========================================================================
-async function cancelRegistrationProcess(body, res) {
-  const payloadData = body.payload || body;
-  const { phone } = payloadData;
+                document.getElementById('modal-reputacion').classList.add('active');
+            });
+        }
 
-  if (!phone) {
-    return res.status(400).json({ error: 'Falta el número de teléfono para cancelar el registro.' });
-  }
+        // View Pending Payments
+        function openPendingPaymentsModal() {
+            if (!currentUserData) return;
+            db.ref('pending_payments/' + currentUserData.phone).once('value', snapshot => {
+                let html = '';
+                if (!snapshot.exists()) {
+                    html = '<p style="color:var(--text-dim); text-align:center;">No tienes pagos pendientes de crédito.</p>';
+                } else {
+                    snapshot.forEach(child => {
+                        const p = child.val();
+                        const fechaCompra = new Date(p.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        const fechaVencimiento = new Date(p.expiresAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        
+                        html += `
+                            <div style="background:rgba(255,255,255,0.05); border:1px solid var(--neon-cyan); padding:10px; border-radius:8px; margin-bottom:8px;">
+                                <div style="margin-bottom:5px;"><strong>Deuda:</strong> <span style="color:var(--neon-pink);">$${p.amountUSD.toFixed(2)} USD</span></div>
+                                <div style="font-size:0.85rem; color:var(--text-light); margin-bottom:2px;"><i class="fa-solid fa-calendar-day"></i> <strong>Compra:</strong> ${fechaCompra}</div>
+                                <div style="font-size:0.85rem; color:var(--text-light); margin-bottom:5px;"><i class="fa-solid fa-calendar-xmark"></i> <strong>Pagar antes de:</strong> ${fechaVencimiento}</div>
+                                <div style="font-size:0.8rem; color:var(--text-dim);">Estado: ${p.status.toUpperCase()}</div>
+                                <button class="neon-btn neon-btn-green" style="margin-top:8px; font-size:0.85rem; padding:8px;" onclick="payPendingDebt('${child.key}', ${p.amountUSD})"><i class="fa-solid fa-credit-card"></i> Pagar Deuda con Saldo</button>
+                            </div>
+                        `;
+                    });
+                }
+                document.getElementById('list-modal-title').innerText = "PAGOS PENDIENTES";
+                document.getElementById('list-modal-content').innerHTML = html;
+                document.getElementById('modal-list-view').classList.add('active');
+            });
+        }
 
-  try {
-    // Usando admin.database() para eliminar el registro de forma segura desde el backend
-    const userRef = db.ref(`users/${phone}`);
-    const userSnap = await userRef.once('value');
 
-    if (userSnap.exists()) {
-      await userRef.remove();
-    }
+async function payPendingDebt(key, amountUSD) {
+            if (currentUserData.balanceUSD < amountUSD) {
+                showCustomModal("Saldo insuficiente para cancelar la deuda. Por favor recarga saldo.");
+                return;
+            }
 
-    return res.status(200).json({
-      success: true,
-      message: 'Proceso de registro cancelado exitosamente.'
-    });
-  } catch (error) {
-    console.error("Error en UVI 7 cancelRegistrationProcess:", error);
-    return res.status(500).json({ error: 'Error interno del servidor al cancelar el registro.' });
-  }
-}
+            const payload = {
+                action: 'payPendingDebt',
+                payload: {
+                    phone: currentUserData.phone,
+                    key: key,
+                    amountUSD: amountUSD
+                }
+            };
 
-// =========================================================================
-// DESARROLLO DE LA FUNCIÓN 8: anularTransaccion (CÓDIGO SERVIDOR)
-// =========================================================================
-async function anularTransaccion(body, res) {
-  const payloadData = body.payload || body;
-  const { transactionId } = payloadData;
+            try {
+                const response = await fetch('https://cash-compra-vnzl.vercel.app/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
 
-  if (!transactionId) {
-    return res.status(400).json({ error: 'Falta el ID de la transacción para anular.' });
-  }
+                const result = await response.json();
 
-  try {
-    const txRef = db.ref(`transactions/${transactionId}`);
-    const txSnapshot = await txRef.once('value');
+                if (response.ok && result.success) {
+                    closeModal('modal-list-view');
+                    showCustomModal(result.message, "PAGO DE DEUDA");
+                } else {
+                    showCustomModal(result.error || "Error al pagar la deuda.");
+                }
+            } catch (error) {
+                showCustomModal("Error de conexión con el servidor Vercel: " + error.message);
+                console.error("Vercel Fetch Error:", error);
+            }
+        }
+ 
+        
+        function openCompletedPaymentsModal() {
+            db.ref('transactions').orderByChild('buyerPhone').equalTo(currentUserData.phone).once('value', snapshot => {
+                let html = '';
+                snapshot.forEach(child => {
+                    const tx = child.val();
+                    if (tx.status === 'completada') {
+                        html += `<div style="padding:8px; border-bottom:1px solid rgba(255,255,255,0.1);">Monto: $${tx.amountUSD.toFixed(2)} - Método: ${tx.method.toUpperCase()}</div>`;
+                    }
+                });
+                if (!html) html = '<p style="color:var(--text-dim);">No hay pagos registrados.</p>';
+                document.getElementById('list-modal-title').innerText = "HISTORIAL DE COMPRAS";
+                document.getElementById('list-modal-content').innerHTML = html;
+                document.getElementById('modal-list-view').classList.add('active');
+            });
+        }
 
-    if (!txSnapshot.exists()) {
-      return res.status(404).json({ error: 'La transacción no existe.' });
-    }
+        function openVentasCompletadasModal() {
+            db.ref('transactions').orderByChild('sellerPhone').equalTo(currentUserData.phone).once('value', snapshot => {
+                let html = '';
+                snapshot.forEach(child => {
+                    const tx = child.val();
+                    if (tx.status === 'completada') {
+                        html += `<div style="padding:8px; border-bottom:1px solid rgba(255,255,255,0.1);">Cliente: ${tx.buyerPhone} - Monto: $${tx.amountUSD.toFixed(2)}</div>`;
+                    }
+                });
+                if (!html) html = '<p style="color:var(--text-dim);">No hay ventas completadas.</p>';
+                document.getElementById('list-modal-title').innerText = "VENTAS REALIZADAS";
+                document.getElementById('list-modal-content').innerHTML = html;
+                document.getElementById('modal-list-view').classList.add('active');
+            });
+        } 
 
-    // Usando admin.database() para anular desde el servidor
-    await txRef.update({ status: 'anulada' });
+        function openUsuariosFrecuentesModal() {
+            db.ref('frequent_clients/' + currentUserData.phone).once('value', snapshot => {
+                let html = '';
+                snapshot.forEach(child => {
+                    const c = child.val();
+                    html += `<div style="padding:8px; border-bottom:1px solid rgba(255,255,255,0.1);"><strong>${c.fullname}</strong> (${c.phone})</div>`;
+                });
+                if (!html) html = '<p style="color:var(--text-dim);">No hay clientes registrados.</p>';
+                document.getElementById('list-modal-title').innerText = "CLIENTES FRECUENTES";
+                document.getElementById('list-modal-content').innerHTML = html;
+                document.getElementById('modal-list-view').classList.add('active');
+            });
+        }
 
-    return res.status(200).json({
-      success: true,
-      message: 'Transacción anulada exitosamente.'
-    });
-  } catch (error) {
-    console.error("Error en UVI 8 anularTransaccion:", error);
-    return res.status(500).json({ error: 'Error interno del servidor al anular la transacción.' });
-  }
-}
+        function showForgotPasswordModal() {
+            showCustomModal("Para recuperar tu contraseña, contacta directamente con administración a través del soporte de WhatsApp.", "RECUPERAR CONTRASEÑA");
+        }
+    </script>
+</body>
+</html>  

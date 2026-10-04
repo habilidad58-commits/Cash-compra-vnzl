@@ -319,15 +319,17 @@
             }
         });
 
-        onValue(ref(db, 'partida/pases_consecutivos'), (s) => { 
+                onValue(ref(db, 'partida/pases_consecutivos'), (s) => { 
             pasesConsecutivos = s.val() || 0; 
             let cantidadFichasPinta = mesa.filter(m => m.ficha[0] === puntas[0] || m.ficha[1] === puntas[0]).length;
-            let trancaAhorcado = (pasesConsecutivos > 0 && puntas.length === 2 && puntas[0] === puntas[1] && cantidadFichasPinta === 7);
+            let trancaAhorcado = (puntas.length === 2 && puntas[0] === puntas[1] && cantidadFichasPinta === 7);
             
             if((pasesConsecutivos >= 4 || trancaAhorcado) && estadoPartida !== 'contando') {
                 set(ref(db, 'partida/estado'), 'contando');
             }
         });
+
+
         // --- ESCUCHA DEL TECLADO INDEPENDIENTE ---
         onChildAdded(ref(db, 'partida/fichas_maestro_remoto'), (s) => {
             let fichaExterna = s.val();
@@ -363,11 +365,11 @@
             let conteoJugadores = { yo: 0, mesa2: 0, amigo3: 0, mesa4: 0 };
 
             if(data) {
-                Object.values(data).forEach(m => {
+                Object.entries(data).forEach(([key, m]) => {
                     mesa.push(m);
                     conteoPintas[m.ficha[0]]++; conteoPintas[m.ficha[1]]++;
                     
-                    let fHtml = `<div class="ficha ficha-mesa">[${m.ficha[0]}/${m.ficha[1]}]<br><small>${m.jugador}</small></div>`;
+                    let fHtml = `<div class="ficha ficha-mesa" ondblclick="borrarFichaMesa('${key}')">[${m.ficha[0]}/${m.ficha[1]}]<br><small>${m.jugador}</small></div>`;
                     if(m.lado === 0) htmlIzq = fHtml + htmlIzq;
                     else if(m.lado === 1) htmlDer = htmlDer + fHtml;
                     else htmlCentro = fHtml;
@@ -385,22 +387,31 @@
             let alguienAZero = false;
             for (let j in conteoJugadores) { if (conteoJugadores[j] >= 7) { alguienAZero = true; break; } }
 
+            let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && conteoPintas[puntas[0]] === 7);
+
             let btnG = document.getElementById('btn-guardar-partida');
             if (btnG && btnG.dataset.oculto !== 'true') {
-                btnG.style.display = (alguienAZero || estadoPartida === 'contando') ? 'block' : 'none';
+                btnG.style.display = (alguienAZero || trancaAutomatica || estadoPartida === 'contando') ? 'block' : 'none';
             }
 
-            if (estadoPartida !== 'contando' && alguienAZero) {
+            if (estadoPartida !== 'contando' && (alguienAZero || trancaAutomatica)) {
                 set(ref(db, 'partida/estado'), 'contando');
             }
  
             document.getElementById('mesa-fichas').innerHTML = htmlIzq + htmlCentro + htmlDer;
         });
 
+
         onValue(ref(db, 'partida/pasos'), (s) => { pasos = s.val() ? Object.values(s.val()) : []; });
+
+        window.borrarFichaMesa = async (key) => {
+            await remove(ref(db, `partida/mesa/${key}`));
+            registrarHistorial(`⚠️ Ficha eliminada de la mesa mediante doble toque.`);
+        };
 
 
         // --- MANEJO DE SELECCIÃ“N ---
+
         window.seleccionar = (num) => {
             if(seleccion.length < 2) {
                 seleccion.push(num);
@@ -759,11 +770,35 @@
                 });
             }
 
+            // --- PRE-CÁLCULOS DE HEURÍSTICAS AVANZADAS ---
+            let pintaSalidaAmigo = -1;
+            let salidaAmigo = mesa.find(m => m.jugador === 'amigo3' && m.lado === -1);
+            if (salidaAmigo) pintaSalidaAmigo = salidaAmigo.ficha[0];
+
+            let ultimoLadoMesa2 = -1;
+            if (mesa.length > 0 && mesa[mesa.length - 1].jugador === 'mesa2') {
+                ultimoLadoMesa2 = mesa[mesa.length - 1].lado;
+            }
+
+            let omisionesMesa4 = new Set();
+            let trackerPuntas = [];
+            mesa.forEach(m => {
+                if (trackerPuntas.length === 2 && m.jugador === 'mesa4' && m.lado !== -1) {
+                    let puntaOmitida = (m.lado === 0) ? trackerPuntas[1] : trackerPuntas[0];
+                    if (m.ficha[0] !== puntaOmitida && m.ficha[1] !== puntaOmitida) omisionesMesa4.add(puntaOmitida);
+                }
+                if (m.lado === -1) trackerPuntas = [...m.ficha];
+                else if (m.lado === 0) trackerPuntas[0] = (m.ficha[0] === trackerPuntas[0]) ? m.ficha[1] : m.ficha[0];
+                else if (m.lado === 1) trackerPuntas[1] = (m.ficha[0] === trackerPuntas[1]) ? m.ficha[1] : m.ficha[0];
+            });
+
             let mejorEvaluacion = -9999;
             let mejorMovimiento = null;
 
             // Evaluador de candidato por árbol de posibilidades
             jugables.forEach(f => {
+
+
                 let opcionesLado = [];
                 if (f[0] === puntas[0] || f[1] === puntas[0]) opcionesLado.push({ lado: 0, nombreLado: "IZQUIERDA" });
                 if (f[0] === puntas[1] || f[1] === puntas[1]) opcionesLado.push({ lado: 1, nombreLado: "DERECHA" });
@@ -775,7 +810,7 @@
                     let nuevaPunta = (f[0] === puntaViejaPunta) ? f[1] : f[0];
                     let nuevasPuntas = (lado === 0) ? [nuevaPunta, puntas[1]] : [puntas[0], nuevaPunta];
 
-                    // --- EVALUACIÓN HEURÍSTICA BASE ---
+                                  // --- EVALUACIÓN HEURÍSTICA BASE ---
                     let ptsBase = f[0] + f[1]; 
                     if(f[0] === f[1]) ptsBase += 25; 
 
@@ -783,8 +818,23 @@
                     let miConteoDeNuevaPunta = miMano.filter(miFicha => miFicha.includes(nuevaPunta)).length;
                     let totalPintaMesaYMano = cuantasDeNuevaPunta + miConteoDeNuevaPunta;
                     
-                    if(totalPintaMesaYMano === 7) ptsBase += 120; // Ahorque total
-                    else if(miConteoDeNuevaPunta >= 3) ptsBase += 80; // Dominio de pinta
+                    // --- NUEVA INTELIGENCIA: TRANCA MAESTRA ---
+                    let miManoRestante = miMano.filter(mf => !esMismaFicha(mf, f));
+                    let misPuntosRestantes = miManoRestante.reduce((acc, curr) => acc + curr[0] + curr[1], 0);
+                    let cantFichasRivales = (7 - conteoJugadores['mesa2']) + (7 - conteoJugadores['mesa4']);
+                    
+                    // Si esta jugada hace que ambas puntas sean iguales y se juegan las 7 fichas de esa pinta
+                    let trancaPerfecta = (nuevaPunta === puntaMantenida && cuantasDeNuevaPunta >= 6);
+
+                    if (trancaPerfecta && misPuntosRestantes <= 18 && cantFichasRivales > miManoRestante.length * 2) {
+                        ptsBase += 2000; // Prioridad máxima absoluta: Trancar para ganar por puntos
+                    } else if (totalPintaMesaYMano === 7 && misPuntosRestantes <= 15 && cantFichasRivales >= 7) {
+                        ptsBase += 1000; // Prioridad alta: Ahorcar una punta para forzar el cierre pronto
+                    } else if(totalPintaMesaYMano === 7) {
+                        ptsBase += 120; // Ahorque total normal
+                    } else if(miConteoDeNuevaPunta >= 3) {
+                        ptsBase += 80; // Dominio de pinta
+                    }
 
                     if(perfilEstrategicoSilencioso) {
                         let pM2 = perfilEstrategicoSilencioso.mesa2;
@@ -795,7 +845,19 @@
                         if(pM4 && pM4.pintaPreferida !== -1 && (puntaMantenida === pM4.pintaPreferida || nuevaPunta === pM4.pintaPreferida)) ptsBase += 40;
                     }
 
+                    // --- HEURÍSTICAS AVANZADAS ---
+                    if (omisionesMesa4.has(puntaViejaPunta)) {
+                        ptsBase -= 100; // Castigo severo por tapar el lado débil de Mesa 4
+                    }
+                    if (ultimoLadoMesa2 !== -1 && lado === ultimoLadoMesa2) {
+                        ptsBase += 60; // Bono por tapar inmediatamente la ficha de Mesa 2
+                    }
+                    if (pintaSalidaAmigo !== -1 && (nuevaPunta === pintaSalidaAmigo || puntaMantenida === pintaSalidaAmigo)) {
+                        ptsBase += 200; // Bono masivo por dejar abierta la pinta del Amigo 3
+                    }
+
                     // --- SIMULACIÓN DEL ÁRBOL DE JUGADAS A FUTURO (LOOKAHEAD) ---
+
                     let ptsArbol = 0;
                     let arbolDetalles = [];
 
@@ -834,11 +896,12 @@
                         arbolDetalles.push(`🎲 <b>Mesa 4 (Rival):</b> Tiene ~${posMesa4.length} opciones en mesa.`);
                     }
 
+               
                     // Turno 5: Yo (Mi siguiente turno en el árbol)
-                    let miManoRestante = miMano.filter(mf => !esMismaFicha(mf, f));
                     let miSiguienteTurno = miManoRestante.some(mf => mf.includes(nuevasPuntas[0]) || mf.includes(nuevasPuntas[1]));
                     if(miSiguienteTurno) {
-                        ptsArbol += 90;
+                    
+         ptsArbol += 90;
                         arbolDetalles.push("🔄 <b>Tu Siguiente Turno:</b> Conservas el control de la mesa.");
                     } else {
                         ptsArbol -= 50;
@@ -849,18 +912,24 @@
 
                     if(ptsTotales > mejorEvaluacion) {
                         mejorEvaluacion = ptsTotales;
-                        mejorMovimiento = {
+                                   mejorMovimiento = {
                             ficha: f,
                             lado: opc.nombreLado,
                             score: ptsTotales,
                             arbol: arbolDetalles,
-                            resumen: (totalPintaMesaYMano === 7) ? "Ahorque definitivo de la pinta " + nuevaPunta :
+                                          resumen: (ptsBase >= 2000) ? "¡TRANCA MAESTRA! Aseguramos la victoria trancando con menos puntos en mano." :
+                                     (ptsBase >= 1000) ? "¡AHORQUE ESTRATÉGICO! Forzando el cierre por ventaja de puntos." :
+                                     (pintaSalidaAmigo !== -1 && (nuevaPunta === pintaSalidaAmigo || puntaMantenida === pintaSalidaAmigo) && ptsBase >= 200) ? "¡PINTA SAGRADA! Manteniendo viva la salida del Amigo 3." :
+                                     (ultimoLadoMesa2 !== -1 && lado === ultimoLadoMesa2) ? "¡CASTIGO DIRECTO! Tapando la ficha recién jugada por Mesa 2." :
+                                     (totalPintaMesaYMano === 7) ? "Ahorque definitivo de la pinta " + nuevaPunta :
                                      (miConteoDeNuevaPunta >= 3) ? "Dominio estratégico de " + nuevaPunta :
                                      (posMesa2.length === 0) ? "Bloqueo matemático directo a Mesa 2" :
                                      (posAmigo3.length > 0) ? "Facilita entrada clara a Amigo 3" : "Optimización de puntos y fluidez de mano"
                         };
-                    }
-                });
+
+         }
+
+  });
             });
 
 

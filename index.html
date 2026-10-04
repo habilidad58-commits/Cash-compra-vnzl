@@ -785,11 +785,17 @@
                         arbolDetalles.push(`⚠️ <b>Mesa 2 (Rival):</b> Tiene ~${posMesa2.length} fichas posibles para responder.`);
                     }
 
+
                     // Turno 3: Amigo 3 (Equipo)
                     let posAmigo3 = simularRespuestaJugador('amigo3', nuevasPuntas);
                     if(posAmigo3.length > 0) {
-                        ptsArbol += 100;
-                        arbolDetalles.push(`🤝 <b>Amigo 3 (Compañero):</b> Mesa servida, tiene ~${posAmigo3.length} respuestas posibles.`);
+                        if(perfilEstrategicoSilencioso && perfilEstrategicoSilencioso.amigo3 && perfilEstrategicoSilencioso.amigo3.retienenDobles) {
+                            ptsArbol += 30; // IA desconfía: Bono reducido de 100 a 30 por retener dobles
+                            arbolDetalles.push(`🤝 <b>Amigo 3 (Compañero):</b> Tiene ~${posAmigo3.length} respuestas, pero RETIENE DOBLES (Confianza reducida).`);
+                        } else {
+                            ptsArbol += 100;
+                            arbolDetalles.push(`🤝 <b>Amigo 3 (Compañero):</b> Mesa servida, tiene ~${posAmigo3.length} respuestas posibles.`);
+                        }
                     } else {
                         ptsArbol -= 150;
                         arbolDetalles.push("⚠️ <b>Amigo 3 (Compañero):</b> Riesgo de <b>PASAR</b> si se deja esta mesa.");

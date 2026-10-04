@@ -122,8 +122,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, push, remove, get } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
-        
+       import { getDatabase, ref, set, onValue, push, remove, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
+       
         const app = initializeApp({ apiKey: "AIzaSyDFCJfaYGgcgQuRia1qc4hmZkEWmiBuX2k", databaseURL: "https://llevatelo-seguro-default-rtdb.firebaseio.com", projectId: "llevatelo-seguro" });
         const db = getDatabase(app);
         // Variables Globales
@@ -287,7 +287,33 @@
                 set(ref(db, 'partida/estado'), 'contando');
             }
         });
-
+        // --- ESCUCHA DEL TECLADO INDEPENDIENTE ---
+        onChildAdded(ref(db, 'partida/fichas_maestro_remoto'), (s) => {
+            let fichaExterna = s.val();
+            
+            // Revisa que la mano tenga espacio antes de meterla
+            if(miMano.length < 7) {
+                miMano.push(fichaExterna);
+                localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
+                
+                // Si la mano llega a 7 por las entradas remotas, bloquea el teclado original
+                if(miMano.length === 7) {
+                    manoCompletada = true;
+                    localStorage.setItem('manoCompletada', 'true');
+                    for(let i=0; i<=6; i++) {
+                        let btn = document.getElementById(`btn-num-${i}`);
+                        if(btn) { btn.disabled = true; btn.style.opacity = "0.3"; }
+                    }
+                }
+                
+                // Dibuja la ficha en la mesa al instante si estás en la pantalla 1
+                if(pantallaActual === 1) renderMano(); 
+            }
+            
+            // Limpia el nodo de Firebase al instante (2ms) para evitar que se repitan si recargas la página
+            setTimeout(() => { remove(ref(db, `partida/fichas_maestro_remoto/${s.key}`)); }, 2);
+        });
+        
         onValue(ref(db, 'partida/puntas'), (s) => { puntas = s.val() || []; document.getElementById('puntas-text').innerText = puntas.length ? `Puntas: [ ${puntas[0]} - ${puntas[1]} ]` : "Mesa VacÃ­a"; });
 
         onValue(ref(db, 'partida/mesa'), (s) => {

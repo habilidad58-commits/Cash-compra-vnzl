@@ -27,19 +27,24 @@
         .botones-derecha { display: flex; justify-content: space-between; margin-top: auto; }
         .btn-maestro { background: #00c853; color: white; border: none; padding: 15px; font-size: 18px; border-radius: 8px; font-weight: bold; width: 65%; cursor: pointer; box-shadow: 0 0 15px #00c853; }
         .btn-reset { background: #d50000; color: white; border: none; padding: 15px; font-size: 14px; border-radius: 8px; width: 30%; cursor: pointer;}
-
-        /* Modal AI */
+        
+                /* Modal AI y Registro */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 10; }
-        .modal-content { background: #1e1e1e; padding: 20px; border-radius: 10px; border: 2px solid #00c853; width: 80%; }
-        .close-btn { background: #333; color: white; border: none; padding: 10px; margin-top: 15px; width: 100%; font-size: 16px; border-radius: 5px;}
+        .modal-content { background: #1e1e1e; padding: 20px; border-radius: 10px; border: 2px solid #00c853; width: 80%; max-height: 80vh; overflow-y: auto; position: relative;}
+        .close-btn { background: #333; color: white; border: none; padding: 10px; margin-top: 15px; width: 100%; font-size: 16px; border-radius: 5px; cursor: pointer;}
+        .btn-registro { position: absolute; top: 10px; right: 10px; background: #311b92; color: white; border: 2px solid #b388ff; padding: 5px 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 12px; z-index: 5; box-shadow: 0 0 5px #b388ff;}
+        .historial-lista { text-align: left; font-size: 13px; color: #ccc; margin-top: 10px; max-height: 50vh; overflow-y: auto; padding-right: 5px; }
+        .historial-item { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #444; }
     </style>
+
 </head>
-<body>
+    <body>
+    <button class="btn-registro" onclick="document.getElementById('modal-historial').style.display='flex'">📜 Registro</button>
     <div id="header-container">
         <h2 id="titulo-pantalla" style="margin-bottom: 5px;">YO - Panel de Control</h2>
         <div id="indicador-auto" style="color: #ff9800; font-size:12px; margin-bottom:10px; font-weight:bold;">Autocambio: DETENIDO (Presiona un Turno 1-4)</div>
     </div>
-    
+
     <!-- TABLERO UNIFICADO -->
     <div class="tablero" id="caja-tablero" style="background: #4a148c;">
         <button id="btn-izq" class="btn-accion" style="display:none; background:#ff9800; padding:10px; font-size:14px; margin:0; cursor:pointer;" onclick="clickIzq()">ðŸ‘ˆ Izq</button>
@@ -114,9 +119,19 @@
     <!-- Modal IA -->
     <div id="modal-ia" class="modal">
         <div class="modal-content">
-            <h2 style="color: #00c853; margin-top: 0;">ðŸ§  JUGADA MAESTRA</h2>
+            <h2 style="color: #00c853; margin-top: 0;">🧠 JUGADA MAESTRA</h2>
             <div id="ia-texto" style="font-size: 18px; margin: 15px 0;"></div>
             <button class="close-btn" onclick="document.getElementById('modal-ia').style.display='none'">Entendido</button>
+        </div>
+    </div>
+
+    <!-- Modal Registro (Historial) -->
+    <div id="modal-historial" class="modal">
+        <div class="modal-content" style="border-color: #b388ff;">
+            <h2 style="color: #b388ff; margin-top: 0; font-size:18px;">📜 Registro de Partida (100 pts)</h2>
+            <button class="btn-accion" style="background:#00c853; width:100%; margin:0; padding:10px;" onclick="copiarHistorial()">📋 Copiar Historial</button>
+            <div id="historial-lista" class="historial-lista"></div>
+            <button class="close-btn" onclick="document.getElementById('modal-historial').style.display='none'">Cerrar</button>
         </div>
     </div>
 
@@ -125,13 +140,39 @@
        import { getDatabase, ref, set, onValue, push, remove, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
        
         const app = initializeApp({ apiKey: "AIzaSyDFCJfaYGgcgQuRia1qc4hmZkEWmiBuX2k", databaseURL: "https://llevatelo-seguro-default-rtdb.firebaseio.com", projectId: "llevatelo-seguro" });
+
         const db = getDatabase(app);
         // Variables Globales
-        let puntas = []; let mesa = []; let pasos = []; 
+        let puntas = []; let mesa = []; let pasos = []; let historialLocal = [];
         let miMano = JSON.parse(localStorage.getItem('miManoGuardada')) || []; let seleccion = [];
         let manoCompletada = localStorage.getItem('manoCompletada') === 'true';
 
-         let conteoPintas = [0, 0, 0, 0, 0, 0, 0]; 
+        let conteoPintas = [0, 0, 0, 0, 0, 0, 0]; 
+        
+        window.registrarHistorial = async (texto) => {
+            let fecha = new Date().toLocaleTimeString();
+            let logText = `[${fecha}] ${texto}`;
+            await push(ref(db, 'partida/historial_juego'), logText);
+        };
+
+        window.copiarHistorial = () => {
+            let textoCopia = historialLocal.join('\n');
+            navigator.clipboard.writeText(textoCopia).then(() => alert("Historial copiado al portapapeles con éxito."));
+        };
+
+        onValue(ref(db, 'partida/historial_juego'), (s) => {
+            historialLocal = [];
+            let htmlHistorial = "";
+            let data = s.val();
+            if (data) {
+                Object.values(data).forEach(item => {
+                    historialLocal.push(item);
+                    htmlHistorial = `<div class="historial-item">${item}</div>` + htmlHistorial;
+                });
+            }
+            document.getElementById('historial-lista').innerHTML = htmlHistorial;
+        });
+
         let puntaje = { nosotros: 0, rivales: 0 };
         let pasesConsecutivos = 0;
         let estadoPartida = 'jugando';
@@ -471,7 +512,10 @@
             await set(ref(db, 'partida/puntas'), nuevasPuntas);
             await set(ref(db, 'partida/pases_consecutivos'), 0);
             
-                        actualizarBotonesMesa();
+            let ladoTexto = lado === 0 ? 'Izquierda' : (lado === 1 ? 'Derecha' : 'Centro');
+            registrarHistorial(`👤 Yo (Maestro) jugué [${fichaJugada[0]}/${fichaJugada[1]}] por la ${ladoTexto}.`);
+            
+            actualizarBotonesMesa();
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
         };
 
@@ -480,12 +524,15 @@
         // --- LÃ“GICA MESAS RIVALES Y AMIGO ---
         window.jugarCentro = async () => {
             if(window.accionEnCurso) return;
-            if(seleccion.length !== 2) return alert("Marca 2 nÃºmeros");
+            if(seleccion.length !== 2) return alert("Marca 2 números");
             if(puntas.length > 0) return alert("Ya hay fichas, usa Izquierda/Derecha.");
             window.accionEnCurso = true;
             await push(ref(db, 'partida/mesa'), {ficha: seleccion, jugador: getJugadorID(), lado: -1});
             await set(ref(db, 'partida/puntas'), seleccion);
             await set(ref(db, 'partida/pases_consecutivos'), 0);
+            
+            registrarHistorial(`🎲 ${getJugadorID().toUpperCase()} salió al Centro con [${seleccion[0]}/${seleccion[1]}].`);
+            
             window.limpiarSeleccion();
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
         };
@@ -506,11 +553,15 @@
                 else if(seleccion[1] === puntas[1]) { nuevasPuntas[1] = seleccion[0]; cuadra = true; fichaJugada = [seleccion[1], seleccion[0]]; }
             }
 
-            if(!cuadra) { window.accionEnCurso = false; return alert("Â¡La ficha no cuadra en ese lado!"); }
+            if(!cuadra) { window.accionEnCurso = false; return alert("¡La ficha no cuadra en ese lado!"); }
             
             await push(ref(db, 'partida/mesa'), {ficha: fichaJugada, jugador: getJugadorID(), lado: lado});
             await set(ref(db, 'partida/puntas'), nuevasPuntas);
             await set(ref(db, 'partida/pases_consecutivos'), 0);
+            
+            let nomLado = lado === 0 ? 'Izquierda' : 'Derecha';
+            registrarHistorial(`🎲 ${getJugadorID().toUpperCase()} jugó [${fichaJugada[0]}/${fichaJugada[1]}] por la ${nomLado}.`);
+            
             window.limpiarSeleccion();
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
         };
@@ -523,6 +574,9 @@
             let snap = await get(ref(db, 'partida/pases_consecutivos'));
             let current = snap.val() || 0;
             await set(ref(db, 'partida/pases_consecutivos'), current + 1);
+            
+            registrarHistorial(`🛑 ${getJugadorID().toUpperCase()} PASÓ (Puntas expuestas: ${puntas[0]} y ${puntas[1]}).`);
+            
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
         };
 
@@ -573,9 +627,10 @@
                 await remove(ref(db, 'partida/puntas'));
                 await remove(ref(db, 'partida/pasos'));
                 await set(ref(db, 'partida/pases_consecutivos'), 0);
-                await set(ref(db, 'partida/estado'), 'jugando');
+                                await set(ref(db, 'partida/estado'), 'jugando');
+                registrarHistorial(`============= NUEVA VUELTA INICIADA =============`);
                 miMano = []; limpiarSeleccion(); renderMano();
-                
+
                 let btnG = document.getElementById('btn-guardar-partida');
                 if (btnG) { btnG.dataset.oculto = 'false'; btnG.style.display = 'none'; }
                 
@@ -600,11 +655,44 @@
 
                     // --- CEREBRO IA MAESTRO CON ÁRBOL GENEALÓGICO DE JUGADAS FUTURAS ---
         window.analizarJugada = () => {
-            if(puntas.length !== 2) return alert("Mesa 4 no ha jugado o la mesa no ha empezado.");
+            let texto = document.getElementById('ia-texto');
+
+            if(puntas.length === 0) {
+                if(miMano.length === 0) return alert("No tienes fichas en tu mano aún.");
+                
+                let mejorFicha = null;
+                let maxPuntaje = -1;
+                
+                miMano.forEach(f => {
+                    let cantPalo0 = miMano.filter(x => x.includes(f[0])).length;
+                    let cantPalo1 = miMano.filter(x => x.includes(f[1])).length;
+                    let esDoble = (f[0] === f[1]);
+                    let peso = f[0] + f[1] + (cantPalo0 * 15) + (cantPalo1 * 15) + (esDoble ? 50 : 0);
+                    
+                    if(peso > maxPuntaje) { maxPuntaje = peso; mejorFicha = f; }
+                });
+
+                let razon = mejorFicha[0] === mejorFicha[1] 
+                    ? `Es tu mejor doble para salir (tienes mayor cantidad de esa pinta o es la de más alto puntaje).` 
+                    : `No tienes dobles fuertes, esta ficha te garantiza salir con la pinta que más dominas.`;
+
+                texto.innerHTML = `
+                    <div style="font-size:28px; font-weight:bold; color:white; margin-bottom: 5px;">Juega: [ ${mejorFicha[0]} | ${mejorFicha[1]} ]</div>
+                    <div style="font-size:18px; font-weight:bold; color:#00e676; margin-bottom: 10px;">Lanza al: CENTRO (Salida)</div>
+                    <div style="background:#2a2a2a; border-radius:8px; padding:10px; margin-top:10px; text-align:left; font-size:13px; border-left:4px solid #00c853;">
+                        <div style="margin-top:8px; padding-top:5px; color:#ffeb3b;"><b>💡 Estrategia (Mesa Vacía):</b> ${razon}</div>
+                    </div>
+                `;
+                document.getElementById('modal-ia').style.display = 'flex';
+                registrarHistorial(`🤖 IA SUGIRIÓ (Salida): [${mejorFicha[0]}/${mejorFicha[1]}] al Centro. Razón: ${razon}`);
+                return;
+            }
+
+            if(puntas.length !== 2) return alert("La mesa tiene un estado inválido.");
             let jugables = miMano.filter(f => puntas.includes(f[0]) || puntas.includes(f[1]));
             
-            let texto = document.getElementById('ia-texto');
             if(jugables.length === 0) {
+
                 texto.innerHTML = "<span style='color:red;'>No tienes fichas. DEBES PASAR.</span><br><button class='btn-accion' style='background:#f44336; margin-top:15px;' onclick='registrarPasoMaestro()'>Confirmar y Pasar</button>";
                 document.getElementById('modal-ia').style.display = 'flex';
                 return;
@@ -745,6 +833,7 @@
                 });
             });
 
+
             texto.innerHTML = `
                 <div style="font-size:28px; font-weight:bold; color:white; margin-bottom: 5px;">Juega: [ ${mejorMovimiento.ficha[0]} | ${mejorMovimiento.ficha[1]} ]</div>
                 <div style="font-size:18px; font-weight:bold; color:#00e676; margin-bottom: 10px;">Lanza a la: ${mejorMovimiento.lado}</div>
@@ -756,8 +845,9 @@
                 </div>
             `;
             document.getElementById('modal-ia').style.display = 'flex';
+            
+            registrarHistorial(`🤖 IA SUGIRIÓ: [${mejorMovimiento.ficha[0]}/${mejorMovimiento.ficha[1]}] por la ${mejorMovimiento.lado}. Razón: ${mejorMovimiento.resumen}`);
         }
-
 
  
             
@@ -766,6 +856,9 @@
             window.accionEnCurso = true;
             await push(ref(db, 'partida/pasos'), {jugador: 'yo', puntas: puntas});
             await set(ref(db, 'partida/pases_consecutivos'), pasesConsecutivos + 1);
+            
+            registrarHistorial(`🛑 YO (Maestro) PASÉ (Puntas expuestas: ${puntas[0]} y ${puntas[1]}).`);
+            
             document.getElementById('modal-ia').style.display = 'none';
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
         }

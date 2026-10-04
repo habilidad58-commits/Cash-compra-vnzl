@@ -598,9 +598,7 @@
             setTimeout(() => { window.accionEnCurso = false; }, 2);
         };
 
-            
-
-        // --- CEREBRO IA MAESTRO ---
+                    // --- CEREBRO IA MAESTRO CON ÁRBOL GENEALÓGICO DE JUGADAS FUTURAS ---
         window.analizarJugada = () => {
             if(puntas.length !== 2) return alert("Mesa 4 no ha jugado o la mesa no ha empezado.");
             let jugables = miMano.filter(f => puntas.includes(f[0]) || puntas.includes(f[1]));
@@ -612,76 +610,157 @@
                 return;
             }
 
-            let mejorFicha = null; let maxPuntos = -9999; let estrategia = "";
+            // 1. Generar Universo de Fichas (28 Fichas) y Deducir Fichas Ocultas
+            let todasFichas = [];
+            for(let i=0; i<=6; i++) {
+                for(let j=i; j<=6; j++) {
+                    todasFichas.push([i, j]);
+                }
+            }
 
+            // Fichas jugadas en mesa y fichas en mi mano
+            let fichasEnMesa = mesa.map(m => m.ficha);
+            let esMismaFicha = (f1, f2) => (f1[0] === f2[0] && f1[1] === f2[1]) || (f1[0] === f2[1] && f1[1] === f2[0]);
+
+            // Fichas aún no reveladas en el juego
+            let fichasOcultas = todasFichas.filter(f => 
+                !fichasEnMesa.some(fm => esMismaFicha(fm, f)) && 
+                !miMano.some(mm => esMismaFicha(mm, f))
+            );
+
+            // Reconstruir restricciones de pases (Qué pintas no tiene cada jugador)
+            let fallosJugadores = { mesa2: new Set(), amigo3: new Set(), mesa4: new Set() };
+            pasos.forEach(p => {
+                if(fallosJugadores[p.jugador] && p.puntas) {
+                    p.puntas.forEach(pinta => fallosJugadores[p.jugador].add(pinta));
+                }
+            });
+
+            // Función para simular respuestas probables de un jugador en unas puntas dadas
+            function simularRespuestaJugador(jugadorID, puntasMesa) {
+                let pintasQueNoTiene = fallosJugadores[jugadorID] || new Set();
+                return fichasOcultas.filter(f => {
+                    let encaja = puntasMesa.includes(f[0]) || puntasMesa.includes(f[1]);
+                    if(!encaja) return false;
+                    if(pintasQueNoTiene.has(f[0]) || pintasQueNoTiene.has(f[1])) return false;
+                    return true;
+                });
+            }
+
+            let mejorEvaluacion = -9999;
+            let mejorMovimiento = null;
+
+            // Evaluador de candidato por árbol de posibilidades
             jugables.forEach(f => {
-                let pts = f[0] + f[1]; 
-                if(f[0] === f[1]) pts += 20; 
+                let opcionesLado = [];
+                if (f[0] === puntas[0] || f[1] === puntas[0]) opcionesLado.push({ lado: 0, nombreLado: "IZQUIERDA" });
+                if (f[0] === puntas[1] || f[1] === puntas[1]) opcionesLado.push({ lado: 1, nombreLado: "DERECHA" });
 
-                let puntaDejada = (f[0] === puntas[0] || f[1] === puntas[0]) ? puntas[1] : puntas[0];
-                let puntaNueva = (f[0] === puntas[0] || f[0] === puntas[1]) ? f[1] : f[0];
-                let bloqueaRival = false; let ayudaAmigo = false; let danaAmigo = false;
+                opcionesLado.forEach(opc => {
+                    let lado = opc.lado;
+                    let puntaMantenida = (lado === 0) ? puntas[1] : puntas[0];
+                    let puntaViejaPunta = (lado === 0) ? puntas[0] : puntas[1];
+                    let nuevaPunta = (f[0] === puntaViejaPunta) ? f[1] : f[0];
+                    let nuevasPuntas = (lado === 0) ? [nuevaPunta, puntas[1]] : [puntas[0], nuevaPunta];
 
-                pasos.forEach(p => {
-                    if(p.jugador === 'mesa2' && (p.puntas.includes(puntaDejada) || p.puntas.includes(puntaNueva))) { pts += 150; bloqueaRival = true; }
-                    if(p.jugador === 'amigo3' && (p.puntas.includes(puntaDejada) || p.puntas.includes(puntaNueva))) { pts -= 200; danaAmigo = true; }
-                    if(p.jugador === 'mesa4' && (p.puntas.includes(puntaDejada) || p.puntas.includes(puntaNueva))) { pts += 50; }
-                });
+                    // --- EVALUACIÓN HEURÍSTICA BASE ---
+                    let ptsBase = f[0] + f[1]; 
+                    if(f[0] === f[1]) ptsBase += 25; 
 
-                mesa.forEach(m => {
-                    if(m.jugador === 'amigo3' && (m.ficha.includes(puntaDejada) || m.ficha.includes(puntaNueva))) { pts += 40; ayudaAmigo = true; }
-                });
+                    let cuantasDeNuevaPunta = conteoPintas[nuevaPunta];
+                    let miConteoDeNuevaPunta = miMano.filter(miFicha => miFicha.includes(nuevaPunta)).length;
+                    let totalPintaMesaYMano = cuantasDeNuevaPunta + miConteoDeNuevaPunta;
+                    
+                    if(totalPintaMesaYMano === 7) ptsBase += 120; // Ahorque total
+                    else if(miConteoDeNuevaPunta >= 3) ptsBase += 80; // Dominio de pinta
 
-                let cuantasDeNuevaPunta = conteoPintas[puntaNueva];
-                let miConteoDeNuevaPunta = miMano.filter(miFicha => miFicha.includes(puntaNueva)).length;
-                let totalPintaEnMesaYMiMano = cuantasDeNuevaPunta + miConteoDeNuevaPunta;
-                
-                let ahorcaLaMesa = false; let controlDePinta = false;
-
-                if(totalPintaEnMesaYMiMano === 7) { pts += 100; ahorcaLaMesa = true; } 
-                else if (miConteoDeNuevaPunta >= 3) { pts += 80; controlDePinta = true; }
-                else if (cuantasDeNuevaPunta >= 5 && miConteoDeNuevaPunta === 1) { pts -= 30; }
-
-                if(perfilEstrategicoSilencioso) {
-                    let perfilMesa2 = perfilEstrategicoSilencioso.mesa2;
-                    let perfilAmigo3 = perfilEstrategicoSilencioso.amigo3;
-                    let perfilMesa4 = perfilEstrategicoSilencioso.mesa4;
-
-                    if(perfilMesa2 && perfilMesa2.pintaPreferida !== -1 && puntaNueva === perfilMesa2.pintaPreferida) { pts -= 80; }
-                    if(perfilAmigo3 && perfilAmigo3.pintaPreferida !== -1 && puntaNueva === perfilAmigo3.pintaPreferida) { pts += 70; }
-                    if(perfilMesa4 && perfilMesa4.pintaPreferida !== -1 && (puntaDejada === perfilMesa4.pintaPreferida || puntaNueva === perfilMesa4.pintaPreferida)) { pts += 40; }
-                    if(f[0] === f[1]) {
-                        if((perfilMesa2 && perfilMesa2.retienenDobles) || (perfilMesa4 && perfilMesa4.retienenDobles)) { pts += 25; }
+                    if(perfilEstrategicoSilencioso) {
+                        let pM2 = perfilEstrategicoSilencioso.mesa2;
+                        let pA3 = perfilEstrategicoSilencioso.amigo3;
+                        let pM4 = perfilEstrategicoSilencioso.mesa4;
+                        if(pM2 && pM2.pintaPreferida !== -1 && nuevaPunta === pM2.pintaPreferida) ptsBase -= 90;
+                        if(pA3 && pA3.pintaPreferida !== -1 && nuevaPunta === pA3.pintaPreferida) ptsBase += 80;
+                        if(pM4 && pM4.pintaPreferida !== -1 && (puntaMantenida === pM4.pintaPreferida || nuevaPunta === pM4.pintaPreferida)) ptsBase += 40;
                     }
-                }
-           
-                if(pts > maxPuntos) {
-                    maxPuntos = pts; mejorFicha = f; estrategia = "";
-                    if(ahorcaLaMesa) estrategia += "  Ahorque: La pinta " + puntaNueva + " queda muerta o controlada por ti.<br>";
-                    if(controlDePinta) estrategia += "  Control de Zona: Tienes mayorÃ­a absoluta de los " + puntaNueva + ".<br>";
-                    if(bloqueaRival) estrategia += "  Brutal! Esta jugada hace que Mesa 2 pase de nuevo o sufra.<br>";
-                    if(perfilEstrategicoSilencioso && perfilEstrategicoSilencioso.mesa2 && puntaNueva === perfilEstrategicoSilencioso.mesa2.pintaPreferida) estrategia += "     Alerta: Evita dejarle su pinta favorita a Mesa 2.<br>";
-                    if(perfilEstrategicoSilencioso && perfilEstrategicoSilencioso.amigo3 && puntaNueva === perfilEstrategicoSilencioso.amigo3.pintaPreferida) estrategia += "    Alianza: Le sirves la pinta favorita a tu Amigo 3.<br>";
-                    if(danaAmigo) estrategia = "   Alerta! A tu amigo no le gusta esto, pero es tu unica opcion.<br>";
-                    if(ayudaAmigo && !danaAmigo) estrategia += "  Excelente: Le dejas la mesa servida a Amigo 3.<br>";
-                    if(estrategia === "") estrategia = "   Es tu ficha mas pesada (o doble) para limpiar tu mano.<br>";
-                }
-             });
 
-            let ladoSugerido = "";
-            if (puntas.length > 0) {
-                if (mejorFicha[0] === puntas[0] || mejorFicha[1] === puntas[0]) ladoSugerido = "Lanza a la: IZQUIERDA";
-                else if (mejorFicha[0] === puntas[1] || mejorFicha[1] === puntas[1]) ladoSugerido = "Lanza a la: DERECHA";
-            } else { ladoSugerido = "Lanza al: CENTRO (Primera)"; }
+                    // --- SIMULACIÓN DEL ÁRBOL DE JUGADAS A FUTURO (LOOKAHEAD) ---
+                    let ptsArbol = 0;
+                    let arbolDetalles = [];
+
+                    // Turno 2: Mesa 2 (Rival)
+                    let posMesa2 = simularRespuestaJugador('mesa2', nuevasPuntas);
+                    if(posMesa2.length === 0) {
+                        ptsArbol += 140; // Se predice que Mesa 2 Pasará
+                        arbolDetalles.push("🛑 <b>Mesa 2 (Rival):</b> Alta probabilidad de <b>PASAR</b>.");
+                    } else {
+                        ptsArbol -= 10;
+                        arbolDetalles.push(`⚠️ <b>Mesa 2 (Rival):</b> Tiene ~${posMesa2.length} fichas posibles para responder.`);
+                    }
+
+                    // Turno 3: Amigo 3 (Equipo)
+                    let posAmigo3 = simularRespuestaJugador('amigo3', nuevasPuntas);
+                    if(posAmigo3.length > 0) {
+                        ptsArbol += 100;
+                        arbolDetalles.push(`🤝 <b>Amigo 3 (Compañero):</b> Mesa servida, tiene ~${posAmigo3.length} respuestas posibles.`);
+                    } else {
+                        ptsArbol -= 150;
+                        arbolDetalles.push("⚠️ <b>Amigo 3 (Compañero):</b> Riesgo de <b>PASAR</b> si se deja esta mesa.");
+                    }
+
+                    // Turno 4: Mesa 4 (Rival)
+                    let posMesa4 = simularRespuestaJugador('mesa4', nuevasPuntas);
+                    if(posMesa4.length === 0) {
+                        ptsArbol += 80;
+                        arbolDetalles.push("🛑 <b>Mesa 4 (Rival):</b> Probable <b>PASO</b>.");
+                    } else {
+                        arbolDetalles.push(`🎲 <b>Mesa 4 (Rival):</b> Tiene ~${posMesa4.length} opciones en mesa.`);
+                    }
+
+                    // Turno 5: Yo (Mi siguiente turno en el árbol)
+                    let miManoRestante = miMano.filter(mf => !esMismaFicha(mf, f));
+                    let miSiguienteTurno = miManoRestante.some(mf => mf.includes(nuevasPuntas[0]) || mf.includes(nuevasPuntas[1]));
+                    if(miSiguienteTurno) {
+                        ptsArbol += 90;
+                        arbolDetalles.push("🔄 <b>Tu Siguiente Turno:</b> Conservas el control de la mesa.");
+                    } else {
+                        ptsArbol -= 50;
+                        arbolDetalles.push("⚡ <b>Tu Siguiente Turno:</b> Quedas expuesto a no poder jugar en la siguiente ronda.");
+                    }
+
+                    let ptsTotales = ptsBase + ptsArbol;
+
+                    if(ptsTotales > mejorEvaluacion) {
+                        mejorEvaluacion = ptsTotales;
+                        mejorMovimiento = {
+                            ficha: f,
+                            lado: opc.nombreLado,
+                            score: ptsTotales,
+                            arbol: arbolDetalles,
+                            resumen: (totalPintaMesaYMano === 7) ? "Ahorque definitivo de la pinta " + nuevaPunta :
+                                     (miConteoDeNuevaPunta >= 3) ? "Dominio estratégico de " + nuevaPunta :
+                                     (posMesa2.length === 0) ? "Bloqueo matemático directo a Mesa 2" :
+                                     (posAmigo3.length > 0) ? "Facilita entrada clara a Amigo 3" : "Optimización de puntos y fluidez de mano"
+                        };
+                    }
+                });
+            });
 
             texto.innerHTML = `
-                <div style="font-size:30px; font-weight:bold; color:white; margin-bottom: 5px;">Juega: [ ${mejorFicha[0]} | ${mejorFicha[1]} ]</div>
-                <div style="font-size:18px; font-weight:bold; color:#00e676; margin-bottom: 10px;">  ${ladoSugerido}</div>
-                <p style="color:#ccc; font-size:15px; text-align:left;">${estrategia}</p>
+                <div style="font-size:28px; font-weight:bold; color:white; margin-bottom: 5px;">Juega: [ ${mejorMovimiento.ficha[0]} | ${mejorMovimiento.ficha[1]} ]</div>
+                <div style="font-size:18px; font-weight:bold; color:#00e676; margin-bottom: 10px;">Lanza a la: ${mejorMovimiento.lado}</div>
+                
+                <div style="background:#2a2a2a; border-radius:8px; padding:10px; margin-top:10px; text-align:left; font-size:13px; border-left:4px solid #00c853;">
+                    <div style="color:#00e676; font-weight:bold; font-size:14px; margin-bottom:5px;">🌳 ÁRBOLES DE JUGADAS FUTURAS (IA PRO):</div>
+                    ${mejorMovimiento.arbol.map(item => `<div style="margin:3px 0;">${item}</div>`).join('')}
+                    <div style="margin-top:8px; padding-top:5px; border-top:1px solid #444; color:#ffeb3b;"><b>💡 Estrategia:</b> ${mejorMovimiento.resumen}</div>
+                </div>
             `;
             document.getElementById('modal-ia').style.display = 'flex';
         }
 
+
+ 
+            
                 window.registrarPasoMaestro = async () => {
             if(window.accionEnCurso) return;
             window.accionEnCurso = true;

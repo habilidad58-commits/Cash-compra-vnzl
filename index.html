@@ -10,7 +10,9 @@
 
         .mano-box { background: #311b92; padding: 10px; border-radius: 8px; min-height: 60px; margin-bottom: 10px; border: 2px solid #b388ff;}
         
-        /* Botones numÃƒÂ©ricos e identificadores */
+
+
+        /* Botones numéricos e identificadores */
         .btn-num { background: #424242; color: white; font-size: 24px; padding: 12px; margin: 3px; border-radius: 8px; border: none; cursor: pointer; width: 13%; transition: 2ms;}
 
         .btn-num.iluminado { background: #00e676; color: black; box-shadow: 0 0 15px #00e676; transform: scale(1.1); font-weight: bold; }
@@ -39,7 +41,7 @@
 
 </head>
     <body>
-    <button class="btn-registro" onclick="document.getElementById('modal-historial').style.display='flex'">ðŸ“œ Registro</button>
+    <button class="btn-registro" onclick="document.getElementById('modal-historial').style.display='flex'">📜 Registro</button>
     <div id="header-container">
         <h2 id="titulo-pantalla" style="margin-bottom: 5px;">YO - Panel de Control</h2>
         <div id="indicador-auto" style="color: #ff9800; font-size:12px; margin-bottom:10px; font-weight:bold;">Autocambio: DETENIDO (Presiona un Turno 1-4)</div>
@@ -47,22 +49,22 @@
 
     <!-- TABLERO UNIFICADO -->
     <div class="tablero" id="caja-tablero" style="background: #4a148c;">
-        <button id="btn-izq" class="btn-accion" style="display:none; background:#ff9800; padding:10px; font-size:14px; margin:0; cursor:pointer;" onclick="clickIzq()">Ã°Å¸â€˜Ë† Izq</button>
+        <button id="btn-izq" class="btn-accion" style="display:none; background:#ff9800; padding:10px; font-size:14px; margin:0; cursor:pointer;" onclick="clickIzq()">👈 Izq</button>
         <div style="flex-grow: 1; text-align: center;">
             <div class="puntas-display" id="puntas-text" style="color:#fff;">Puntas: [ - ]</div>
             <div id="mesa-fichas" style="display:flex; flex-wrap:wrap; justify-content:center;"></div>
         </div>
-        <button id="btn-der" class="btn-accion" style="display:none; background:#ff9800; padding:10px; font-size:14px; margin:0; cursor:pointer;" onclick="clickDer()">Der Ã°Å¸â€˜â€°</button>
+        <button id="btn-der" class="btn-accion" style="display:none; background:#ff9800; padding:10px; font-size:14px; margin:0; cursor:pointer;" onclick="clickDer()">Der 👉</button>
     </div>
     <button id="btn-centro" class="btn-accion" style="display:none; background:#ff9800; width:100%; margin-bottom:10px; cursor:pointer;" onclick="clickCentro()">Lanzar al Centro (Primera)</button>
 
-    <!-- SECCIÃƒâ€œN MANO MAESTRO (Oculta en otras pantallas) -->
+    <!-- SECCIÓN MANO MAESTRO (Oculta en otras pantallas) -->
     <div id="seccion-mano" class="mano-box">
         <div style="font-size: 12px; margin-bottom: 5px; color: #00e676;">(Toca la ficha para prepararla, luego elige el lado en la mesa)</div>
         <div id="mi-mano"></div>
     </div>
 
-    <!-- SELECCIÃƒâ€œN Y BOTONES COMPARTIDOS -->
+    <!-- SECCIÓN Y BOTONES COMPARTIDOS -->
     <div style="display: flex; justify-content: center; align-items: center; margin: 5px 0;">
         <h3 style="color: #4caf50; font-size:14px; margin: 0;" id="seleccion-actual">Ficha: [ ? | ? ]</h3>
         <button class="btn-accion" style="background:#f44336; padding:5px 10px; margin-left:15px; font-size:12px; cursor:pointer;" onclick="limpiarSeleccion()">Desmarcar</button>
@@ -82,17 +84,17 @@
             htmlBtns += `<button id="btn-pantalla-3" class="btn-num btn-turno" style="background:#64b5f6;" onclick="cambiarPantalla(3, true)">3</button>`;
             htmlBtns += `<button id="btn-pantalla-4" class="btn-num btn-turno" style="background:#ff5252;" onclick="cambiarPantalla(4, true)">4</button>`;
 
-            // El botÃƒÂ³n 6 al final
+            // El botón 6 al final
             htmlBtns += `<button id="btn-num-6" class="btn-num" onclick="seleccionar(6)">6</button>`;
             document.write(htmlBtns);
         </script>
     </div>
-    <div style="font-size:11px; color:#aaa; margin-top:2px; margin-bottom: 10px;">(Botones redondos cambian el turno y encienden el automÃƒÂ¡tico)</div>
+    <div style="font-size:11px; color:#aaa; margin-top:2px; margin-bottom: 10px;">(Botones redondos cambian el turno y encienden el automático)</div>
 
-    <!-- SECCIÃƒâ€œN MESAS RIVALES/AMIGO: BOTÃƒâ€œN PASAR -->
-    <button id="btn-paso-otros" class="btn-accion btn-paso" style="display:none;" onclick="registrarPaso()">PASÃƒâ€œ</button>
+    <!-- SECCIÓN MESAS RIVALES/AMIGO: BOTÓN PASAR -->
+    <button id="btn-paso-otros" class="btn-accion btn-paso" style="display:none;" onclick="registrarPaso()">PASÓ</button>
 
-    <!-- SECCIÃƒâ€œN MAESTRO EXTRA (Marcador, Estrategia, IA) -->
+    <!-- SECCIÓN MAESTRO EXTRA (Marcador, Estrategia, IA) -->
     <div id="seccion-maestro-extra">
         <div style="background: #1e1e1e; padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 18px; font-weight: bold; border: 2px solid #fff;">
             MARCADOR (A 100 ptos)  <br>
@@ -107,7 +109,7 @@
             PROBABILIDAD DE GANAR:<br><span style="color:#64b5f6;">Nosotros: 50%</span> | <span style="color:#ff5252;">Rivales: 50%</span>
         </div>
 
-        <button id="btn-guardar-partida" style="display:none; background:#ff9800; color:black; border:none; padding:12px; font-size:16px; border-radius:8px; font-weight:bold; width:100%; margin-bottom:10px; cursor:pointer; box-shadow:0 0 10px #ff9800;" onclick="guardarPartidaMaestro()">Ã°Å¸â€™Â¾ GUARDAR PARTIDA Y ENVIAR A ESTRATEGIA</button>
+        <button id="btn-guardar-partida" style="display:none; background:#ff9800; color:black; border:none; padding:12px; font-size:16px; border-radius:8px; font-weight:bold; width:100%; margin-bottom:10px; cursor:pointer; box-shadow:0 0 10px #ff9800;" onclick="guardarPartidaMaestro()">💾 GUARDAR PARTIDA Y ENVIAR A ESTRATEGIA</button>
 
         <div class="botones-derecha">
             <button class="btn-maestro" onclick="analizarJugada()">MI TURNO (IA)</button>
@@ -190,7 +192,7 @@
             if(pantallaActual === 4) return 'mesa4';
         }
 
-        // --- SISTEMA DE NAVEGACIÃƒâ€œN Y CAMBIO DE TURNOS ---
+        // --- SISTEMA DE NAVEGACIÓN Y CAMBIO DE TURNOS ---
         window.cambiarPantalla = (num, esManual = false) => {
             pantallaActual = num;
             if (esManual) {
@@ -210,7 +212,7 @@
 
 
         function aplicarUI() {
-            // TÃƒÂ­tulos y estado automÃƒÂ¡tico
+            // Títulos y estado automático
             const titulos = {
                 1: "<span style='color: white;'>YO - Panel de Control</span>",
                 2: "<span style='color: #ff5252;'>Mesa 2 (Rival)</span>",
@@ -221,14 +223,14 @@
             document.getElementById('indicador-auto').innerText = modoAutomatico ? "Autocambio: ACTIVADO (Flujo continuo)" : "Autocambio: DETENIDO (Presiona un Turno 1-4)";
             document.getElementById('indicador-auto').style.color = modoAutomatico ? "#00e676" : "#ff9800";
 
-            // Decorar los 4 botones de selecciÃƒÂ³n
+            // Decorar los 4 botones de selección
             for(let i=1; i<=4; i++) {
                 let btn = document.getElementById(`btn-pantalla-${i}`);
                 if(btn) btn.style.boxShadow = (i === pantallaActual) ? "0 0 15px white" : "none";
                 if(btn) btn.style.transform = (i === pantallaActual) ? "scale(1.15)" : "scale(1)";
             }
 
-            // Decorar Tablero DinÃƒÂ¡mico
+            // Decorar Tablero Dinámico
             let tablero = document.getElementById('caja-tablero');
             if(pantallaActual === 3) {
                 tablero.style.background = '#1a237e';
@@ -244,7 +246,7 @@
                 document.getElementById('seccion-maestro-extra').style.display = 'block';
                 document.getElementById('btn-paso-otros').style.display = 'none';
                 
-                // Deshabilitar nÃºmeros si la mano estÃ¡ completada (para toda la ronda)
+                // Deshabilitar números si la mano está completada (para toda la ronda)
                 let disableNum = manoCompletada;
                 for(let i=0; i<=6; i++) {
                     let btn = document.getElementById(`btn-num-${i}`);
@@ -259,10 +261,10 @@
                 document.getElementById('btn-paso-otros').style.display = 'block';
                 
                 let btnPaso = document.getElementById('btn-paso-otros');
-                btnPaso.innerText = (pantallaActual === 2) ? "MESA 2 PASÃƒâ€œ" : (pantallaActual === 3) ? "AMIGO 3 PASÃƒâ€œ" : "MESA 4 PASÃƒâ€œ";
+                btnPaso.innerText = (pantallaActual === 2) ? "MESA 2 PASÓ" : (pantallaActual === 3) ? "AMIGO 3 PASÓ" : "MESA 4 PASÓ";
                 btnPaso.style.background = (pantallaActual === 3) ? "#3f51b5" : "#f44336";
 
-                // Habilitar siempre los nÃƒÂºmeros para las mesas
+                // Habilitar siempre los números para las mesas
                 for(let i=0; i<=6; i++) {
                     let btn = document.getElementById(`btn-num-${i}`);
                     if(btn) { btn.disabled = false; btn.style.opacity = "1"; }
@@ -290,14 +292,14 @@
         window.clickDer = () => { if(pantallaActual === 1) ejecutarJugada(1); else jugarLado(1); };
 
 
-        // --- LÃƒâ€œGICA DE FUEGO BASE (FIREBASE LECTURA) ---
+        // --- LÓGICA DE FUEGO BASE (FIREBASE LECTURA) ---
         onValue(ref(db, 'partida/perfil_estrategico'), (s) => { perfilEstrategicoSilencioso = s.val() || null; });
 
                 onValue(ref(db, 'partida/puntaje'), (s) => { 
             puntaje = s.val() || { nosotros: 0, rivales: 0 }; 
             document.getElementById('pts-nosotros').innerText = puntaje.nosotros;
             document.getElementById('pts-rivales').innerText = puntaje.rivales;
-            if(puntaje.nosotros >= 100) setTimeout(() => alert("Â¡GANAMOS LA PARTIDA! Llegamos a 100 puntos."), 2);
+            if(puntaje.nosotros >= 100) setTimeout(() => alert("¡GANAMOS LA PARTIDA! Llegamos a 100 puntos."), 2);
             if(puntaje.rivales >= 100) setTimeout(() => alert("PERDIMOS LA PARTIDA. Los rivales llegaron a 100 puntos."), 2);
         });
 
@@ -305,17 +307,17 @@
         onValue(ref(db, 'partida/estado'), (s) => { 
             estadoPartida = s.val() || 'jugando'; 
             if(estadoPartida === 'contando') {
-                modoAutomatico = false; // "cuando finalice una ronda el automÃƒÂ¡tico se quita"
+                modoAutomatico = false; // "cuando finalice una ronda el automático se quita"
                 aplicarUI();
 
-                if(pantallaActual === 1) { // Solo ejecutar lÃƒÂ³gica de maestro
+                if(pantallaActual === 1) { // Solo ejecutar lógica de maestro
                     set(ref(db, 'partida/fichas_maestro_temp'), miMano);
-                    document.getElementById('ia-texto').innerHTML = "<span style='color:#ffeb3b;'>Ã‚Â¡FIN DE LA VUELTA!</span><br><br><span style='font-size:14px; color:#aaa;'>Descansa. El analista en Estrategia estÃƒÂ¡ registrando y estudiando a los rivales.</span>";
+                    document.getElementById('ia-texto').innerHTML = "<span style='color:#ffeb3b;'>¡FIN DE LA VUELTA!</span><br><br><span style='font-size:14px; color:#aaa;'>Descansa. El analista en Estrategia está registrando y estudiando a los rivales.</span>";
                     document.getElementById('modal-ia').style.display = 'flex';
                 }
             } else {
                 document.getElementById('modal-ia').style.display = 'none';
-                // Eliminamos la limpieza automÃ¡tica de miMano para evitar que se borre al recargar la pÃ¡gina
+                // Eliminamos la limpieza automática de miMano para evitar que se borre al recargar la página
             }
         });
 
@@ -349,15 +351,15 @@
                     }
                 }
                 
-                // Dibuja la ficha en la mesa al instante si estÃ¡s en la pantalla 1
+                // Dibuja la ficha en la mesa al instante si estás en la pantalla 1
                 if(pantallaActual === 1) renderMano(); 
             }
             
-            // Limpia el nodo de Firebase al instante (2ms) para evitar que se repitan si recargas la pÃ¡gina
+            // Limpia el nodo de Firebase al instante (2ms) para evitar que se repitan si recargas la página
             setTimeout(() => { remove(ref(db, `partida/fichas_maestro_remoto/${s.key}`)); }, 2);
         });
         
-        onValue(ref(db, 'partida/puntas'), (s) => { puntas = s.val() || []; document.getElementById('puntas-text').innerText = puntas.length ? `Puntas: [ ${puntas[0]} - ${puntas[1]} ]` : "Mesa VacÃƒÂ­a"; });
+        onValue(ref(db, 'partida/puntas'), (s) => { puntas = s.val() || []; document.getElementById('puntas-text').innerText = puntas.length ? `Puntas: [ ${puntas[0]} - ${puntas[1]} ]` : "Mesa Vacía"; });
 
         onValue(ref(db, 'partida/mesa'), (s) => {
             mesa = []; let htmlIzq = ""; let htmlCentro = ""; let htmlDer = ""; let data = s.val();
@@ -406,11 +408,11 @@
 
         window.borrarFichaMesa = async (key) => {
             await remove(ref(db, `partida/mesa/${key}`));
-            registrarHistorial(`âš ï¸ Ficha eliminada de la mesa mediante doble toque.`);
+            registrarHistorial(`⚠️ Ficha eliminada de la mesa mediante doble toque.`);
         };
 
 
-        // --- MANEJO DE SELECCIÃƒâ€œN ---
+        // --- MANEJO DE SELECCIÓN ---
 
         window.seleccionar = (num) => {
             if(seleccion.length < 2) {
@@ -455,7 +457,7 @@
             actualizarBotonesMesa();
         }
 
-        // --- LÃƒâ€œGICA EXCLUSIVA MAESTRO ---
+        // --- LÓGICA EXCLUSIVA MAESTRO ---
         function renderMano() {
             let html = "";
             miMano.forEach((f, index) => {
@@ -524,7 +526,7 @@
             await set(ref(db, 'partida/pases_consecutivos'), 0);
             
             let ladoTexto = lado === 0 ? 'Izquierda' : (lado === 1 ? 'Derecha' : 'Centro');
-            registrarHistorial(`ðŸ‘¤ Yo (Maestro) juguÃ© [${fichaJugada[0]}/${fichaJugada[1]}] por la ${ladoTexto}.`);
+            registrarHistorial(`👤 Yo (Maestro) jugué [${fichaJugada[0]}/${fichaJugada[1]}] por la ${ladoTexto}.`);
             
             actualizarBotonesMesa();
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
@@ -532,17 +534,17 @@
 
 
 
-        // --- LÃƒâ€œGICA MESAS RIVALES Y AMIGO ---
+        // --- LÓGICA MESAS RIVALES Y AMIGO ---
         window.jugarCentro = async () => {
             if(window.accionEnCurso) return;
-            if(seleccion.length !== 2) return alert("Marca 2 nÃºmeros");
+            if(seleccion.length !== 2) return alert("Marca 2 números");
             if(puntas.length > 0) return alert("Ya hay fichas, usa Izquierda/Derecha.");
             window.accionEnCurso = true;
             await push(ref(db, 'partida/mesa'), {ficha: seleccion, jugador: getJugadorID(), lado: -1});
             await set(ref(db, 'partida/puntas'), seleccion);
             await set(ref(db, 'partida/pases_consecutivos'), 0);
             
-            registrarHistorial(`ðŸŽ² ${getJugadorID().toUpperCase()} saliÃ³ al Centro con [${seleccion[0]}/${seleccion[1]}].`);
+            registrarHistorial(`🎲 ${getJugadorID().toUpperCase()} salió al Centro con [${seleccion[0]}/${seleccion[1]}].`);
             
             window.limpiarSeleccion();
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
@@ -550,7 +552,7 @@
 
         window.jugarLado = async (lado) => {
             if(window.accionEnCurso) return;
-            if(seleccion.length !== 2) return alert("Marca 2 nÃƒÂºmeros");
+            if(seleccion.length !== 2) return alert("Marca 2 números");
             window.accionEnCurso = true;
             let nuevasPuntas = [...puntas];
             let cuadra = false;
@@ -564,14 +566,14 @@
                 else if(seleccion[1] === puntas[1]) { nuevasPuntas[1] = seleccion[0]; cuadra = true; fichaJugada = [seleccion[1], seleccion[0]]; }
             }
 
-            if(!cuadra) { window.accionEnCurso = false; return alert("Â¡La ficha no cuadra en ese lado!"); }
+            if(!cuadra) { window.accionEnCurso = false; return alert("¡La ficha no cuadra en ese lado!"); }
             
             await push(ref(db, 'partida/mesa'), {ficha: fichaJugada, jugador: getJugadorID(), lado: lado});
             await set(ref(db, 'partida/puntas'), nuevasPuntas);
             await set(ref(db, 'partida/pases_consecutivos'), 0);
             
             let nomLado = lado === 0 ? 'Izquierda' : 'Derecha';
-            registrarHistorial(`ðŸŽ² ${getJugadorID().toUpperCase()} jugÃ³ [${fichaJugada[0]}/${fichaJugada[1]}] por la ${nomLado}.`);
+            registrarHistorial(`🎲 ${getJugadorID().toUpperCase()} jugó [${fichaJugada[0]}/${fichaJugada[1]}] por la ${nomLado}.`);
             
             window.limpiarSeleccion();
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);

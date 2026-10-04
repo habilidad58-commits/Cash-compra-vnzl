@@ -724,14 +724,38 @@
                 }
             });
 
-            // Función para simular respuestas probables de un jugador en unas puntas dadas
+            // Función para simular respuestas probables de un jugador en unas puntas dadas (con Deducción Negativa)
             function simularRespuestaJugador(jugadorID, puntasMesa) {
                 let pintasQueNoTiene = fallosJugadores[jugadorID] || new Set();
+                
+                // Deducción Negativa: rastrea cuántas veces un jugador omitió jugar una pinta estando expuesta
+                let omisiones = [0, 0, 0, 0, 0, 0, 0];
+                let tempPuntas = [];
+                mesa.forEach(m => {
+                    if (tempPuntas.length === 2 && m.jugador === jugadorID && m.lado !== -1) {
+                        let puntaOmitida = (m.lado === 0) ? tempPuntas[1] : tempPuntas[0];
+                        if (m.ficha[0] !== puntaOmitida && m.ficha[1] !== puntaOmitida) {
+                            omisiones[puntaOmitida] = (omisiones[puntaOmitida] || 0) + 1;
+                        }
+                    }
+                    if (m.lado === -1) {
+                        tempPuntas = [...m.ficha];
+                    } else if (m.lado === 0) {
+                        tempPuntas[0] = (m.ficha[0] === tempPuntas[0]) ? m.ficha[1] : m.ficha[0];
+                    } else if (m.lado === 1) {
+                        tempPuntas[1] = (m.ficha[0] === tempPuntas[1]) ? m.ficha[1] : m.ficha[0];
+                    }
+                });
+
                 return fichasOcultas.filter(f => {
-                    let encaja = puntasMesa.includes(f[0]) || puntasMesa.includes(f[1]);
-                    if(!encaja) return false;
-                    if(pintasQueNoTiene.has(f[0]) || pintasQueNoTiene.has(f[1])) return false;
-                    return true;
+                    if (pintasQueNoTiene.has(f[0]) || pintasQueNoTiene.has(f[1])) return false;
+                    
+                    // Evalúa si la ficha puede conectar por alguna punta que el jugador NO haya omitido
+                    let puedeJugar = puntasMesa.some(p => 
+                        (f[0] === p || f[1] === p) && (omisiones[p] || 0) < 1
+                    );
+                    
+                    return puedeJugar;
                 });
             }
 

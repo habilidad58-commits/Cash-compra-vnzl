@@ -415,6 +415,23 @@
         }
 
         window.prepararMiFicha = (index) => {
+            if (fichaPreparadaIndex === index) {
+                miMano.splice(index, 1);
+                localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
+                fichaPreparadaIndex = -1;
+                manoCompletada = false;
+                localStorage.setItem('manoCompletada', 'false');
+                
+                for(let i=0; i<=6; i++) {
+                    let btn = document.getElementById(`btn-num-${i}`);
+                    if(btn) { btn.disabled = false; btn.style.opacity = "1"; }
+                }
+                
+                renderMano();
+                actualizarBotonesMesa();
+                return;
+            }
+
             fichaPreparadaIndex = index;
             renderMano();
             actualizarBotonesMesa();

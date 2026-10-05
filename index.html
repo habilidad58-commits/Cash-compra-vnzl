@@ -118,10 +118,12 @@
         </div>
     </div>
 
+ 
+
     <!-- Modal IA -->
     <div id="modal-ia" class="modal">
         <div class="modal-content">
-            <h2 style="color: #00c853; margin-top: 0;">ðŸ§  JUGADA MAESTRA</h2>
+            <h2 style="color: #00c853; margin-top: 0;">🧠 JUGADA MAESTRA</h2>
             <div id="ia-texto" style="font-size: 18px; margin: 15px 0;"></div>
             <button class="close-btn" onclick="document.getElementById('modal-ia').style.display='none'">Entendido</button>
         </div>
@@ -130,12 +132,13 @@
     <!-- Modal Registro (Historial) -->
     <div id="modal-historial" class="modal">
         <div class="modal-content" style="border-color: #b388ff;">
-            <h2 style="color: #b388ff; margin-top: 0; font-size:18px;">ðŸ“œ Registro de Partida (100 pts)</h2>
-            <button class="btn-accion" style="background:#00c853; width:100%; margin:0; padding:10px;" onclick="copiarHistorial()">ðŸ“‹ Copiar Historial</button>
+            <h2 style="color: #b388ff; margin-top: 0; font-size:18px;">📜 Registro de Partida (100 pts)</h2>
+            <button class="btn-accion" style="background:#00c853; width:100%; margin:0; padding:10px;" onclick="copiarHistorial()">📋 Copiar Historial</button>
             <div id="historial-lista" class="historial-lista"></div>
             <button class="close-btn" onclick="document.getElementById('modal-historial').style.display='none'">Cerrar</button>
         </div>
     </div>
+
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
@@ -157,9 +160,9 @@
             await push(ref(db, 'partida/historial_juego'), logText);
         };
 
-        window.copiarHistorial = () => {
+                window.copiarHistorial = () => {
             let textoCopia = historialLocal.join('\n');
-            navigator.clipboard.writeText(textoCopia).then(() => alert("Historial copiado al portapapeles con Ã©xito."));
+            navigator.clipboard.writeText(textoCopia).then(() => alert("Historial copiado al portapapeles con éxito."));
         };
 
         onValue(ref(db, 'partida/historial_juego'), (s) => {
@@ -389,7 +392,8 @@
             let alguienAZero = false;
             for (let j in conteoJugadores) { if (conteoJugadores[j] >= 7) { alguienAZero = true; break; } }
 
-            let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && conteoPintas[puntas[0]] === 7);
+            let cantidadFichasPintaMesa = mesa.filter(m => m.ficha[0] === puntas[0] || m.ficha[1] === puntas[0]).length;
+let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantidadFichasPintaMesa === 7);
 
             let btnG = document.getElementById('btn-guardar-partida');
             if (btnG && btnG.dataset.oculto !== 'true') {
@@ -579,7 +583,7 @@
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
         };
 
-        window.registrarPaso = async () => {
+                window.registrarPaso = async () => {
             if(window.accionEnCurso) return;
             if(puntas.length === 0) return;
             window.accionEnCurso = true;
@@ -588,11 +592,10 @@
             let current = snap.val() || 0;
             await set(ref(db, 'partida/pases_consecutivos'), current + 1);
             
-            registrarHistorial(`ðŸ›‘ ${getJugadorID().toUpperCase()} PASÃ“ (Puntas expuestas: ${puntas[0]} y ${puntas[1]}).`);
+            registrarHistorial(`🛑 ${getJugadorID().toUpperCase()} PASÓ (Puntas expuestas: ${puntas[0]} y ${puntas[1]}).`);
             
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
         };
-
 
         // --- UTILIDADES DEL MAESTRO (Probabilidad, Reset, Guardar) ---
         window.calcularProbabilidadVictoria = (conteoJugadores) => {
@@ -618,7 +621,7 @@
 
         
         window.restablecerPartida = async () => {
-            if(confirm("Â¿Borrar TODO el progreso, incluyendo el puntaje de 100?")) {
+            if(confirm("¿Borrar TODO el progreso, incluyendo el puntaje de 100?")) {
                 modoAutomatico = false; 
                 manoCompletada = false;
                 localStorage.removeItem('miManoGuardada');
@@ -630,7 +633,7 @@
         };
 
                 window.nuevaVuelta = async () => {
-            if(confirm("Â¿Limpiar la mesa para la siguiente vuelta? El marcador de puntos se mantendrÃ¡ intacto.")) {
+            if(confirm("¿Limpiar la mesa para la siguiente vuelta? El marcador de puntos se mantendrá intacto.")) {
                 modoAutomatico = false; 
                 manoCompletada = false;
                 localStorage.removeItem('miManoGuardada');
@@ -662,16 +665,16 @@
             
             let btnGuardar = document.getElementById('btn-guardar-partida');
             if(btnGuardar) { btnGuardar.dataset.oculto = 'true'; btnGuardar.style.display = 'none'; }
-                        alert("Â¡Partida guardada y enviada! Esperando iniciar nueva vuelta.");
+                        alert("¡Partida guardada y enviada! Esperando iniciar nueva vuelta.");
             setTimeout(() => { window.accionEnCurso = false; }, 2);
         };
 
-                    // --- CEREBRO IA MAESTRO CON ÃRBOL GENEALÃ“GICO DE JUGADAS FUTURAS ---
+                                  // --- CEREBRO IA MAESTRO CON ÁRBOL GENEALÓGICO DE JUGADAS FUTURAS ---
         window.analizarJugada = () => {
             let texto = document.getElementById('ia-texto');
 
             if(puntas.length === 0) {
-                if(miMano.length === 0) return alert("No tienes fichas en tu mano aÃºn.");
+                if(miMano.length === 0) return alert("No tienes fichas en tu mano aún.");
                 
                 let mejorFicha = null;
                 let maxPuntaje = -1;
@@ -686,24 +689,24 @@
                 });
 
                 let razon = mejorFicha[0] === mejorFicha[1] 
-                    ? `Es tu mejor doble para salir (tienes mayor cantidad de esa pinta o es la de mÃ¡s alto puntaje).` 
-                    : `No tienes dobles fuertes, esta ficha te garantiza salir con la pinta que mÃ¡s dominas.`;
+                    ? `Es tu mejor doble para salir (tienes mayor cantidad de esa pinta o es la de más alto puntaje).` 
+                    : `No tienes dobles fuertes, esta ficha te garantiza salir con la pinta que más dominas.`;
 
                 texto.innerHTML = `
                     <div style="font-size:28px; font-weight:bold; color:white; margin-bottom: 5px;">Juega: [ ${mejorFicha[0]} | ${mejorFicha[1]} ]</div>
                     <div style="font-size:18px; font-weight:bold; color:#00e676; margin-bottom: 10px;">Lanza al: CENTRO (Salida)</div>
                     <div style="background:#2a2a2a; border-radius:8px; padding:10px; margin-top:10px; text-align:left; font-size:13px; border-left:4px solid #00c853;">
-                        <div style="margin-top:8px; padding-top:5px; color:#ffeb3b;"><b>ðŸ’¡ Estrategia (Mesa VacÃ­a):</b> ${razon}</div>
+                        <div style="margin-top:8px; padding-top:5px; color:#ffeb3b;"><b>💡 Estrategia (Mesa Vacía):</b> ${razon}</div>
                     </div>
                 `;
                 document.getElementById('modal-ia').style.display = 'flex';
-                registrarHistorial(`ðŸ¤– IA SUGIRIÃ“ (Salida): [${mejorFicha[0]}/${mejorFicha[1]}] al Centro. RazÃ³n: ${razon}`);
+                registrarHistorial(`🤖 IA SUGIRIÓ (Salida): [${mejorFicha[0]}/${mejorFicha[1]}] al Centro. Razón: ${razon}`);
                 return;
             }
 
-            if(puntas.length !== 2) return alert("La mesa tiene un estado invÃ¡lido.");
+            if(puntas.length !== 2) return alert("La mesa tiene un estado inválido.");
             let jugables = miMano.filter(f => puntas.includes(f[0]) || puntas.includes(f[1]));
-            
+
             if(jugables.length === 0) {
 
                 texto.innerHTML = "<span style='color:red;'>No tienes fichas. DEBES PASAR.</span><br><button class='btn-accion' style='background:#f44336; margin-top:15px;' onclick='registrarPasoMaestro()'>Confirmar y Pasar</button>";
@@ -723,13 +726,14 @@
             let fichasEnMesa = mesa.map(m => m.ficha);
             let esMismaFicha = (f1, f2) => (f1[0] === f2[0] && f1[1] === f2[1]) || (f1[0] === f2[1] && f1[1] === f2[0]);
 
-            // Fichas aÃºn no reveladas en el juego
+
+            // Fichas aún no reveladas en el juego
             let fichasOcultas = todasFichas.filter(f => 
                 !fichasEnMesa.some(fm => esMismaFicha(fm, f)) && 
                 !miMano.some(mm => esMismaFicha(mm, f))
             );
 
-            // Reconstruir restricciones de pases (QuÃ© pintas no tiene cada jugador)
+            // Reconstruir restricciones de pases (Qué pintas no tiene cada jugador)
             let fallosJugadores = { mesa2: new Set(), amigo3: new Set(), mesa4: new Set() };
             pasos.forEach(p => {
                 if(fallosJugadores[p.jugador] && p.puntas) {
@@ -737,11 +741,11 @@
                 }
             });
 
-            // FunciÃ³n para simular respuestas probables de un jugador en unas puntas dadas (con DeducciÃ³n Negativa)
+            // Función para simular respuestas probables de un jugador en unas puntas dadas (con Deducción Negativa)
             function simularRespuestaJugador(jugadorID, puntasMesa) {
                 let pintasQueNoTiene = fallosJugadores[jugadorID] || new Set();
                 
-                // DeducciÃ³n Negativa: rastrea cuÃ¡ntas veces un jugador omitiÃ³ jugar una pinta estando expuesta
+                // Deducción Negativa: rastrea cuántas veces un jugador omitió jugar una pinta estando expuesta
                 let omisiones = [0, 0, 0, 0, 0, 0, 0];
                 let tempPuntas = [];
                 mesa.forEach(m => {
@@ -763,7 +767,7 @@
                 return fichasOcultas.filter(f => {
                     if (pintasQueNoTiene.has(f[0]) || pintasQueNoTiene.has(f[1])) return false;
                     
-                    // EvalÃºa si la ficha puede conectar por alguna punta que el jugador NO haya omitido
+                    // Evalúa si la ficha puede conectar por alguna punta que el jugador NO haya omitido
                     let puedeJugar = puntasMesa.some(p => 
                         (f[0] === p || f[1] === p) && (omisiones[p] || 0) < 1
                     );
@@ -773,7 +777,8 @@
             }
 
                         // --- PRE-CÁLCULOS DE HEURÍSTICAS AVANZADAS ---
-            let conteoJugadores = { yo: 0, mesa2: 0, amigo3: 0, mesa4: 0 };
+
+                 let conteoJugadores = { yo: 0, mesa2: 0, amigo3: 0, mesa4: 0 };
             mesa.forEach(m => conteoJugadores[m.jugador]++);
             
             let pintaSalidaAmigo = -1;
@@ -815,7 +820,8 @@
                     let nuevaPunta = (f[0] === puntaViejaPunta) ? f[1] : f[0];
                     let nuevasPuntas = (lado === 0) ? [nuevaPunta, puntas[1]] : [puntas[0], nuevaPunta];
 
-                                  // --- EVALUACIÃ“N HEURÃSTICA BASE ---
+                            
+                                                              // --- EVALUACIÓN HEURÍSTICA BASE ---
                     let ptsBase = f[0] + f[1]; 
                     if(f[0] === f[1]) ptsBase += 25; 
 
@@ -832,7 +838,7 @@
                     let trancaPerfecta = (nuevaPunta === puntaMantenida && cuantasDeNuevaPunta >= 6);
 
                     if (trancaPerfecta && misPuntosRestantes <= 18 && cantFichasRivales > miManoRestante.length * 2) {
-                        ptsBase += 2000; // Prioridad mÃ¡xima absoluta: Trancar para ganar por puntos
+                        ptsBase += 2000; // Prioridad máxima absoluta: Trancar para ganar por puntos
                     } else if (totalPintaMesaYMano === 7 && misPuntosRestantes <= 15 && cantFichasRivales >= 7) {
                         ptsBase += 1000; // Prioridad alta: Ahorcar una punta para forzar el cierre pronto
                     } else if(totalPintaMesaYMano === 7) {
@@ -850,10 +856,12 @@
                         if(pM4 && pM4.pintaPreferida !== -1 && (puntaMantenida === pM4.pintaPreferida || nuevaPunta === pM4.pintaPreferida)) ptsBase += 40;
                     }
 
-                    // --- HEURÃSTICAS AVANZADAS ---
+                    // --- HEURÍSTICAS AVANZADAS ---
                     if (omisionesMesa4.has(puntaViejaPunta)) {
-                        ptsBase -= 100; // Castigo severo por tapar el lado dÃ©bil de Mesa 4
+                        ptsBase -= 100; // Castigo severo por tapar el lado débil de Mesa 4
                     }
+
+                            
                     if (ultimoLadoMesa2 !== -1 && lado === ultimoLadoMesa2) {
                         ptsBase += 60; // Bono por tapar inmediatamente la ficha de Mesa 2
                     }
@@ -863,17 +871,19 @@
 
                     // --- SIMULACIÃ“N DEL ÃRBOL DE JUGADAS A FUTURO (LOOKAHEAD) ---
 
+                                        // --- SIMULACIÓN DEL ÁRBOL DE JUGADAS A FUTURO (LOOKAHEAD) ---
+
                     let ptsArbol = 0;
                     let arbolDetalles = [];
 
                     // Turno 2: Mesa 2 (Rival)
                     let posMesa2 = simularRespuestaJugador('mesa2', nuevasPuntas);
                     if(posMesa2.length === 0) {
-                        ptsArbol += 140; // Se predice que Mesa 2 PasarÃ¡
-                        arbolDetalles.push("ðŸ›‘ <b>Mesa 2 (Rival):</b> Alta probabilidad de <b>PASAR</b>.");
+                        ptsArbol += 140; // Se predice que Mesa 2 Pasará
+                        arbolDetalles.push("🛑 <b>Mesa 2 (Rival):</b> Alta probabilidad de <b>PASAR</b>.");
                     } else {
                         ptsArbol -= 10;
-                        arbolDetalles.push(`âš ï¸ <b>Mesa 2 (Rival):</b> Tiene ~${posMesa2.length} fichas posibles para responder.`);
+                        arbolDetalles.push(`⚠️ <b>Mesa 2 (Rival):</b> Tiene ~${posMesa2.length} fichas posibles para responder.`);
                     }
 
 
@@ -881,36 +891,36 @@
                     let posAmigo3 = simularRespuestaJugador('amigo3', nuevasPuntas);
                     if(posAmigo3.length > 0) {
                         if(perfilEstrategicoSilencioso && perfilEstrategicoSilencioso.amigo3 && perfilEstrategicoSilencioso.amigo3.retienenDobles) {
-                            ptsArbol += 30; // IA desconfÃ­a: Bono reducido de 100 a 30 por retener dobles
-                            arbolDetalles.push(`ðŸ¤ <b>Amigo 3 (CompaÃ±ero):</b> Tiene ~${posAmigo3.length} respuestas, pero RETIENE DOBLES (Confianza reducida).`);
+                            ptsArbol += 30; // IA desconfía: Bono reducido de 100 a 30 por retener dobles
+                            arbolDetalles.push(`🤝 <b>Amigo 3 (Compañero):</b> Tiene ~${posAmigo3.length} respuestas, pero RETIENE DOBLES (Confianza reducida).`);
                         } else {
                             ptsArbol += 100;
-                            arbolDetalles.push(`ðŸ¤ <b>Amigo 3 (CompaÃ±ero):</b> Mesa servida, tiene ~${posAmigo3.length} respuestas posibles.`);
+                            arbolDetalles.push(`🤝 <b>Amigo 3 (Compañero):</b> Mesa servida, tiene ~${posAmigo3.length} respuestas posibles.`);
                         }
                     } else {
                         ptsArbol -= 150;
-                        arbolDetalles.push("âš ï¸ <b>Amigo 3 (CompaÃ±ero):</b> Riesgo de <b>PASAR</b> si se deja esta mesa.");
+                        arbolDetalles.push("⚠️ <b>Amigo 3 (Compañero):</b> Riesgo de <b>PASAR</b> si se deja esta mesa.");
                     }
 
                     // Turno 4: Mesa 4 (Rival)
                     let posMesa4 = simularRespuestaJugador('mesa4', nuevasPuntas);
                     if(posMesa4.length === 0) {
                         ptsArbol += 80;
-                        arbolDetalles.push("ðŸ›‘ <b>Mesa 4 (Rival):</b> Probable <b>PASO</b>.");
+                        arbolDetalles.push("🛑 <b>Mesa 4 (Rival):</b> Probable <b>PASO</b>.");
                     } else {
-                        arbolDetalles.push(`ðŸŽ² <b>Mesa 4 (Rival):</b> Tiene ~${posMesa4.length} opciones en mesa.`);
+                        arbolDetalles.push(`🎲 <b>Mesa 4 (Rival):</b> Tiene ~${posMesa4.length} opciones en mesa.`);
                     }
 
                
-                    // Turno 5: Yo (Mi siguiente turno en el Ã¡rbol)
+                    // Turno 5: Yo (Mi siguiente turno en el árbol)
                     let miSiguienteTurno = miManoRestante.some(mf => mf.includes(nuevasPuntas[0]) || mf.includes(nuevasPuntas[1]));
                     if(miSiguienteTurno) {
                     
          ptsArbol += 90;
-                        arbolDetalles.push("ðŸ”„ <b>Tu Siguiente Turno:</b> Conservas el control de la mesa.");
+                        arbolDetalles.push("🔄 <b>Tu Siguiente Turno:</b> Conservas el control de la mesa.");
                     } else {
                         ptsArbol -= 50;
-                        arbolDetalles.push("âš¡ <b>Tu Siguiente Turno:</b> Quedas expuesto a no poder jugar en la siguiente ronda.");
+                        arbolDetalles.push("⚡ <b>Tu Siguiente Turno:</b> Quedas expuesto a no poder jugar en la siguiente ronda.");
                     }
 
                     let ptsTotales = ptsBase + ptsArbol;
@@ -922,14 +932,14 @@
                             lado: opc.nombreLado,
                             score: ptsTotales,
                             arbol: arbolDetalles,
-                                          resumen: (ptsBase >= 2000) ? "Â¡TRANCA MAESTRA! Aseguramos la victoria trancando con menos puntos en mano." :
-                                     (ptsBase >= 1000) ? "Â¡AHORQUE ESTRATÃ‰GICO! Forzando el cierre por ventaja de puntos." :
-                                     (pintaSalidaAmigo !== -1 && (nuevaPunta === pintaSalidaAmigo || puntaMantenida === pintaSalidaAmigo) && ptsBase >= 200) ? "Â¡PINTA SAGRADA! Manteniendo viva la salida del Amigo 3." :
-                                     (ultimoLadoMesa2 !== -1 && lado === ultimoLadoMesa2) ? "Â¡CASTIGO DIRECTO! Tapando la ficha reciÃ©n jugada por Mesa 2." :
+                                          resumen: (ptsBase >= 2000) ? "¡TRANCA MAESTRA! Aseguramos la victoria trancando con menos puntos en mano." :
+                                     (ptsBase >= 1000) ? "¡AHORQUE ESTRATÉGICO! Forzando el cierre por ventaja de puntos." :
+                                     (pintaSalidaAmigo !== -1 && (nuevaPunta === pintaSalidaAmigo || puntaMantenida === pintaSalidaAmigo) && ptsBase >= 200) ? "¡PINTA SAGRADA! Manteniendo viva la salida del Amigo 3." :
+                                     (ultimoLadoMesa2 !== -1 && lado === ultimoLadoMesa2) ? "¡CASTIGO DIRECTO! Tapando la ficha recién jugada por Mesa 2." :
                                      (totalPintaMesaYMano === 7) ? "Ahorque definitivo de la pinta " + nuevaPunta :
-                                     (miConteoDeNuevaPunta >= 3) ? "Dominio estratÃ©gico de " + nuevaPunta :
-                                     (posMesa2.length === 0) ? "Bloqueo matemÃ¡tico directo a Mesa 2" :
-                                     (posAmigo3.length > 0) ? "Facilita entrada clara a Amigo 3" : "OptimizaciÃ³n de puntos y fluidez de mano"
+                                     (miConteoDeNuevaPunta >= 3) ? "Dominio estratégico de " + nuevaPunta :
+                                     (posMesa2.length === 0) ? "Bloqueo matemático directo a Mesa 2" :
+                                     (posAmigo3.length > 0) ? "Facilita entrada clara a Amigo 3" : "Optimización de puntos y fluidez de mano"
                         };
 
          }
@@ -943,32 +953,33 @@
                 <div style="font-size:18px; font-weight:bold; color:#00e676; margin-bottom: 10px;">Lanza a la: ${mejorMovimiento.lado}</div>
                 
                 <div style="background:#2a2a2a; border-radius:8px; padding:10px; margin-top:10px; text-align:left; font-size:13px; border-left:4px solid #00c853;">
-                    <div style="color:#00e676; font-weight:bold; font-size:14px; margin-bottom:5px;">ðŸŒ³ ÃRBOLES DE JUGADAS FUTURAS (IA PRO):</div>
+                    <div style="color:#00e676; font-weight:bold; font-size:14px; margin-bottom:5px;">🌳 ÁRBOLES DE JUGADAS FUTURAS (IA PRO):</div>
                     ${mejorMovimiento.arbol.map(item => `<div style="margin:3px 0;">${item}</div>`).join('')}
-                    <div style="margin-top:8px; padding-top:5px; border-top:1px solid #444; color:#ffeb3b;"><b>ðŸ’¡ Estrategia:</b> ${mejorMovimiento.resumen}</div>
+                    <div style="margin-top:8px; padding-top:5px; border-top:1px solid #444; color:#ffeb3b;"><b>💡 Estrategia:</b> ${mejorMovimiento.resumen}</div>
                 </div>
             `;
             document.getElementById('modal-ia').style.display = 'flex';
             
-            registrarHistorial(`ðŸ¤– IA SUGIRIÃ“: [${mejorMovimiento.ficha[0]}/${mejorMovimiento.ficha[1]}] por la ${mejorMovimiento.lado}. RazÃ³n: ${mejorMovimiento.resumen}`);
+            registrarHistorial(`🤖 IA SUGIRIÓ: [${mejorMovimiento.ficha[0]}/${mejorMovimiento.ficha[1]}] por la ${mejorMovimiento.lado}. Razón: ${mejorMovimiento.resumen}`);
         }
 
  
             
-                window.registrarPasoMaestro = async () => {
+                                window.registrarPasoMaestro = async () => {
             if(window.accionEnCurso) return;
             window.accionEnCurso = true;
             await push(ref(db, 'partida/pasos'), {jugador: 'yo', puntas: puntas});
             await set(ref(db, 'partida/pases_consecutivos'), pasesConsecutivos + 1);
             
-            registrarHistorial(`ðŸ›‘ YO (Maestro) PASÃ‰ (Puntas expuestas: ${puntas[0]} y ${puntas[1]}).`);
+            registrarHistorial(`  YO (Maestro) PASÉ (Puntas expuestas: ${puntas[0]} y ${puntas[1]}).`);
             
             document.getElementById('modal-ia').style.display = 'none';
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
-        }
+        };
 
         // Iniciar IU por defecto
         aplicarUI();
     </script>
+
 </body>
 </html>

@@ -776,11 +776,36 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                 });
             }
 
-                        // --- PRE-CÁLCULOS DE HEURÍSTICAS AVANZADAS ---
+                                    // --- PRE-CÁLCULOS DE HEURÍSTICAS AVANZADAS ---
+
+            // --- EL OBSERVADOR PASIVO (Etiquetas de Intención) ---
+            let modoMesa2 = "Normal", modoMesa4 = "Normal";
+            let pesoMesa2 = 0, jugadasMesa2 = 0, tapadasAmigoMesa2 = 0;
+            let pesoMesa4 = 0, jugadasMesa4 = 0, tapadasAmigoMesa4 = 0;
+            
+            mesa.forEach((m, i) => {
+                let peso = m.ficha[0] + m.ficha[1];
+                if (m.jugador === 'mesa2') { 
+                    pesoMesa2 += peso; jugadasMesa2++; 
+                    if (i > 0 && mesa[i-1].jugador === 'amigo3') tapadasAmigoMesa2++;
+                }
+                if (m.jugador === 'mesa4') { 
+                    pesoMesa4 += peso; jugadasMesa4++; 
+                    if (i > 0 && mesa[i-1].jugador === 'amigo3') tapadasAmigoMesa4++;
+                }
+            });
+            
+            if (jugadasMesa2 > 0 && (pesoMesa2 / jugadasMesa2) >= 8) modoMesa2 = "Modo Descarga";
+            else if (tapadasAmigoMesa2 > 1) modoMesa2 = "Modo Asfixia";
+            else if (jugadasMesa2 >= 2 && pesoMesa2 <= 8) modoMesa2 = "Modo Puente";
+            
+            if (jugadasMesa4 > 0 && (pesoMesa4 / jugadasMesa4) >= 8) modoMesa4 = "Modo Descarga";
+            else if (tapadasAmigoMesa4 > 1) modoMesa4 = "Modo Asfixia";
+            else if (jugadasMesa4 >= 2 && pesoMesa4 <= 8) modoMesa4 = "Modo Puente";
 
                  let conteoJugadores = { yo: 0, mesa2: 0, amigo3: 0, mesa4: 0 };
             mesa.forEach(m => conteoJugadores[m.jugador]++);
-            
+
             let pintaSalidaAmigo = -1;
             let salidaAmigo = mesa.find(m => m.jugador === 'amigo3' && m.lado === -1);
             if (salidaAmigo) pintaSalidaAmigo = salidaAmigo.ficha[0];
@@ -869,13 +894,26 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                         ptsBase += 200; // Bono masivo por dejar abierta la pinta del Amigo 3
                     }
 
-                    // --- SIMULACIÃ“N DEL ÃRBOL DE JUGADAS A FUTURO (LOOKAHEAD) ---
-
+        
                                         // --- SIMULACIÓN DEL ÁRBOL DE JUGADAS A FUTURO (LOOKAHEAD) ---
 
                     let ptsArbol = 0;
                     let arbolDetalles = [];
 
+                    // --- INYECCIÓN DE SESGO Y SIMULACIÓN EN ESPEJO ---
+                    if (modoMesa2 === "Modo Descarga" && (nuevasPuntas[0] >= 5 || nuevasPuntas[1] >= 5)) {
+                        ptsArbol -= 60; arbolDetalles.push("  <b>Espía (Mesa 2):</b> ⚠️ Penalización. Evitando dejar pintas altas porque está en MODO DESCARGA.");
+                    } else if (modoMesa2 === "Modo Asfixia" && (nuevasPuntas[0] !== pintaSalidaAmigo && nuevasPuntas[1] !== pintaSalidaAmigo)) {
+                        ptsArbol -= 50; arbolDetalles.push("  <b>Espía (Mesa 2):</b> ⚠️ Penalización. Está en MODO ASFIXIA, no debemos facilitarle el bloqueo a nuestro compañero.");
+                    }
+                    
+                    if (modoMesa4 === "Modo Asfixia" && (nuevasPuntas[0] !== pintaSalidaAmigo && nuevasPuntas[1] !== pintaSalidaAmigo)) {
+                        ptsArbol -= 50; arbolDetalles.push("  <b>Espía (Mesa 4):</b> ⚠️ Penalización. Está asfixiando al Amigo 3, hay que abrirle juego.");
+                    } else if (modoMesa4 === "Modo Puente" && cuantasDeNuevaPunta <= 2) {
+                        ptsArbol -= 40; arbolDetalles.push("  <b>Espía (Mesa 4):</b> ⚠️ Penalización. Está en MODO PUENTE, no debemos dejar pintas raras/bajas que le sirvan a Mesa 2.");
+                    }
+
+                        
                     // Turno 2: Mesa 2 (Rival)
                     let posMesa2 = simularRespuestaJugador('mesa2', nuevasPuntas);
                     if(posMesa2.length === 0) {

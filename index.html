@@ -35,15 +35,20 @@
         .modal-content { background: #1e1e1e; padding: 20px; border-radius: 10px; border: 2px solid #00c853; width: 80%; max-height: 80vh; overflow-y: auto; position: relative;}
         .close-btn { background: #333; color: white; border: none; padding: 10px; margin-top: 15px; width: 100%; font-size: 16px; border-radius: 5px; cursor: pointer;}
         .btn-registro { position: absolute; top: 10px; right: 10px; background: #311b92; color: white; border: 2px solid #b388ff; padding: 5px 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 12px; z-index: 5; box-shadow: 0 0 5px #b388ff;}
+        .btn-experiencia-ia { position: absolute; top: 10px; left: 10px; background: #00c853; color: white; border: 2px solid #00c853; padding: 5px 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 12px; z-index: 5; box-shadow: 0 0 5px #00c853;}
+
         .historial-lista { text-align: left; font-size: 13px; color: #ccc; margin-top: 10px; max-height: 50vh; overflow-y: auto; padding-right: 5px; }
         .historial-item { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #444; }
     </style>
 
 </head>
-    <body>
+        <body>
     <button class="btn-registro" onclick="document.getElementById('modal-historial').style.display='flex'">ðŸ“œ Registro</button>
+    <button class="btn-experiencia-ia" onclick="copiarExperienciaIA()">🧠 Registro Experiencia IA</button>
     <div id="header-container">
-        <h2 id="titulo-pantalla" style="margin-bottom: 5px;">YO - Panel de Control</h2>
+    
+
+    <h2 id="titulo-pantalla" style="margin-bottom: 5px;">YO - Panel de Control</h2>
         <div id="indicador-auto" style="color: #ff9800; font-size:12px; margin-bottom:10px; font-weight:bold;">Autocambio: DETENIDO (Presiona un Turno 1-4)</div>
     </div>
 
@@ -172,10 +177,17 @@
             await push(ref(db, 'partida/historial_juego'), logText);
         };
 
-                window.copiarHistorial = () => {
+                                window.copiarHistorial = () => {
             let textoCopia = historialLocal.join('\n');
             navigator.clipboard.writeText(textoCopia).then(() => alert("Historial copiado al portapapeles con Ã©xito."));
         };
+
+        window.copiarExperienciaIA = () => {
+            if(leccionesAprendidas.length === 0) return alert("Aún no hay experiencia IA registrada.");
+            let textoCopia = JSON.stringify(leccionesAprendidas, null, 2);
+            navigator.clipboard.writeText(textoCopia).then(() => alert("Toda la Experiencia IA fue copiada al portapapeles."));
+        };
+
 
         onValue(ref(db, 'partida/historial_juego'), (s) => {
             historialLocal = [];
@@ -761,22 +773,36 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                     let esDoble = (f[0] === f[1]);
                     let peso = f[0] + f[1] + (cantPalo0 * 15) + (cantPalo1 * 15) + (esDoble ? 50 : 0);
                     
-                    // Capa de Intuición Aprendida para Salida
+                    // Capa de Intuición Aprendida Autónoma para Salida
                     let ptsExperiencia = 0;
                     let etiqueta = "";
+                    let victoriasFicha = 0;
+                    let derrotasFicha = 0;
+                    
                     leccionesAprendidas.forEach(lec => {
                         if (lec.puntasMesa && lec.puntasMesa.length === 0) {
                             let mismaFicha = (lec.fichaElegida[0] === f[0] && lec.fichaElegida[1] === f[1]) || (lec.fichaElegida[0] === f[1] && lec.fichaElegida[1] === f[0]);
                             if (mismaFicha) {
-                                if (lec.resultado === "VICTORIA") {
-                                    ptsExperiencia += 300;
-                                    etiqueta = "🧠 INTUICIÓN APRENDIDA: Esta apertura demostró mayor control en partidas anteriores";
-                                } else if (lec.resultado === "DERROTA") {
-                                    ptsExperiencia -= 250;
-                                }
+                                if (lec.resultado === "VICTORIA") victoriasFicha++;
+                                else if (lec.resultado === "DERROTA") derrotasFicha++;
                             }
                         }
                     });
+
+                    if (victoriasFicha > 0 || derrotasFicha > 0) {
+                        let totalCasos = victoriasFicha + derrotasFicha;
+                        let tasaExito = victoriasFicha / totalCasos;
+                        // El multiplicador crece con la base de datos de experiencia
+                        let multiplicadorAutonomo = 300 + (totalCasos * 60); 
+                        
+                        if (tasaExito >= 0.5) {
+                            ptsExperiencia = multiplicadorAutonomo * tasaExito;
+                            etiqueta = `🧠 INTUICIÓN AUTÓNOMA: Apertura con ${Math.round(tasaExito*100)}% de éxito (+${Math.round(ptsExperiencia)} pts)`;
+                        } else {
+                            ptsExperiencia = -(multiplicadorAutonomo * (1 - tasaExito));
+                            etiqueta = `⚠️ RECHAZO AUTÓNOMO: Apertura riesgosa, ${Math.round((1-tasaExito)*100)}% de fracaso (${Math.round(ptsExperiencia)} pts)`;
+                        }
+                    }
                     peso += ptsExperiencia;
 
                     if(peso > maxPuntaje) { maxPuntaje = peso; mejorFicha = f; mejorEtiquetaIntuicion = etiqueta; }
@@ -1060,9 +1086,10 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                         arbolDetalles.push("⚡ <b>Tu Siguiente Turno:</b> Quedas expuesto a no poder jugar en la siguiente ronda.");
                     }
 
-                    // --- MODULADOR DE INTUICIÓN APRENDIDA ---
+                    // --- MODULADOR AUTÓNOMO DE INTUICIÓN APRENDIDA ---
                     let ptsExperiencia = 0;
                     let etiquetaIntuicion = "";
+                    let vFicha = 0, dFicha = 0, sugFicha = 0;
 
                     leccionesAprendidas.forEach(lec => {
                         if (lec.puntasMesa && lec.puntasMesa.length === 2) {
@@ -1070,21 +1097,36 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                             let coincidenciaFicha = (lec.fichaElegida[0] === f[0] && lec.fichaElegida[1] === f[1]) || (lec.fichaElegida[0] === f[1] && lec.fichaElegida[1] === f[0]);
 
                             if (coincidenciaPuntas && coincidenciaFicha) {
-                                if (lec.resultado === "VICTORIA") {
-                                    ptsExperiencia += 300;
-                                    etiquetaIntuicion = "🧠 INTUICIÓN APRENDIDA: Esta apertura demostró mayor control en partidas anteriores";
-                                } else if (lec.resultado === "DERROTA") {
-                                    ptsExperiencia -= 250;
-                                }
+                                if (lec.resultado === "VICTORIA") vFicha++;
+                                else if (lec.resultado === "DERROTA") dFicha++;
                             } else if (coincidenciaPuntas && !coincidenciaFicha && lec.resultado === "DERROTA" && lec.sugerenciaMejorRuta) {
                                 let esSugerida = (lec.sugerenciaMejorRuta[0] === f[0] && lec.sugerenciaMejorRuta[1] === f[1]) || (lec.sugerenciaMejorRuta[0] === f[1] && lec.sugerenciaMejorRuta[1] === f[0]);
-                                if (esSugerida) {
-                                    ptsExperiencia += 300;
-                                    etiquetaIntuicion = "🧠 INTUICIÓN APRENDIDA: Ajuste retroactivo sugiere esta alternativa con mayor control";
-                                }
+                                if (esSugerida) sugFicha++;
                             }
                         }
                     });
+
+                    let totalExp = vFicha + dFicha + sugFicha;
+                    if (totalExp > 0) {
+                        // Base dinámica: más historial = multiplicador más agresivo y seguro
+                        let pesoBaseAuto = 300 + (totalExp * 50); 
+                        
+                        if (vFicha > dFicha) {
+                            let ganancia = pesoBaseAuto * (vFicha / (vFicha + dFicha));
+                            ptsExperiencia += ganancia;
+                            etiquetaIntuicion = `🧠 IA AUTÓNOMA: Ruta probada con éxito (Confianza: +${Math.round(ganancia)})`;
+                        } else if (dFicha > vFicha) {
+                            let perdida = pesoBaseAuto * (dFicha / (vFicha + dFicha));
+                            ptsExperiencia -= perdida;
+                            etiquetaIntuicion = `⚠️ PELIGRO AUTÓNOMO: Alta tasa de fracaso histórico (Penalización: -${Math.round(perdida)})`;
+                        } 
+                        
+                        if (sugFicha > 0) {
+                            let bonoCorreccion = 300 + (sugFicha * 75);
+                            ptsExperiencia += bonoCorreccion;
+                            etiquetaIntuicion = `🧠 AUTO-CORRECCIÓN: IA adaptó esta ruta como óptima (+${bonoCorreccion})`;
+                        }
+                    }
 
                     if (etiquetaIntuicion) {
                         arbolDetalles.push(`  <span style="color:#00e676;"><b>${etiquetaIntuicion}</b></span>`);

@@ -529,7 +529,6 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
             }
 
             if(!cuadra) { window.accionEnCurso = false; return alert("Esta ficha no cuadra en esa punta!"); }
-
             // REGISTRO DE NODO DE DECISIÓN (Momentos con más de 1 ficha jugable)
             let jugablesMomento = puntas.length === 0 ? [...miMano] : miMano.filter(mf => puntas.includes(mf[0]) || puntas.includes(mf[1]));
             if (jugablesMomento.length > 1) {
@@ -538,9 +537,11 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                     fichaElegida: [...f],
                     manoCompleta: miMano.map(mf => [...mf]),
                     jugables: jugablesMomento.map(mf => [...mf]),
-                    lado: lado
+                    lado: lado,
+                    fichasRestantes: miMano.length - 1
                 });
             }
+
 
             miMano.splice(fichaPreparadaIndex, 1);
             localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
@@ -690,6 +691,7 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
         
                 window.ejecutarAnalisisRetroactivo = async (esVictoria) => {
             if (!historialDecisionesYo || historialDecisionesYo.length === 0) return;
+            let currentPartidaId = "partida_" + Date.now();
 
             for (let dec of historialDecisionesYo) {
                 let pintaAbierta = -1;
@@ -703,13 +705,16 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                 let cuantasDominio = dec.manoCompleta.filter(f => f.includes(pintaAbierta)).length;
 
                 let leccion = {
+                    partidaId: currentPartidaId,
+                    jugador: "yo",
                     fecha: new Date().toISOString(),
                     resultado: esVictoria ? "VICTORIA" : "DERROTA",
                     puntasMesa: [...dec.puntas],
                     fichaElegida: [...dec.fichaElegida],
                     fichasAlternativas: dec.jugables.filter(f => !(f[0] === dec.fichaElegida[0] && f[1] === dec.fichaElegida[1])),
                     pintaAbierta: pintaAbierta,
-                    dominioPinta: cuantasDominio
+                    dominioPinta: cuantasDominio,
+                    fichasRestantes: dec.fichasRestantes !== undefined ? dec.fichasRestantes : 0
                 };
 
                 if (!esVictoria) {

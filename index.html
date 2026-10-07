@@ -89,25 +89,31 @@
             htmlBtns += `<button id="btn-pantalla-3" class="btn-num btn-turno" style="background:#64b5f6;" onclick="cambiarPantalla(3, true)">3</button>`;
             htmlBtns += `<button id="btn-pantalla-4" class="btn-num btn-turno" style="background:#ff5252;" onclick="cambiarPantalla(4, true)">4</button>`;
 
-            // El botÃƒÂ³n 6 al final
+                    // El botÃ³n 6 al final
             htmlBtns += `<button id="btn-num-6" class="btn-num" onclick="seleccionar(6)">6</button>`;
             document.write(htmlBtns);
         </script>
     </div>
-    <div style="font-size:11px; color:#aaa; margin-top:2px; margin-bottom: 10px;">(Botones redondos cambian el turno y encienden el automÃƒÂ¡tico)</div>
+    <div style="font-size:11px; color:#aaa; margin-top:2px; margin-bottom: 10px;">(Botones redondos cambian el turno y encienden el automÃ¡tico)</div>
 
+    <!-- UI 2vs2 -->
+    <div id="caja-yo-2vs2" style="display:none; margin-bottom:10px;">
+        <button class="btn-accion" style="background:#311b92; border: 2px solid #b388ff; width:100%; font-size:14px; box-shadow: 0 0 10px #b388ff;" onclick="generarCodigo2vs2()">🤝 VINCULAR AMIGO (2vs2)</button>
+        <div id="texto-codigo-2vs2" style="color:#00e676; font-weight:bold; margin-top:5px; font-size:16px;"></div>
+    </div>
 
     <!-- SECCIÃ“N MESAS RIVALES/AMIGO: BOTÃ“N PASAR -->
     <button id="btn-paso-otros" class="btn-accion btn-paso" style="display:none;" onclick="registrarPaso()">PASÃ“</button>
-    
-    <div id="seccion-vinculacion-amigo3" style="display:none; margin-top:10px;">
-        <input type="number" id="input-codigo-2v2" placeholder="Cód 2 dígitos" style="padding:10px; width:40%; border-radius:5px; text-align:center; font-weight:bold; font-size:16px;">
-        <button class="btn-accion" style="background:#00c853; width:40%; font-weight:bold;" onclick="vincularAmigo()">Vincular 2vs2</button>
+
+    <!-- UI AMIGO 3 INPUT 2vs2 -->
+    <div id="caja-amigo3-2vs2" style="display:none; background:#1a237e; padding:10px; border-radius:8px; margin-top:10px; border:2px solid #64b5f6;">
+        <div style="font-size:13px; color:white; margin-bottom:5px;">Vincular como Aliado (Ingresa el código del Maestro):</div>
+        <input type="number" id="input-codigo-2vs2" style="width:40%; padding:8px; font-size:16px; text-align:center; border-radius:4px; border:none; color:black;">
+        <button class="btn-accion" style="background:#00c853; padding:8px 15px; font-size:14px; margin-left:5px;" onclick="verificarCodigo2vs2()">Conectar</button>
     </div>
 
-    <!-- SECCIÃ“N MAESTRO EXTRA (Marcador, Estrategia, IA) -->
+    <!-- SECCIÃƒâ€œN MAESTRO EXTRA (Marcador, Estrategia, IA) -->
     <div id="seccion-maestro-extra">
-
         <div style="background: #1e1e1e; padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 18px; font-weight: bold; border: 2px solid #fff;">
             MARCADOR (A 100 ptos)  <br>
             <span style="color: #64b5f6;">Nosotros: <span id="pts-nosotros">0</span></span> | 
@@ -123,14 +129,12 @@
 
         <button id="btn-guardar-partida" style="display:none; background:#ff9800; color:black; border:none; padding:12px; font-size:16px; border-radius:8px; font-weight:bold; width:100%; margin-bottom:10px; cursor:pointer; box-shadow:0 0 10px #ff9800;" onclick="guardarPartidaMaestro()">Ã°Å¸â€™Â¾ GUARDAR PARTIDA Y ENVIAR A ESTRATEGIA</button>
 
-            <button id="btn-generar-2v2" class="btn-accion" style="background:#3f51b5; width:100%; margin-bottom:10px; font-weight:bold; border: 2px solid #8c9eff;" onclick="generarCodigo2v2()">Generar Código 2vs2</button>
         <div class="botones-derecha">
             <button class="btn-maestro" onclick="analizarJugada()">MI TURNO (IA)</button>
             <button class="btn-reset" style="background:#ff9800; margin: 0 5px;" onclick="nuevaVuelta()">Vuelta</button>
             <button class="btn-reset" onclick="restablecerPartida()">Reiniciar</button>
         </div>
-        
-</div>
+    </div>
 
  
 
@@ -166,49 +170,34 @@
         let miMano = JSON.parse(localStorage.getItem('miManoGuardada')) || []; let seleccion = [];
         let manoCompletada = localStorage.getItem('manoCompletada') === 'true';
 
+
         let conteoPintas = [0, 0, 0, 0, 0, 0, 0]; 
         let historialDecisionesYo = [];
         let leccionesAprendidas = [];
 
-        let amigoVinculado = localStorage.getItem('amigoVinculado') === 'true';
-        let manoCompartidaYo = [];
-        let manoCompartidaAmigo = [];
-        
-        onValue(ref(db, 'partida/mano_yo'), (s) => { manoCompartidaYo = s.val() || []; });
-        onValue(ref(db, 'partida/mano_amigo3'), (s) => { manoCompartidaAmigo = s.val() || []; });
-
-        window.generarCodigo2v2 = async () => {
-            let cod = Math.floor(10 + Math.random() * 90);
-            await set(ref(db, 'partida/codigo2v2'), cod);
-            alert(`Tu código 2vs2 es: ${cod}\nDictáselo a Amigo 3 para que lo ingrese en su panel.`);
-        };
-
-        window.vincularAmigo = () => {
-            let inputCod = document.getElementById('input-codigo-2v2').value;
-            get(ref(db, 'partida/codigo2v2')).then((snap) => {
-                if(snap.val() == inputCod && inputCod != "") {
-                    amigoVinculado = true;
-                    localStorage.setItem('amigoVinculado', 'true');
-                    alert("¡Vinculación Exitosa! Tu panel ahora tiene IA y la Madre conoce ambas manos.");
-                    aplicarUI();
-                } else {
-                    alert("Código incorrecto.");
-                }
-            });
-        };
+        window.esAmigo3Vinculado = false;
+        window.manoAliadaRemota = [];
+        window.codigo2vs2Actual = "";
 
         onValue(ref(db, 'partida/experiencia_ia/historial_lecciones'), (s) => {
+
             let data = s.val();
             leccionesAprendidas = data ? Object.values(data) : [];
             let el = document.getElementById('indicador-intuicion');
-            if (el) {
-                el.innerText = `ðŸ§  Lecciones en Memoria de IntuiciÃ³n: ${leccionesAprendidas.length} patrones aprendidos`;
+                if (el) {
+                el.innerText = `🧠 Lecciones en Memoria de Intuición: ${leccionesAprendidas.length} patrones aprendidos`;
             }
         });
 
+        onValue(ref(db, 'partida/vinculo2vs2/codigo'), (s) => { window.codigo2vs2Actual = s.val() || ""; });
+        onValue(ref(db, 'partida/mano_yo'), (s) => { if(window.esAmigo3Vinculado) window.manoAliadaRemota = s.val() || []; });
+        onValue(ref(db, 'partida/mano_amigo3'), (s) => { if(!window.esAmigo3Vinculado) window.manoAliadaRemota = s.val() || []; });
+
         
         window.registrarHistorial = async (texto) => {
-            let fecha = new Date().toLocaleTimeString();
+
+
+   let fecha = new Date().toLocaleTimeString();
             let logText = `[${fecha}] ${texto}`;
             await push(ref(db, 'partida/historial_juego'), logText);
         };
@@ -244,55 +233,109 @@
         let perfilEstrategicoSilencioso = null;
         let fichaPreparadaIndex = -1;
         
-         // Controladores de Interfaz Unificada
+        // Controladores de Interfaz Unificada
         let pantallaActual = 1; // 1=Maestro, 2=Mesa2, 3=Amigo3, 4=Mesa4
         let modoAutomatico = false;
 
-        window.aplicarUI = () => {
-            // Ocultar/Mostrar Bloques
-            let esMaestro = (pantallaActual === 1) || (pantallaActual === 3 && amigoVinculado);
-            
-            if(esMaestro) {
+                function getJugadorID() {
+            if(pantallaActual === 1) return window.esAmigo3Vinculado ? 'amigo3' : 'yo';
+            if(pantallaActual === 2) return 'mesa2';
+            if(pantallaActual === 3) return 'amigo3';
+            if(pantallaActual === 4) return 'mesa4';
+        }
+
+        window.generarCodigo2vs2 = async () => {
+            let code = Math.floor(10 + Math.random() * 90).toString();
+            await set(ref(db, 'partida/vinculo2vs2/codigo'), code);
+            document.getElementById('texto-codigo-2vs2').innerText = `Código: ${code} (Díctalo a tu amigo)`;
+        };
+
+        window.verificarCodigo2vs2 = () => {
+            let input = document.getElementById('input-codigo-2vs2').value;
+            if(input === window.codigo2vs2Actual && input !== "") {
+                window.esAmigo3Vinculado = true;
+                alert("¡Vinculación Exitosa! Ahora este dispositivo se transformó en el Panel de Amigo 3 con IA.");
+                cambiarPantalla(1, true); 
+            } else {
+                alert("Código incorrecto o no generado por el Maestro.");
+            }
+        };
+
+        // --- SISTEMA DE NAVEGACIÃ“N Y CAMBIO DE TURNOS ---
+        window.cambiarPantalla = (num, esManual = false) => {
+            if(window.esAmigo3Vinculado && num !== 1) return alert("Estás vinculado como Amigo 3. Tu centro de mando exclusivo es la Pantalla 1.");
+            pantallaActual = num;
+            if (esManual) modoAutomatico = true;
+            aplicarUI();
+        };
+
+        window.siguienteTurno = () => {
+            if(!modoAutomatico) return;
+            setTimeout(() => {
+                let next = pantallaActual + 1;
+                if(next > 4) next = 1;
+                cambiarPantalla(next, false);
+            }, 2); 
+        };
+
+        function aplicarUI() {
+            const titulos = {
+                1: window.esAmigo3Vinculado ? "<span style='color: #64b5f6;'>AMIGO 3 - Panel IA Vinculado</span>" : "<span style='color: white;'>YO - Panel de Control</span>",
+                2: "<span style='color: #ff5252;'>Mesa 2 (Rival)</span>",
+                3: "<span style='color: #64b5f6;'>Amigo 3 (Nuestro Equipo)</span>",
+                4: "<span style='color: #ff5252;'>Mesa 4 (Rival)</span>"
+            };
+            document.getElementById('titulo-pantalla').innerHTML = titulos[pantallaActual];
+            document.getElementById('indicador-auto').innerText = modoAutomatico ? "Autocambio: ACTIVADO" : "Autocambio: DETENIDO";
+            document.getElementById('indicador-auto').style.color = modoAutomatico ? "#00e676" : "#ff9800";
+
+            for(let i=1; i<=4; i++) {
+                let btn = document.getElementById(`btn-pantalla-${i}`);
+                if(btn) {
+                    btn.style.boxShadow = (i === pantallaActual) ? "0 0 15px white" : "none";
+                    btn.style.transform = (i === pantallaActual) ? "scale(1.15)" : "scale(1)";
+                }
+            }
+
+            let tablero = document.getElementById('caja-tablero');
+            if(pantallaActual === 3 || window.esAmigo3Vinculado) {
+                tablero.style.background = '#1a237e'; tablero.style.border = '2px solid #3f51b5';
+            } else {
+                tablero.style.background = '#4a148c'; tablero.style.border = 'none';
+            }
+
+            document.getElementById('caja-yo-2vs2').style.display = (!window.esAmigo3Vinculado && pantallaActual === 1) ? 'block' : 'none';
+            document.getElementById('caja-amigo3-2vs2').style.display = (!window.esAmigo3Vinculado && pantallaActual === 3) ? 'block' : 'none';
+
+            if(pantallaActual === 1) {
                 document.getElementById('seccion-mano').style.display = 'block';
                 document.getElementById('seccion-maestro-extra').style.display = 'block';
                 document.getElementById('btn-paso-otros').style.display = 'none';
-                if(document.getElementById('seccion-vinculacion-amigo3')) document.getElementById('seccion-vinculacion-amigo3').style.display = 'none';
                 
-                if(pantallaActual === 3) { document.getElementById('btn-generar-2v2').style.display = 'none'; } 
-                else { document.getElementById('btn-generar-2v2').style.display = 'block'; }
-                
-                // Deshabilitar números si la mano está completada (para toda la ronda)
                 let disableNum = manoCompletada;
                 for(let i=0; i<=6; i++) {
                     let btn = document.getElementById(`btn-num-${i}`);
                     if(btn) { btn.disabled = disableNum; btn.style.opacity = disableNum ? "0.3" : "1"; }
                 }
-                renderMano(); // Asegurar que la mano se dibuje al cargar la pantalla
+                renderMano(); 
             } else {
                 document.getElementById('seccion-mano').style.display = 'none';
                 document.getElementById('seccion-maestro-extra').style.display = 'none';
                 document.getElementById('btn-paso-otros').style.display = 'block';
                 
-                if(pantallaActual === 3 && !amigoVinculado) {
-                    document.getElementById('seccion-vinculacion-amigo3').style.display = 'block';
-                } else {
-                    if(document.getElementById('seccion-vinculacion-amigo3')) document.getElementById('seccion-vinculacion-amigo3').style.display = 'none';
-                }
-                
                 let btnPaso = document.getElementById('btn-paso-otros');
-                btnPaso.innerText = (pantallaActual === 2) ? "MESA 2 PASÓ" : (pantallaActual === 3) ? "AMIGO 3 PASÓ" : "MESA 4 PASÓ";
+                btnPaso.innerText = (pantallaActual === 2) ? "MESA 2 PASÃ“" : (pantallaActual === 3) ? "AMIGO 3 PASÃ“" : "MESA 4 PASÃ“";
                 btnPaso.style.background = (pantallaActual === 3) ? "#3f51b5" : "#f44336";
 
-                // Habilitar siempre los números para las mesas
                 for(let i=0; i<=6; i++) {
                     let btn = document.getElementById(`btn-num-${i}`);
                     if(btn) { btn.disabled = false; btn.style.opacity = "1"; }
                 }
             }
-
             limpiarSeleccion(); 
             actualizarBotonesMesa();
-        };
+        }
+
 
         window.actualizarBotonesMesa = () => {
             if(pantallaActual === 1) {
@@ -435,7 +478,6 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
 
         // --- MANEJO DE SELECCIÃƒâ€œN ---
 
-
         window.seleccionar = (num) => {
             if(seleccion.length < 2) {
                 seleccion.push(num);
@@ -443,21 +485,18 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
             }
             document.getElementById('seleccion-actual').innerText = `Ingresando/Ficha: [ ${seleccion[0] !== undefined ? seleccion[0] : '?'} | ${seleccion[1] !== undefined ? seleccion[1] : '?'} ]`;
             
-            let esMaestro = (pantallaActual === 1) || (pantallaActual === 3 && amigoVinculado);
-            if(esMaestro) {
-                // Auto-guardar en mano (Modo Maestro / Amigo Vinculado)
+            if(pantallaActual === 1) {
+                // Auto-guardar en mano (Modo Maestro)
 
                 if(seleccion.length === 2) {
                     setTimeout(() => {
                         if(miMano.length < 7) {
                             miMano.push([...seleccion]);
                             localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
-                            
-                            if(pantallaActual === 1) set(ref(db, 'partida/mano_yo'), miMano);
-                            if(pantallaActual === 3) set(ref(db, 'partida/mano_amigo3'), miMano);
-                            
+                            set(ref(db, window.esAmigo3Vinculado ? 'partida/mano_amigo3' : 'partida/mano_yo'), miMano);
                             renderMano();
                             if(miMano.length === 7) {
+
 
                                 manoCompletada = true;
                                 localStorage.setItem('manoCompletada', 'true');
@@ -500,8 +539,10 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
             if (fichaPreparadaIndex === index) {
                 miMano.splice(index, 1);
                 localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
+                set(ref(db, window.esAmigo3Vinculado ? 'partida/mano_amigo3' : 'partida/mano_yo'), miMano);
                 fichaPreparadaIndex = -1;
                 manoCompletada = false;
+
                 localStorage.setItem('manoCompletada', 'false');
                 
                 for(let i=0; i<=6; i++) {
@@ -554,26 +595,22 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                 });
             }
 
-
             miMano.splice(fichaPreparadaIndex, 1);
             localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
+            set(ref(db, window.esAmigo3Vinculado ? 'partida/mano_amigo3' : 'partida/mano_yo'), miMano);
             fichaPreparadaIndex = -1;
 
             renderMano();
 
+            await push(ref(db, 'partida/mesa'), {ficha: fichaJugada, jugador: getJugadorID(), lado: lado});
 
-                              let jugadorAccion = pantallaActual === 1 ? 'yo' : 'amigo3';
-            await push(ref(db, 'partida/mesa'), {ficha: fichaJugada, jugador: jugadorAccion, lado: lado});
+
             await set(ref(db, 'partida/puntas'), nuevasPuntas);
             await set(ref(db, 'partida/pases_consecutivos'), 0);
             
-            if(pantallaActual === 1) set(ref(db, 'partida/mano_yo'), miMano);
-            if(pantallaActual === 3) set(ref(db, 'partida/mano_amigo3'), miMano);
-            
             let ladoTexto = lado === 0 ? 'Izquierda' : (lado === 1 ? 'Derecha' : 'Centro');
-            let nombreJ = pantallaActual === 1 ? 'Yo (Maestro)' : 'Amigo 3 (Vinculado)';
-            registrarHistorial(`ðŸ‘¤ ${nombreJ} jugué [${fichaJugada[0]}/${fichaJugada[1]}] por la ${ladoTexto}.`);
-
+            registrarHistorial(`Ã°Å¸â€˜Â¤ Yo (Maestro) juguÃƒÂ© [${fichaJugada[0]}/${fichaJugada[1]}] por la ${ladoTexto}.`);
+            
             actualizarBotonesMesa();
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
         };
@@ -889,8 +926,7 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
             let fichasEnMesa = mesa.map(m => m.ficha);
             let esMismaFicha = (f1, f2) => (f1[0] === f2[0] && f1[1] === f2[1]) || (f1[0] === f2[1] && f1[1] === f2[0]);
 
-            let manoAliada = (pantallaActual === 1) ? (typeof manoCompartidaAmigo !== 'undefined' ? manoCompartidaAmigo : []) : (typeof manoCompartidaYo !== 'undefined' ? manoCompartidaYo : []);
-
+            let manoAliada = window.manoAliadaRemota || [];
             let fichasOcultas = todasFichas.filter(f => 
                 !fichasEnMesa.some(fm => esMismaFicha(fm, f)) && 
                 !miMano.some(mm => esMismaFicha(mm, f)) &&
@@ -898,6 +934,7 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
             );
 
             let fallosJugadores = { mesa2: [], amigo3: [], mesa4: [] };
+
             pasos.forEach(p => {
                 if (fallosJugadores[p.jugador] && p.puntas) {
                     p.puntas.forEach(pinta => {
@@ -935,11 +972,16 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
 
             let objetivoManos = {
                 mesa2: 7 - conteoJugadoresMesa['mesa2'],
-                amigo3: (manoAliada.length > 0) ? 0 : (pantallaActual === 3 ? 7 - conteoJugadoresMesa['yo'] : 7 - conteoJugadoresMesa['amigo3']),
+                amigo3: 7 - conteoJugadoresMesa['amigo3'],
                 mesa4: 7 - conteoJugadoresMesa['mesa4']
             };
+            if(window.esAmigo3Vinculado || manoAliada.length > 0) {
+                objetivoManos.amigo3 = 0; // IA vinculada ya sabe la mano del aliado, no adivina
+            }
 
             let totalFichasOcultas = fichasOcultas.length;
+
+
             let esFinalPartida = (totalFichasOcultas <= 10) || (objetivoManos.mesa2 <= 3 && objetivoManos.amigo3 <= 3 && objetivoManos.mesa4 <= 3 && miMano.length <= 3);
 
             let pintaSalidaAmigo = -1;
@@ -961,6 +1003,8 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                     const miMano = data.miMano;
                     const puntas = data.puntasMesa;
                     const manoAliada = data.manoAliada || [];
+                    const soyAmigo3 = data.soyAmigo3 || false;
+
 
                     let distribucionesValidas = 0;
                     let dfsEscenariosCalculados = 0;
@@ -1049,13 +1093,17 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
 
                                 if (esFinalPartida && dfsEscenariosCalculados < 30) {
                                     dfsEscenariosCalculados++;
+
                                     let left = puntas.length > 0 ? puntas[0] : null;
                                     let right = puntas.length > 0 ? puntas[1] : null;
-
-                                                                        let manoAliadaSimulada = manoAliada.length > 0 ? manoAliada.slice() : a3.slice();
-                                    let manosSimuladas = [ miMano.slice(), m2.slice(), manoAliadaSimulada, m4.slice() ];
-
+                                    
+                                    let mYo = soyAmigo3 ? (manoAliada.length > 0 ? manoAliada.slice() : (a3.slice().length > 0 ? a3.slice() : [])) : miMano.slice();
+                                    let mAmigo = soyAmigo3 ? miMano.slice() : (manoAliada.length > 0 ? manoAliada.slice() : a3.slice());
+                                    
+                                    let manosSimuladas = [ mYo, m2.slice(), mAmigo, m4.slice() ];
+                                    
                                     let jugables = [];
+
                                     if(left===null) { jugables = manosSimuladas[0].slice(); } 
                                     else { jugables = manosSimuladas[0].filter(f => f[0]===left || f[1]===left || f[0]===right || f[1]===right); }
 
@@ -1127,7 +1175,8 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                 esFinalPartida: esFinalPartida,
                 miMano: miMano,
                 puntasMesa: puntas,
-                manoAliada: manoAliada
+                manoAliada: manoAliada,
+                soyAmigo3: window.esAmigo3Vinculado
             });
 
             worker.onmessage = (e) => {
@@ -1375,14 +1424,15 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
 
  
             
-                                window.registrarPasoMaestro = async () => {
+                                            window.registrarPasoMaestro = async () => {
             if(window.accionEnCurso) return;
             window.accionEnCurso = true;
-            await push(ref(db, 'partida/pasos'), {jugador: 'yo', puntas: puntas});
+            await push(ref(db, 'partida/pasos'), {jugador: getJugadorID(), puntas: puntas});
             await set(ref(db, 'partida/pases_consecutivos'), pasesConsecutivos + 1);
             
-            registrarHistorial(`  YO (Maestro) PASÃƒâ€° (Puntas expuestas: ${puntas[0]} y ${puntas[1]}).`);
-            
+            let namePaso = window.esAmigo3Vinculado ? 'AMIGO 3 (Vinculado)' : 'YO (Maestro)';
+            registrarHistorial(`  ${namePaso} PASÃ“ (Puntas expuestas: ${puntas[0]} y ${puntas[1]}).`);
+
             document.getElementById('modal-ia').style.display = 'none';
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
         };

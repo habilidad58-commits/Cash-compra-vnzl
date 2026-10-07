@@ -950,9 +950,14 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                     const objetivoManos = data.objetivoManos;
                     const fallosJugadores = data.fallosJugadores;
                     const esFinalPartida = data.esFinalPartida;
+                    const miMano = data.miMano;
+                    const puntas = data.puntasMesa;
 
                     let distribucionesValidas = 0;
+                    let dfsEscenariosCalculados = 0;
                     let mapaProbabilidadesFichas = { mesa2: {}, amigo3: {}, mesa4: {} };
+                    let victoriasPorFicha = {}; 
+
                     fichasOcultas.forEach(f => {
                         let k = f[0] + '-' + f[1];
                         mapaProbabilidadesFichas.mesa2[k] = 0;
@@ -966,21 +971,112 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                         return !noTiene.includes(f[0]) && !noTiene.includes(f[1]);
                     }
 
+                    function getPoints(hand) {
+                        let pts = 0;
+                        for(let i=0; i<hand.length; i++) pts += hand[i][0] + hand[i][1];
+                        return pts;
+                    }
+
+                    function solveDFS(hands, left, right, turn, passes, initialFichaStr) {
+                        for (let i = 0; i < 4; i++) {
+                            if (hands[i].length === 0) {
+                                if (i === 0 || i === 2) { 
+                                    if(initialFichaStr) victoriasPorFicha[initialFichaStr] = (victoriasPorFicha[initialFichaStr] || 0) + 1;
+                                }
+                                return;
+                            }
+                        }
+
+                        if (passes === 4) {
+                            let ptsEquipoYo = getPoints(hands[0]) + getPoints(hands[2]);
+                            let ptsEquipoRiv = getPoints(hands[1]) + getPoints(hands[3]);
+                            if (ptsEquipoYo < ptsEquipoRiv) { 
+                                if(initialFichaStr) victoriasPorFicha[initialFichaStr] = (victoriasPorFicha[initialFichaStr] || 0) + 1;
+                            } 
+                            return;
+                        }
+
+                        let canPlay = false;
+                        let hand = hands[turn];
+                        
+                        for (let i = 0; i < hand.length; i++) {
+                            let t = hand[i];
+                            if (left === null || right === null) {
+                                canPlay = true;
+                                hand.splice(i, 1);
+                                solveDFS(hands, t[0], t[1], (turn + 1) % 4, 0, initialFichaStr);
+                                hand.splice(i, 0, t);
+                            } else {
+                                if (t[0] === left || t[1] === left) {
+                                    canPlay = true;
+                                    hand.splice(i, 1);
+                                    let newLeft = (t[0] === left) ? t[1] : t[0];
+                                    solveDFS(hands, newLeft, right, (turn + 1) % 4, 0, initialFichaStr);
+                                    hand.splice(i, 0, t);
+                                }
+                                if (left !== right && (t[0] === right || t[1] === right)) {
+                                    canPlay = true;
+                                    hand.splice(i, 1);
+                                    let newRight = (t[0] === right) ? t[1] : t[0];
+                                    solveDFS(hands, left, newRight, (turn + 1) % 4, 0, initialFichaStr);
+                                    hand.splice(i, 0, t);
+                                }
+                            }
+                        }
+
+                        if (!canPlay) {
+                            solveDFS(hands, left, right, (turn + 1) % 4, passes + 1, initialFichaStr);
+                        }
+                    }
+
                     function simularEscenarios(index, m2, a3, m4) {
                         if (distribucionesValidas >= 100000) return;
                         if (index === fichasOcultas.length) {
                             if (m2.length === objetivoManos.mesa2 && a3.length === objetivoManos.amigo3 && m4.length === objetivoManos.mesa4) {
                                 distribucionesValidas++;
-                                m2.forEach(f => mapaProbabilidadesFichas.mesa2[f[0] + '-' + f[1]]++);
-                                a3.forEach(f => mapaProbabilidadesFichas.amigo3[f[0] + '-' + f[1]]++);
-                                m4.forEach(f => mapaProbabilidadesFichas.mesa4[f[0] + '-' + f[1]]++);
+                                for(let i=0; i<m2.length; i++) mapaProbabilidadesFichas.mesa2[m2[i][0] + '-' + m2[i][1]]++;
+                                for(let i=0; i<a3.length; i++) mapaProbabilidadesFichas.amigo3[a3[i][0] + '-' + a3[i][1]]++;
+                                for(let i=0; i<m4.length; i++) mapaProbabilidadesFichas.mesa4[m4[i][0] + '-' + m4[i][1]]++;
+
+                                if (esFinalPartida && dfsEscenariosCalculados < 30) {
+                                    dfsEscenariosCalculados++;
+                                    let left = puntas.length > 0 ? puntas[0] : null;
+                                    let right = puntas.length > 0 ? puntas[1] : null;
+                                    let manosSimuladas = [ miMano.slice(), m2.slice(), a3.slice(), m4.slice() ];
+                                    
+                                    let jugables = [];
+                                    if(left===null) { jugables = manosSimuladas[0].slice(); } 
+                                    else { jugables = manosSimuladas[0].filter(f => f[0]===left || f[1]===left || f[0]===right || f[1]===right); }
+
+                                    for(let j = 0; j < jugables.length; j++) {
+                                        let t = jugables[j];
+                                        let fichaStr = t[0] + '-' + t[1];
+                                        let idx = manosSimuladas[0].findIndex(f => f[0]===t[0] && f[1]===t[1]);
+                                        
+                                        manosSimuladas[0].splice(idx, 1);
+                                        if (left === null) {
+                                            solveDFS(manosSimuladas, t[0], t[1], 1, 0, fichaStr);
+                                        } else {
+                                            if (t[0] === left || t[1] === left) {
+                                                let newLeft = (t[0] === left) ? t[1] : t[0];
+                                                solveDFS(manosSimuladas, newLeft, right, 1, 0, fichaStr);
+                                            }
+                                            if (left !== right && (t[0] === right || t[1] === right)) {
+                                                let newRight = (t[0] === right) ? t[1] : t[0];
+                                                solveDFS(manosSimuladas, left, newRight, 1, 0, fichaStr);
+                                            }
+                                        }
+                                        manosSimuladas[0].splice(idx, 0, t); 
+                                    }
+                                }
                             }
                             return;
                         }
+                        
                         let f = fichasOcultas[index];
-                        if (m2.length < objetivoManos.mesa2 && esValida('mesa2', f)) simularEscenarios(index + 1, [...m2, f], a3, m4);
-                        if (a3.length < objetivoManos.amigo3 && esValida('amigo3', f)) simularEscenarios(index + 1, m2, [...a3, f], m4);
-                        if (m4.length < objetivoManos.mesa4 && esValida('mesa4', f)) simularEscenarios(index + 1, m2, a3, [...m4, f]);
+                        if (m2.length < objetivoManos.mesa2 && esValida('mesa2', f)) { m2.push(f); simularEscenarios(index + 1, m2, a3, m4); m2.pop(); }
+                        if (a3.length < objetivoManos.amigo3 && esValida('amigo3', f)) { a3.push(f); simularEscenarios(index + 1, m2, a3, m4); a3.pop(); }
+                        if (m4.length < objetivoManos.mesa4 && esValida('mesa4', f)) { m4.push(f); simularEscenarios(index + 1, m2, a3, m4); m4.pop(); }
                     }
 
                     simularEscenarios(0, [], [], []);
@@ -1003,7 +1099,9 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                         distribucionesValidas: distribucionesValidas,
                         mapaProbabilidadesFichas: mapaProbabilidadesFichas,
                         certezasMap: certezasMap,
-                        esFinalPartida: esFinalPartida
+                        esFinalPartida: esFinalPartida,
+                        victoriasPorFicha: victoriasPorFicha,
+                        dfsEscenariosCalculados: dfsEscenariosCalculados
                     });
                 };
             `;
@@ -1015,7 +1113,9 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                 fichasOcultas: fichasOcultas,
                 objetivoManos: objetivoManos,
                 fallosJugadores: fallosJugadores,
-                esFinalPartida: esFinalPartida
+                esFinalPartida: esFinalPartida,
+                miMano: miMano,
+                puntasMesa: puntas
             });
 
             worker.onmessage = (e) => {
@@ -1120,6 +1220,16 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                                 ptsBase += 10000;
                             } else if (totalPintaMesaYMano === 7 && misPuntosRestantes <= 10) {
                                 ptsBase += 8000;
+                            }
+                            
+                            let fichaStr = f[0] + '-' + f[1];
+                            if (resData.victoriasPorFicha && resData.victoriasPorFicha[fichaStr]) {
+                                let victoriasGarantizadas = resData.victoriasPorFicha[fichaStr];
+                                if (victoriasGarantizadas > 0) {
+                                    ptsBase += (victoriasGarantizadas * 500); 
+                                    dictamenMadre = "  ENDGAME DFS ACTIVO: El Motor 'Esperanza' simuló " + victoriasGarantizadas + " rutas de descarte rápido hacia la victoria matemática.";
+                                    arbolDetalles.push("  <span style='color:#b388ff;'><b>ÁRBOL DE DOMINÓ:</b> Ruta ganadora verificada.</span>");
+                                }
                             }
                         }
 

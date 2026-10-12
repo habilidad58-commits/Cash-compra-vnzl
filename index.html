@@ -217,9 +217,51 @@
        import { getDatabase, ref, set, onValue, push, remove, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
        
         const app = initializeApp({ apiKey: "AIzaSyDFCJfaYGgcgQuRia1qc4hmZkEWmiBuX2k", databaseURL: "https://llevatelo-seguro-default-rtdb.firebaseio.com", projectId: "llevatelo-seguro" });
-
         const db = getDatabase(app);
+
+        // --- SISTEMA DE CAPTURA GLOBAL DE ERRORES CON BOTÓN DE COPIA ---
+        window.mostrarErrorModal = (errText) => {
+            let modal = document.getElementById('modal-error-global');
+            if (!modal) {
+                let div = document.createElement('div');
+                div.id = 'modal-error-global';
+                div.style = 'display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:9999;';
+                div.innerHTML = `
+                    <div style="background:#1e1e1e; padding:20px; border-radius:10px; border:2px solid #ff5252; width:80%; max-width:400px; text-align:center;">
+                        <h3 style="color:#ff5252; margin-top:0;">⚠️ Error Capturado</h3>
+                        <div id="texto-error-capturado" style="color:#ccc; font-size:12px; background:#111; padding:10px; border-radius:5px; max-height:150px; overflow-y:auto; text-align:left; word-break:break-all; margin-bottom:15px;">${errText}</div>
+                        <button onclick="navigator.clipboard.writeText(document.getElementById('texto-error-capturado').innerText).then(()=>alert('¡Error copiado al portapapeles!'))" style="background:#00c853; color:white; border:none; padding:10px 15px; border-radius:5px; font-weight:bold; cursor:pointer; width:100%; margin-bottom:10px;">📋 Copiar Error para el Asistente</button>
+                        <button onclick="document.getElementById('modal-error-global').style.display='none'" style="background:#333; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer; width:100%;">Cerrar</button>
+                    </div>
+                `;
+                document.body.appendChild(div);
+            } else {
+                document.getElementById('texto-error-capturado').innerText = errText;
+                modal.style.display = 'flex';
+            }
+        };
+
+                window.onerror = function (msg, url, lineNo, columnNo, error) {
+            let errorDetails = `${msg} (URL: ${url || 'desconocida'}, Línea: ${lineNo}:${columnNo})`;
+            mostrarErrorModal(errorDetails);
+            if (typeof window.registrarHistorial === 'function') {
+                window.registrarHistorial(`⚠️ ERROR CAPTURADO: ${errorDetails}`);
+            }
+            return true;
+        };
+
+        window.addEventListener('unhandledrejection', event => {
+            let errorDetails = event.reason ? (event.reason.stack || event.reason.message || event.reason) : 'Promesa rechazada sin manejar';
+            mostrarErrorModal(errorDetails);
+            if (typeof window.registrarHistorial === 'function') {
+                window.registrarHistorial(`⚠️ ERROR PROMESA: ${errorDetails}`);
+            }
+        });
+
+        // --- FIN SISTEMA DE CAPTURA GLOBAL ---
+
         // Variables Globales
+
         let puntas = []; let mesa = []; let pasos = []; let historialLocal = [];
         let miMano = JSON.parse(localStorage.getItem('miManoGuardada')) || []; let seleccion = [];
         let manoCompletada = localStorage.getItem('manoCompletada') === 'true';
@@ -393,7 +435,7 @@
             }
 
             document.getElementById('caja-yo-2vs2').style.display = (!window.esAmigo3Vinculado && pantallaActual === 1) ? 'block' : 'none';
-            document.getElementById('caja-amigo3-2vs2').style.display = (!window.esAmigo3Vinculado && pantallaActual === 3) ? 'block' : 'none';
+            document.getElementById('caja-amigo3-2vs2').style.display = (!window.esAmigo3Vinculado && (pantallaActual === 1 || pantallaActual === 3)) ? 'block' : 'none';
 
             if(pantallaActual === 1) {
                 document.getElementById('seccion-mano').style.display = 'block';
@@ -532,6 +574,25 @@
         });
 
         onValue(ref(db, 'partida/puntas'), (s) => { puntas = s.val() || []; document.getElementById('puntas-text').innerText = puntas.length ? `Puntas: [ ${puntas[0]} - ${puntas[1]} ]` : "Mesa VacÃƒÂ­a"; });
+
+        // --- ESCUCHA DE RAYO X DESDE 2vs2 (AUTONOMÍA BOTS) ---
+        onValue(ref(db, 'partida/bot_rayo_x'), (s) => {
+            let data = s.val();
+            if (!data) return;
+            
+            // Sincronizar mano del bot actual y estado de la mesa
+            if (data.manoBot) {
+                miMano = data.manoBot.map(f => [f.a, f.b]);
+            }
+            if (data.puntas) {
+                puntas = data.puntas.filter(p => p !== null && p !== undefined);
+            }
+            
+            // Disparar análisis de la IA automáticamente con las barras configuradas
+            if (miMano.length > 0 && typeof analizarJugada === 'function') {
+                analizarJugada();
+            }
+        });
 
         onValue(ref(db, 'partida/mesa'), (s) => {
             mesa = []; let htmlIzq = ""; let htmlCentro = ""; let htmlDer = ""; let data = s.val();
@@ -1852,6 +1913,26 @@ window.jugarLado = async (lado) => {
                 });
 
                 opcionesEvaluadas.sort((a, b) => b.score - a.score);
+                if (opcionesEvaluadas.length === 0) {
+                    let jugAct = getJugadorID();
+                    let nomJugPaso = jugAct === 'yo' ? 'YO' : jugAct.toUpperCase();
+                    document.getElementById('ia-texto').innerHTML = `
+                        <div style="font-size:22px; font-weight:bold; color:#ff5252; margin-bottom:10px;">🚫 ${nomJugPaso} NO TIENE FICHAS JUGABLES</div>
+                        <div style="font-size:14px; color:#ccc; margin-bottom:15px;">Las puntas son [${puntas[0]} - ${puntas[1]}]. Se transmitirá la orden de PASO automáticamente.</div>
+                        <button class='btn-accion' style='background:#f44336; width:100%; font-size:16px;' onclick='registrarPasoMaestro()'>Confirmar Paso</button>
+                    `;
+                    document.getElementById('modal-ia').style.display = 'flex';
+                    if (db) {
+                        set(ref(db, 'partida/bot_respuesta'), {
+                            ficha: null,
+                            paso: true,
+                            jugador: jugAct,
+                            timestamp: Date.now()
+                        });
+                    }
+                    registrarHistorial(`🚫 ${nomJugPaso} sin opciones jugables para [${puntas[0]}-${puntas[1]}]. Señal de PASO transmitida.`);
+                    return;
+                }
                 let mejorMovimiento = opcionesEvaluadas[0];
 
                 let certezasHTML = certezasMap.length > 0 ? `<div style="background:#064e3b; border:1px solid #10b981; padding:10px; border-radius:8px; margin-bottom:12px; font-size:13px; color:#a7f3d0; text-align:left;">${certezasMap.join('<br>')}</div>` : '';
@@ -1873,10 +1954,19 @@ window.jugarLado = async (lado) => {
                         </div>
                     </div>
                 `;
-
                 document.getElementById('ia-texto').innerHTML = textoModal;
                 document.getElementById('modal-ia').style.display = 'flex';
                 registrarHistorial(`IA SUGIRIÓ: [${mejorMovimiento.ficha[0]}/${mejorMovimiento.ficha[1]}] por la ${mejorMovimiento.lado}.`);
+
+                // --- ENVIAR DICTAMEN AUTOMÁTICO A FIREBASE PARA LOS BOTS (MODULAR SDK) ---
+                if (db) {
+                    set(ref(db, 'partida/bot_respuesta'), {
+                        ficha: mejorMovimiento.ficha,
+                        lado: mejorMovimiento.lado, // "IZQUIERDA" o "DERECHA"
+                        timestamp: Date.now()
+                    });
+                }
+
                                 let customXai = document.getElementById('slider-xai') ? document.getElementById('slider-xai').value : '100';
                 let textoAuditoriaCompleta = `[JUGADA] Sugerencia: [${mejorMovimiento.ficha[0]}/${mejorMovimiento.ficha[1]}] por ${mejorMovimiento.lado} | Bayes: ${Math.round(customBayes*100)}%, MCTS: ${customMcts}, Match: ${customMatch}, XAI: ${customXai}%, Workers: ${numWorkers}, Max Distribuciones: ${customDistribuciones}`;
                 push(ref(db, 'partida/historial_sugerencias_ia'), textoAuditoriaCompleta);

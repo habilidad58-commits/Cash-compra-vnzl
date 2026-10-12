@@ -1918,16 +1918,18 @@ window.jugarLado = async (lado) => {
                     });
                 });
                 opcionesEvaluadas.sort((a, b) => b.score - a.score);
-                if (opcionesEvaluadas.length === 0) {
+                        if (opcionesEvaluadas.length === 0) {
                     let jugAct = getJugadorID();
                     let nomJugPaso = jugAct === 'yo' ? 'YO' : jugAct.toUpperCase();
                     document.getElementById('ia-texto').innerHTML = `
                         <div style="font-size:22px; font-weight:bold; color:#ff5252; margin-bottom:10px;">🚫 ${nomJugPaso} NO TIENE FICHAS JUGABLES</div>
-                        <div style="font-size:14px; color:#ccc; margin-bottom:15px;">Las puntas son [${puntas[0]} - ${puntas[1]}]. Pasando automáticamente...</div>
+                        <div style="font-size:14px; color:#ccc; margin-bottom:15px;">Las puntas son [${puntas[0]} - ${puntas[1]}]. Purgando y pasando en 3s...</div>
                     `;
                     document.getElementById('modal-ia').style.display = 'flex';
-                    registrarHistorial(`⚠️ ERROR/AVISO IA: ${nomJugPaso} obtuvo 0 opciones evaluadas válidas para [${puntas[0]}-${puntas[1]}]. Ejecutando paso automático.`);
+                    registrarHistorial(`⚠️ MADRE LIMPIEZA: ${nomJugPaso} sin opciones. Pausa de 3s para purgar proceso anterior.`);
+                    
                     if (db) {
+                        remove(ref(db, 'partida/bot_respuesta'));
                         set(ref(db, 'partida/bot_respuesta'), {
                             ficha: null,
                             paso: true,
@@ -1936,10 +1938,12 @@ window.jugarLado = async (lado) => {
                         });
                     }
                     setTimeout(() => {
+                        if (db) remove(ref(db, 'partida/bot_respuesta'));
                         registrarPasoMaestro();
-                    }, 800);
+                    }, 3000);
                     return;
                 }
+
 
                 let mejorMovimiento = opcionesEvaluadas[0];
 
@@ -1966,14 +1970,19 @@ window.jugarLado = async (lado) => {
                 document.getElementById('modal-ia').style.display = 'flex';
                 registrarHistorial(`IA SUGIRIÓ: [${mejorMovimiento.ficha[0]}/${mejorMovimiento.ficha[1]}] por la ${mejorMovimiento.lado}.`);
 
-                // --- ENVIAR DICTAMEN AUTOMÁTICO A FIREBASE PARA LOS BOTS (MODULAR SDK) ---
+                // --- ENVIAR DICTAMEN DE MADRE CON LIMPIEZA Y PAUSA DE 3 SEGUNDOS ---
                 if (db) {
+                    remove(ref(db, 'partida/bot_respuesta'));
                     set(ref(db, 'partida/bot_respuesta'), {
                         ficha: mejorMovimiento.ficha,
-                        lado: mejorMovimiento.lado, // "IZQUIERDA" o "DERECHA"
+                        lado: mejorMovimiento.lado,
                         timestamp: Date.now()
                     });
                 }
+                registrarHistorial(`🧠 MADRE CONTEXTO LIMPIO: Turno dictaminado. Purgando procesos anteriores en pausa de 3s...`);
+                setTimeout(() => {
+                    if (db) remove(ref(db, 'partida/bot_respuesta'));
+                }, 3000);
 
                                 let customXai = document.getElementById('slider-xai') ? document.getElementById('slider-xai').value : '100';
                 let textoAuditoriaCompleta = `[JUGADA] Sugerencia: [${mejorMovimiento.ficha[0]}/${mejorMovimiento.ficha[1]}] por ${mejorMovimiento.lado} | Bayes: ${Math.round(customBayes*100)}%, MCTS: ${customMcts}, Match: ${customMatch}, XAI: ${customXai}%, Workers: ${numWorkers}, Max Distribuciones: ${customDistribuciones}`;

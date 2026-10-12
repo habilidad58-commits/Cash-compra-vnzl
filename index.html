@@ -1150,8 +1150,14 @@ window.jugarLado = async (lado) => {
             let jugables = miMano.filter(f => puntas.includes(f[0]) || puntas.includes(f[1]));
 
             if (jugables.length === 0) {
-                texto.innerHTML = "<span style='color:red;'>No tienes fichas. DEBES PASAR.</span><br><button class='btn-accion' style='background:#f44336; margin-top:15px;' onclick='registrarPasoMaestro()'>Confirmar y Pasar</button>";
+                let jugAct = getJugadorID();
+                let nomJugPaso = jugAct === 'yo' ? 'YO' : jugAct.toUpperCase();
+                texto.innerHTML = `<span style='color:red;'>🚫 ${nomJugPaso} sin fichas jugables para [${puntas[0]} - ${puntas[1]}]. Pasando automáticamente...</span>`;
                 document.getElementById('modal-ia').style.display = 'flex';
+                registrarHistorial(`⚠️ ERROR/AVISO IA: ${nomJugPaso} no encontró fichas jugables en la mano para las puntas [${puntas[0]}-${puntas[1]}]. Ejecutando paso automático.`);
+                setTimeout(() => {
+                    registrarPasoMaestro();
+                }, 800);
                 return;
             }
 
@@ -1911,17 +1917,16 @@ window.jugarLado = async (lado) => {
                         });
                     });
                 });
-
                 opcionesEvaluadas.sort((a, b) => b.score - a.score);
                 if (opcionesEvaluadas.length === 0) {
                     let jugAct = getJugadorID();
                     let nomJugPaso = jugAct === 'yo' ? 'YO' : jugAct.toUpperCase();
                     document.getElementById('ia-texto').innerHTML = `
                         <div style="font-size:22px; font-weight:bold; color:#ff5252; margin-bottom:10px;">🚫 ${nomJugPaso} NO TIENE FICHAS JUGABLES</div>
-                        <div style="font-size:14px; color:#ccc; margin-bottom:15px;">Las puntas son [${puntas[0]} - ${puntas[1]}]. Se transmitirá la orden de PASO automáticamente.</div>
-                        <button class='btn-accion' style='background:#f44336; width:100%; font-size:16px;' onclick='registrarPasoMaestro()'>Confirmar Paso</button>
+                        <div style="font-size:14px; color:#ccc; margin-bottom:15px;">Las puntas son [${puntas[0]} - ${puntas[1]}]. Pasando automáticamente...</div>
                     `;
                     document.getElementById('modal-ia').style.display = 'flex';
+                    registrarHistorial(`⚠️ ERROR/AVISO IA: ${nomJugPaso} obtuvo 0 opciones evaluadas válidas para [${puntas[0]}-${puntas[1]}]. Ejecutando paso automático.`);
                     if (db) {
                         set(ref(db, 'partida/bot_respuesta'), {
                             ficha: null,
@@ -1930,9 +1935,12 @@ window.jugarLado = async (lado) => {
                             timestamp: Date.now()
                         });
                     }
-                    registrarHistorial(`🚫 ${nomJugPaso} sin opciones jugables para [${puntas[0]}-${puntas[1]}]. Señal de PASO transmitida.`);
+                    setTimeout(() => {
+                        registrarPasoMaestro();
+                    }, 800);
                     return;
                 }
+
                 let mejorMovimiento = opcionesEvaluadas[0];
 
                 let certezasHTML = certezasMap.length > 0 ? `<div style="background:#064e3b; border:1px solid #10b981; padding:10px; border-radius:8px; margin-bottom:12px; font-size:13px; color:#a7f3d0; text-align:left;">${certezasMap.join('<br>')}</div>` : '';

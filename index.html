@@ -42,11 +42,12 @@
     </style>
 
 </head>
-        <body>
-    <button class="btn-registro" onclick="document.getElementById('modal-historial').style.display='flex'">Ã°Å¸â€œÅ“ Registro</button>
-    <button class="btn-experiencia-ia" onclick="copiarExperienciaIA()">ðŸ§  Registro Experiencia IA</button>
-    <div id="header-container">
     
+        <body>
+    <button class="btn-registro" onclick="document.getElementById('modal-historial').style.display='flex'">📊 Registro</button>
+    <button class="btn-experiencia-ia" onclick="copiarExperienciaIA()">🧠 Registro Experiencia IA</button>
+    <button id="btn-caja-negra" style="position: absolute; top: 45px; right: 10px; background: #b71c1c; color: white; border: 2px solid #ff5252; padding: 5px 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 12px; z-index: 5;" onclick="mostrarCajaNegra()">📦 Caja Negra</button>
+    <div id="header-container">
 
     <h2 id="titulo-pantalla" style="margin-bottom: 5px;">YO - Panel de Control</h2>
         <div id="indicador-auto" style="color: #ff9800; font-size:12px; margin-bottom:10px; font-weight:bold;">Autocambio: DETENIDO (Presiona un Turno 1-4)</div>
@@ -575,23 +576,26 @@
 
         onValue(ref(db, 'partida/puntas'), (s) => { puntas = s.val() || []; document.getElementById('puntas-text').innerText = puntas.length ? `Puntas: [ ${puntas[0]} - ${puntas[1]} ]` : "Mesa VacÃƒÂ­a"; });
 
-        // --- ESCUCHA DE RAYO X DESDE 2vs2 (AUTONOMÍA BOTS) ---
+        // --- CAJA NEGRA Y CONTROL DE ESTADO (EVITA CONGELAMIENTO EN TURNO 5) ---
+        window.mostrarCajaNegra = () => {
+            let estadoActualInfo = `
+                === CAJA NEGRA M.A.D.R.E. ===
+                Pantalla Actual: ${pantallaActual} (${getJugadorID()})
+                Modo Automático: ${modoAutomatico}
+                Acción en Curso: ${window.accionEnCurso || false}
+                Fichas en miMano: ${miMano.length}
+                Puntas en Mesa: [${puntas.join(', ')}]
+                Mesa fichas totales: ${mesa.length}
+                -----------------------------
+            `;
+            console.log(estadoActualInfo);
+            alert(estadoActualInfo);
+        };
+
         onValue(ref(db, 'partida/bot_rayo_x'), (s) => {
             let data = s.val();
             if (!data) return;
-            
-            // Sincronizar mano del bot actual y estado de la mesa
-            if (data.manoBot) {
-                miMano = data.manoBot.map(f => [f.a, f.b]);
-            }
-            if (data.puntas) {
-                puntas = data.puntas.filter(p => p !== null && p !== undefined);
-            }
-            
-            // Disparar análisis de la IA automáticamente con las barras configuradas
-            if (miMano.length > 0 && typeof analizarJugada === 'function') {
-                analizarJugada();
-            }
+            registrarHistorial(`📦 CAJA NEGRA: Señal de bot detectada (${data.botId}). Omitida en panel Maestro para proteger tu mano humana.`);
         });
 
         onValue(ref(db, 'partida/mesa'), (s) => {

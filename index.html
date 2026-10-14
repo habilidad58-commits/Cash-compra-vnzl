@@ -211,6 +211,15 @@
                 <div id="estado-caceria-dual" style="font-size: 11px; color: #aaa; margin-top: 5px;">Estado: DESACTIVADO. Madre jugará con estrategia estándar.</div>
             </div>
 
+            <div style="background: #1a1a2e; padding: 15px; border-radius: 8px; border: 2px solid #00e676; margin-top: 15px; margin-bottom: 15px; text-align: left;">
+                <div style="color: #00e676; font-weight: bold; font-size: 14px; margin-bottom: 10px; text-align: center;">🤝 MOTOR 12: SERVIDOR DEL LÍDER (2VS2 ESTRICTO)</div>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #ccc; cursor: pointer; margin-bottom: 8px;">
+                    <span>Subordinar Juego al Amigo (Proteger y Vaciar al Amigo)</span>
+                    <input type="checkbox" id="toggle-servidor-lider" style="width: 20px; height: 20px;" onchange="toggleServidorLider()">
+                </label>
+                <div id="estado-servidor-lider" style="font-size: 11px; color: #aaa; margin-top: 5px;">Estado: DESACTIVADO. Estrategia cooperativa estándar.</div>
+            </div>
+
 
       <!-- FIN MOTOR 4 CONFIG -->
 
@@ -343,6 +352,18 @@ window.manoMesa4Remota = [];
                     "Estado: DESACTIVADO.";
             }
             registrarHistorial(`🎯 Motor 11 (Cacería Dual 2 y 4) ${window.caceriaDualActiva ? 'ACTIVADO' : 'DESACTIVADO'}.`);
+        };
+
+        window.servidorLiderActivo = false;
+        window.toggleServidorLider = () => {
+            window.servidorLiderActivo = document.getElementById('toggle-servidor-lider').checked;
+            let estadoEl = document.getElementById('estado-servidor-lider');
+            if(estadoEl) {
+                estadoEl.innerText = window.servidorLiderActivo ? 
+                    "Estado: ¡ACTIVO! Subordinando jugadas para vaciar al Amigo y trancar a Mesa 2 / Mesa 4." : 
+                    "Estado: DESACTIVADO.";
+            }
+            registrarHistorial(`🤝 Motor 12 (Servidor del Líder 2vs2) ${window.servidorLiderActivo ? 'ACTIVADO' : 'DESACTIVADO'}.`);
         };
 
         window.toggleMesa2Amigo = () => {
@@ -2319,6 +2340,56 @@ window.jugarLado = async (lado) => {
                         }
                     }
                     ptsBase += bonoCaceriaDual;
+
+                    // --- MOTOR 12: SERVIDOR DEL LÍDER (2VS2 ESTRICTO Y ESPECIAL) ---
+                    let bonoServidorLider = 0;
+                    if (window.servidorLiderActivo || (window.tipoMeta === '2vs2' && window.servidorLiderActivo)) {
+                        let manoAmigoReferencia = window.esMesa2Amigo ? 
+                            (window.manoMesa2Remota && window.manoMesa2Remota.length ? window.manoMesa2Remota : miManoMesa2) : 
+                            (window.manoAliadaRemota && window.manoAliadaRemota.length ? window.manoAliadaRemota : miManoAmigo3);
+                        
+                        let fallosAmigo = fallosJugadores['amigo3'] || [];
+                        let fallosMesa2Rival = fallosJugadores['mesa2'] || [];
+                        let fallosMesa4Rival = fallosJugadores['mesa4'] || [];
+
+                                     // 1. Proteger al amigo en las pintas a las que huye / pasa (Directas e Indirectas)
+                        if (fallosAmigo.includes(nuevaPunta)) {
+                            bonoServidorLider -= 15000;
+                            arbolDetalles.push(`<span style='color:#ff5252;'><b>Motor 12 (Alerta Amigo):</b> La punta [${nuevaPunta}] hace pasar al Amigo. Penalizada de forma absoluta.</span>`);
+                        } else if (fallosAmigo.includes(puntaMantenida)) {
+                            bonoServidorLider -= 8000;
+                            arbolDetalles.push(`<span style='color:#ff5252;'><b>Motor 12 (Alerta Amigo):</b> Mantiene abierta una punta incómoda [${puntaMantenida}] para el Amigo.</span>`);
+                        }
+
+                        // 1b. Previsión de Rebote Rival: Si dejar 'nuevaPunta' permite a Mesa 2 o Mesa 4 exponer un fallo del Amigo
+                        fallosAmigo.forEach(pintaMortal => {
+                            let kReboteM2 = `${pintaMortal}-${nuevaPunta}`;
+                            let kReboteM4 = `${pintaMortal}-${nuevaPunta}`;
+                            let probReboteRival = (resData.motorBayesiano && resData.motorBayesiano['mesa2']) ? 
+                                ((resData.motorBayesiano['mesa2'][kReboteM2] || 0) + (resData.motorBayesiano['mesa4'][kReboteM4] || 0)) : 0;
+                            
+                            if (probReboteRival > 0.25 || fichasOcultas.some(f => (f.includes(pintaMortal) && f.includes(nuevaPunta)))) {
+                                bonoServidorLider -= 10000;
+                                arbolDetalles.push(`<span style='color:#ff5252;'><b>Motor 12 (Filtro de Rebote):</b> Dejar [${nuevaPunta}] le da pie a rivales para meter el [${pintaMortal}] que hace pasar al Amigo.</span>`);
+                            }
+                        });
+
+                        // 2. Abrirle juego directo al amigo
+                        let amigoPuedeVaciar0 = manoAmigoReferencia.some(mf => mf.includes(nuevasPuntas[0]));
+                        let amigoPuedeVaciar1 = manoAmigoReferencia.some(mf => mf.includes(nuevasPuntas[1]));
+
+                        if (amigoPuedeVaciar0 || amigoPuedeVaciar1) {
+                            bonoServidorLider += 8000;
+                            arbolDetalles.push(`<span style='color:#00e676;'><b>Motor 12 (Ruta Servida):</b> Puntas [${nuevasPuntas[0]}-${nuevasPuntas[1]}] habilitan tiro directo al Amigo.</span>`);
+                        }
+
+                        // 3. Bloqueo estricto a los rivales (Mesa 2 y Mesa 4) observando pases
+                        if (fallosMesa2Rival.includes(nuevaPunta) || fallosMesa4Rival.includes(nuevaPunta)) {
+                            bonoServidorLider += 6500;
+                            arbolDetalles.push(`<span style='color:#00e676;'><b>Motor 12 (Tranca a Rivales):</b> La punta [${nuevaPunta}] ahoga a los rivales por pases previos.</span>`);
+                        }
+                    }
+                    ptsBase += bonoServidorLider;
 
                 let misPuntosRestantes = miManoRestante.reduce((acc, curr) => acc + curr[0] + curr[1], 0);
 

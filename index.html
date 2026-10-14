@@ -42,12 +42,11 @@
     </style>
 
 </head>
-    
         <body>
-    <button class="btn-registro" onclick="document.getElementById('modal-historial').style.display='flex'">📊 Registro</button>
-    <button class="btn-experiencia-ia" onclick="copiarExperienciaIA()">🧠 Registro Experiencia IA</button>
-    <button id="btn-caja-negra" style="position: absolute; top: 45px; right: 10px; background: #b71c1c; color: white; border: 2px solid #ff5252; padding: 5px 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 12px; z-index: 5;" onclick="mostrarCajaNegra()">📦 Caja Negra</button>
+    <button class="btn-registro" onclick="document.getElementById('modal-historial').style.display='flex'">Ã°Å¸â€œÅ“ Registro</button>
+    <button class="btn-experiencia-ia" onclick="copiarExperienciaIA()">ðŸ§  Registro Experiencia IA</button>
     <div id="header-container">
+    
 
     <h2 id="titulo-pantalla" style="margin-bottom: 5px;">YO - Panel de Control</h2>
         <div id="indicador-auto" style="color: #ff9800; font-size:12px; margin-bottom:10px; font-weight:bold;">Autocambio: DETENIDO (Presiona un Turno 1-4)</div>
@@ -101,22 +100,33 @@
 
 
    <button id="btn-paso-otros" class="btn-accion btn-paso" style="display:none;" onclick="registrarPaso()">PASÓ</button>
-    <!-- SECCIÃƒâ€œN MAESTRO EXTRA (Marcador, Estrategia, IA) -->
-    <div id="seccion-maestro-extra">
-        <div style="background: #1e1e1e; padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 18px; font-weight: bold; border: 2px solid #fff;">
-            MARCADOR (A 100 ptos)  <br>
-            <span style="color: #64b5f6;">Nosotros: <span id="pts-nosotros">0</span></span> | 
-            <span style="color: #ff5252;">Rivales: <span id="pts-rivales">0</span></span>
-            <div style="font-size: 13px; color: #aaa; margin-top: 8px; font-weight: normal; border-top: 1px solid #444; padding-top: 5px;">
-                Fichas Restantes: Yo <span id="rest-yo" style="color:white; font-weight:bold;">7</span> | Amigo 3 <span id="rest-amigo3" style="color:white; font-weight:bold;">7</span> | Mesa 2 <span id="rest-mesa2" style="color:#ff5252; font-weight:bold;">7</span> | Mesa 4 <span id="rest-mesa4" style="color:#ff5252; font-weight:bold;">7</span>
+            <div id="caja-mesa2-config" style="display:none; background: #1a237e; padding: 12px; border-radius: 8px; margin-top: 10px; border: 2px solid #64b5f6; margin-bottom: 10px;">
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #64b5f6; font-weight: bold; cursor: pointer;">
+                    <span>🤝 Mesa 2 es Aliado (Amigo 2)</span>
+                    <input type="checkbox" id="toggle-mesa2-amigo" style="width: 20px; height: 20px;" onchange="toggleMesa2Amigo()">
+                </label>
+                <div id="estado-mesa2-amigo" style="font-size: 11px; color: #aaa; margin-top: 5px;">Estado: Mesa 2 es RIVAL.</div>
             </div>
-        </div>
 
-        <div id="indicador-probabilidad" style="background: #1e1e1e; border: 2px solid #00e676; color: #00e676; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 14px; margin: 10px 0;">
-            PROBABILIDAD DE GANAR:<br><span style="color:#64b5f6;">Nosotros: 50%</span> | <span style="color:#ff5252;">Rivales: 50%</span>
-        </div>
+            <!-- SECCIÃƒâ€œN MAESTRO EXTRA (Marcador, Estrategia, IA) -->
+            <div id="seccion-maestro-extra">
 
-        <button id="btn-guardar-partida" style="display:none; background:#ff9800; color:black; border:none; padding:12px; font-size:16px; border-radius:8px; font-weight:bold; width:100%; margin-bottom:10px; cursor:pointer; box-shadow:0 0 10px #ff9800;" onclick="guardarPartidaMaestro()">Ã°Å¸â€™Â¾ GUARDAR PARTIDA Y ENVIAR A ESTRATEGIA</button>
+        <div id="caja-info-maestro">
+            <div style="background: #1e1e1e; padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 18px; font-weight: bold; border: 2px solid #fff;">
+                MARCADOR (A 100 ptos)  <br>
+                <span style="color: #64b5f6;">Nosotros: <span id="pts-nosotros">0</span></span> | 
+                <span style="color: #ff5252;">Rivales: <span id="pts-rivales">0</span></span>
+                <div style="font-size: 13px; color: #aaa; margin-top: 8px; font-weight: normal; border-top: 1px solid #444; padding-top: 5px;">
+                    Fichas Restantes: Yo <span id="rest-yo" style="color:white; font-weight:bold;">7</span> | Amigo 3 <span id="rest-amigo3" style="color:white; font-weight:bold;">7</span> | Mesa 2 <span id="rest-mesa2" style="color:#ff5252; font-weight:bold;">7</span> | Mesa 4 <span id="rest-mesa4" style="color:#ff5252; font-weight:bold;">7</span>
+                </div>
+            </div>
+
+            <div id="indicador-probabilidad" style="background: #1e1e1e; border: 2px solid #00e676; color: #00e676; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 14px; margin: 10px 0;">
+                PROBABILIDAD DE GANAR:<br><span style="color:#64b5f6;">Nosotros: 50%</span> | <span style="color:#ff5252;">Rivales: 50%</span>
+            </div>
+
+            <button id="btn-guardar-partida" style="display:none; background:#ff9800; color:black; border:none; padding:12px; font-size:16px; border-radius:8px; font-weight:bold; width:100%; margin-bottom:10px; cursor:pointer; box-shadow:0 0 10px #ff9800;" onclick="guardarPartidaMaestro()">Ã°Å¸â€™Â¾ GUARDAR PARTIDA Y ENVIAR A ESTRATEGIA</button>
+        </div>
 
         <div class="botones-derecha">
             <button class="btn-maestro" onclick="analizarJugada()">MI TURNO (IA)</button>
@@ -146,7 +156,7 @@
                 <button class="btn-accion" style="background:#00c853; padding:8px 15px; font-size:14px; margin-left:5px;" onclick="verificarCodigo2vs2()">Conectar</button>
             </div>
 
-            <div style="background: #181818; padding: 15px; border-radius: 8px; border: 2px solid #ff9800; margin-top: 15px; margin-bottom: 15px; text-align: left;">
+               <div style="background: #181818; padding: 15px; border-radius: 8px; border: 2px solid #ff9800; margin-top: 15px; margin-bottom: 15px; text-align: left;">
                 <div style="color: #ff9800; font-weight: bold; font-size: 14px; margin-bottom: 12px; text-align: center;">🎛️ CONFIGURAR MOTORES (LÍMITES Y PESOS)</div>
                 
                 <div style="font-size: 12px; color: #ccc; margin-bottom: 5px;">Motor 1: Inferencia Bayesiana (Factor de Engaño): <span id="val-bayes" style="color:#00e676;">5%</span></div>
@@ -161,6 +171,47 @@
                 <div style="font-size: 12px; color: #ccc; margin-bottom: 5px;">Motor 8: XAI Copiloto (Nivel de Detalle): <span id="val-xai" style="color:#00e676;">100%</span></div>
                 <input type="range" id="slider-xai" min="0" max="100" value="100" style="width: 100%; margin-bottom: 12px;" oninput="document.getElementById('val-xai').innerText = this.value + '%'">
             </div>
+
+            <div style="background: #181818; padding: 15px; border-radius: 8px; border: 2px solid #00c853; margin-top: 15px; margin-bottom: 15px; text-align: left;">
+                <div style="color: #00c853; font-weight: bold; font-size: 14px; margin-bottom: 12px; text-align: center;">🎯 TIPO DE META Y PUNTUACIÓN</div>
+                <div style="font-size: 12px; color: #ccc; margin-bottom: 5px;">Selecciona el modo de conteo y victoria:</div>
+                <select id="select-tipo-meta" style="width: 100%; padding: 10px; background: #222; color: white; border: 1px solid #00c853; border-radius: 6px; font-weight: bold; font-size: 14px;" onchange="cambiarTipoMeta()">
+                    <option value="2vs2">Modo 2vs2 (Equipos - Vaciarse o Menor en Tranca)</option>
+                    <option value="1vs3">Modo 1vs3 (Todos contra Todos / Acumulación)</option>
+                </select>
+                <div id="estado-tipo-meta" style="font-size: 11px; color: #aaa; margin-top: 6px;">Regla activa: Gana el equipo cuyas fichas suman puntos al vaciarse o menor en tranca.</div>
+            </div>
+
+                  <div style="background: #1a1a2e; padding: 15px; border-radius: 8px; border: 2px solid #e91e63; margin-top: 15px; margin-bottom: 15px; text-align: left;">
+                <div style="color: #ff4081; font-weight: bold; font-size: 14px; margin-bottom: 10px; text-align: center;">⚡ MOTOR 9: VACIADO RÁPIDO COOPERATIVO</div>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #ccc; cursor: pointer; margin-bottom: 8px;">
+                    <span>Activar Plan Conjunto de Vaciado al Líder</span>
+                    <input type="checkbox" id="toggle-vaciado-rapido" style="width: 20px; height: 20px;" onchange="toggleVaciadoRapido()">
+                </label>
+                <div style="font-size: 12px; color: #ccc; margin-bottom: 4px;">Nombre del Líder / Destinatario:</div>
+                <input type="text" id="input-nombre-lider" value="Gabriele" style="width: 100%; padding: 8px; background: #222; color: white; border: 1px solid #ff4081; border-radius: 4px; font-size: 13px; margin-bottom: 5px;" placeholder="Ej. Gabriele">
+                <div id="estado-vaciado-rapido" style="font-size: 11px; color: #aaa; margin-top: 5px;">Estado: DESACTIVADO. Madre jugará de forma individual.</div>
+            </div>
+
+            <div style="background: #1a1a2e; padding: 15px; border-radius: 8px; border: 2px solid #00bcd4; margin-top: 15px; margin-bottom: 15px; text-align: left;">
+                <div style="color: #00bcd4; font-weight: bold; font-size: 14px; margin-bottom: 10px; text-align: center;">🎯 MOTOR 10: CACERÍA FORZADA Y CONTROL DE CABEZAS</div>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #ccc; cursor: pointer; margin-bottom: 8px;">
+                    <span>Activar Control de Opciones Únicas a Mesa 4</span>
+                    <input type="checkbox" id="toggle-caceria-forzada" style="width: 20px; height: 20px;" onchange="toggleCaceriaForzada()">
+                </label>
+                <div id="estado-caceria-forzada" style="font-size: 11px; color: #aaa; margin-top: 5px;">Estado: DESACTIVADO. Madre jugará con estrategia estándar.</div>
+            </div>
+
+            <div style="background: #1a1a2e; padding: 15px; border-radius: 8px; border: 2px solid #ff9800; margin-top: 15px; margin-bottom: 15px; text-align: left;">
+                <div style="color: #ff9800; font-weight: bold; font-size: 14px; margin-bottom: 10px; text-align: center;">🎯 MOTOR 11: CACERÍA DUAL (MESA 2 Y MESA 4)</div>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #ccc; cursor: pointer; margin-bottom: 8px;">
+                    <span>Activar Control Dual contra Mesa 2 y Mesa 4</span>
+                    <input type="checkbox" id="toggle-caceria-dual" style="width: 20px; height: 20px;" onchange="toggleCaceriaDual()">
+                </label>
+                <div id="estado-caceria-dual" style="font-size: 11px; color: #aaa; margin-top: 5px;">Estado: DESACTIVADO. Madre jugará con estrategia estándar.</div>
+            </div>
+
+
       <!-- FIN MOTOR 4 CONFIG -->
 
         <!-- Modal Registro Sugerencias IA -->
@@ -200,8 +251,7 @@
             <button class="close-btn" onclick="document.getElementById('modal-ia').style.display='none'">Entendido</button>
         </div>
     </div>
-    
-    <!-- Modal Registro (Historial) -->
+        <!-- Modal Registro (Historial) -->
     <div id="modal-historial" class="modal">
    
         <div class="modal-content" style="border-color: #b388ff;">
@@ -213,66 +263,40 @@
         </div>
     </div>
 
+    <!-- BOTÓN AUTORELLENO 1VS3 AL AZAR -->
+    <div style="margin: 15px 0; padding: 10px;">
+        <button class="btn-accion" style="background: #00bcd4; color: black; width: 100%; font-size: 16px; font-weight: bold; box-shadow: 0 0 10px #00bcd4;" onclick="autorellenar1vs3AlAzar()">🔀 Autorellenar 7 Fichas (Modo 1vs3 al Azar)</button>
+    </div>
+
     <script type="module">
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
        import { getDatabase, ref, set, onValue, push, remove, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
        
         const app = initializeApp({ apiKey: "AIzaSyDFCJfaYGgcgQuRia1qc4hmZkEWmiBuX2k", databaseURL: "https://llevatelo-seguro-default-rtdb.firebaseio.com", projectId: "llevatelo-seguro" });
+
         const db = getDatabase(app);
-
-        // --- SISTEMA DE CAPTURA GLOBAL DE ERRORES CON BOTÓN DE COPIA ---
-        window.mostrarErrorModal = (errText) => {
-            let modal = document.getElementById('modal-error-global');
-            if (!modal) {
-                let div = document.createElement('div');
-                div.id = 'modal-error-global';
-                div.style = 'display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:9999;';
-                div.innerHTML = `
-                    <div style="background:#1e1e1e; padding:20px; border-radius:10px; border:2px solid #ff5252; width:80%; max-width:400px; text-align:center;">
-                        <h3 style="color:#ff5252; margin-top:0;">⚠️ Error Capturado</h3>
-                        <div id="texto-error-capturado" style="color:#ccc; font-size:12px; background:#111; padding:10px; border-radius:5px; max-height:150px; overflow-y:auto; text-align:left; word-break:break-all; margin-bottom:15px;">${errText}</div>
-                        <button onclick="navigator.clipboard.writeText(document.getElementById('texto-error-capturado').innerText).then(()=>alert('¡Error copiado al portapapeles!'))" style="background:#00c853; color:white; border:none; padding:10px 15px; border-radius:5px; font-weight:bold; cursor:pointer; width:100%; margin-bottom:10px;">📋 Copiar Error para el Asistente</button>
-                        <button onclick="document.getElementById('modal-error-global').style.display='none'" style="background:#333; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer; width:100%;">Cerrar</button>
-                    </div>
-                `;
-                document.body.appendChild(div);
-            } else {
-                document.getElementById('texto-error-capturado').innerText = errText;
-                modal.style.display = 'flex';
-            }
-        };
-
-                window.onerror = function (msg, url, lineNo, columnNo, error) {
-            let errorDetails = `${msg} (URL: ${url || 'desconocida'}, Línea: ${lineNo}:${columnNo})`;
-            mostrarErrorModal(errorDetails);
-            if (typeof window.registrarHistorial === 'function') {
-                window.registrarHistorial(`⚠️ ERROR CAPTURADO: ${errorDetails}`);
-            }
-            return true;
-        };
-
-        window.addEventListener('unhandledrejection', event => {
-            let errorDetails = event.reason ? (event.reason.stack || event.reason.message || event.reason) : 'Promesa rechazada sin manejar';
-            mostrarErrorModal(errorDetails);
-            if (typeof window.registrarHistorial === 'function') {
-                window.registrarHistorial(`⚠️ ERROR PROMESA: ${errorDetails}`);
-            }
-        });
-
-        // --- FIN SISTEMA DE CAPTURA GLOBAL ---
-
         // Variables Globales
-
-        let puntas = []; let mesa = []; let pasos = []; let historialLocal = [];
+          let puntas = []; let mesa = []; let pasos = []; let historialLocal = [];
         let miMano = JSON.parse(localStorage.getItem('miManoGuardada')) || []; let seleccion = [];
         let manoCompletada = localStorage.getItem('manoCompletada') === 'true';
-
 
         let conteoPintas = [0, 0, 0, 0, 0, 0, 0]; 
         let historialDecisionesYo = [];
         let leccionesAprendidas = [];
 
-        // --- INICIO VARIABLES MOTORES 3 y 4 ---
+        window.esMesa2Amigo = localStorage.getItem('esMesa2Amigo') === 'true';
+        window.tipoMeta = localStorage.getItem('tipoMeta') || '2vs2';
+        let miManoMesa2 = JSON.parse(localStorage.getItem('miManoMesa2Guardada')) || [];
+        let manoCompletadaMesa2 = localStorage.getItem('manoCompletadaMesa2') === 'true';
+        window.manoMesa2Remota = [];
+let miManoAmigo3 = JSON.parse(localStorage.getItem('miManoAmigo3Guardada')) || [];
+let manoCompletadaAmigo3 = localStorage.getItem('manoCompletadaAmigo3') === 'true';
+let miManoMesa4 = JSON.parse(localStorage.getItem('miManoMesa4Guardada')) || [];
+let manoCompletadaMesa4 = localStorage.getItem('manoCompletadaMesa4') === 'true';
+window.manoMesa4Remota = [];
+
+         // --- INICIO VARIABLES MOTORES 3 y 4 ---
         window.motorTiempoActivo = false;
         window.tiempoInicioTurno = 0;
         window.tiemposJugadores = { mesa2: [], mesa4: [], amigo3: [] }; 
@@ -284,11 +308,70 @@
             document.getElementById('estado-motor-tiempo').innerText = window.motorTiempoActivo ? "Estado: ACTIVO. Analizando ms por jugada..." : "Estado: DESACTIVADO.";
             registrarHistorial(`⚙️ Motor 4 ("El Pensao") ${window.motorTiempoActivo ? 'ACTIVADO' : 'DESACTIVADO'}.`);
         };
+
+        window.vaciadoRapidoActivo = false;
+        window.toggleVaciadoRapido = () => {
+            window.vaciadoRapidoActivo = document.getElementById('toggle-vaciado-rapido').checked;
+            let estadoEl = document.getElementById('estado-vaciado-rapido');
+            if(estadoEl) {
+                estadoEl.innerText = window.vaciadoRapidoActivo ? 
+                    "Estado: ¡ACTIVO! Sincronizando para vaciar al líder." : 
+                    "Estado: DESACTIVADO.";
+            }
+            registrarHistorial(`⚡ Motor 9 (Vaciado Rápido) ${window.vaciadoRapidoActivo ? 'ACTIVADO' : 'DESACTIVADO'}.`);
+        };
+
+        window.caceriaForzadaActiva = false;
+        window.toggleCaceriaForzada = () => {
+            window.caceriaForzadaActiva = document.getElementById('toggle-caceria-forzada').checked;
+            let estadoEl = document.getElementById('estado-caceria-forzada');
+            if(estadoEl) {
+                estadoEl.innerText = window.caceriaForzadaActiva ? 
+                    "Estado: ¡ACTIVO! Forzando jugadas de opción única o pases contra Mesa 4." : 
+                    "Estado: DESACTIVADO.";
+            }
+            registrarHistorial(`🎯 Motor 10 (Cacería Forzada) ${window.caceriaForzadaActiva ? 'ACTIVADO' : 'DESACTIVADO'}.`);
+        };
+
+        window.caceriaDualActiva = false;
+        window.toggleCaceriaDual = () => {
+            window.caceriaDualActiva = document.getElementById('toggle-caceria-dual').checked;
+            let estadoEl = document.getElementById('estado-caceria-dual');
+            if(estadoEl) {
+                estadoEl.innerText = window.caceriaDualActiva ? 
+                    "Estado: ¡ACTIVO! Forzando jugadas de opción única o pases contra Mesa 2 y Mesa 4." : 
+                    "Estado: DESACTIVADO.";
+            }
+            registrarHistorial(`🎯 Motor 11 (Cacería Dual 2 y 4) ${window.caceriaDualActiva ? 'ACTIVADO' : 'DESACTIVADO'}.`);
+        };
+
+        window.toggleMesa2Amigo = () => {
+            window.esMesa2Amigo = document.getElementById('toggle-mesa2-amigo').checked;
+            localStorage.setItem('esMesa2Amigo', window.esMesa2Amigo);
+            document.getElementById('estado-mesa2-amigo').innerText = window.esMesa2Amigo ? "Estado: Mesa 2 es AMIGO 2 (Aliado)." : "Estado: Mesa 2 es RIVAL.";
+            registrarHistorial(`⚙️ Configuración 2vs2: Mesa 2 ahora es ${window.esMesa2Amigo ? 'AMIGO 2 (Aliado)' : 'RIVAL'}.`);
+            aplicarUI();
+        };
+
+        window.cambiarTipoMeta = () => {
+            let sel = document.getElementById('select-tipo-meta');
+            if (sel) {
+                window.tipoMeta = sel.value;
+                localStorage.setItem('tipoMeta', window.tipoMeta);
+                let desc = window.tipoMeta === '2vs2' ? "Regla 2vs2: Vaciarse o menor en tranca acumula puntos al equipo." : "Regla 1vs3: El primero en vaciarse se lleva los puntos de todos.";
+                let estEl = document.getElementById('estado-tipo-meta');
+                if(estEl) estEl.innerText = desc;
+                registrarHistorial(`🎯 Tipo de Meta cambiado a: ${window.tipoMeta.toUpperCase()}.`);
+            }
+        };
         // --- FIN VARIABLES MOTORES 3 y 4 ---
 
         window.esAmigo3Vinculado = false;
         window.manoAliadaRemota = [];
         window.codigo2vs2Actual = "";
+
+        onValue(ref(db, 'partida/mano_mesa2'), (s) => { window.manoMesa2Remota = s.val() || []; });
+onValue(ref(db, 'partida/mano_mesa4'), (s) => { window.manoMesa4Remota = s.val() || []; });
 
         onValue(ref(db, 'experiencia_ia_global/historial_lecciones'), (s) => {
 
@@ -408,14 +491,32 @@
                 cambiarPantalla(next, false);
             }, 2); 
         };
-
         function aplicarUI() {
+            let checkboxMesa2 = document.getElementById('toggle-mesa2-amigo');
+            if(checkboxMesa2) checkboxMesa2.checked = window.esMesa2Amigo;
+            let estadoMesa2El = document.getElementById('estado-mesa2-amigo');
+            if(estadoMesa2El) estadoMesa2El.innerText = window.esMesa2Amigo ? "Estado: Mesa 2 es AMIGO 2 (Aliado)." : "Estado: Mesa 2 es RIVAL.";
+
+            let selMeta = document.getElementById('select-tipo-meta');
+            if(selMeta) {
+                selMeta.value = window.tipoMeta;
+                let desc = window.tipoMeta === '2vs2' ? "Regla 2vs2: Vaciarse o menor en tranca acumula puntos al equipo." : "Regla 1vs3: El primero en vaciarse se lleva los puntos de todos.";
+                let estEl = document.getElementById('estado-tipo-meta');
+                if(estEl) estEl.innerText = desc;
+            }
+
+            let btn2 = document.getElementById('btn-pantalla-2');
+            if(btn2) {
+                btn2.style.background = window.esMesa2Amigo ? "#64b5f6" : "#ff5252";
+            }
+
             const titulos = {
                 1: window.esAmigo3Vinculado ? "<span style='color: #64b5f6;'>AMIGO 3 - Panel IA Vinculado</span>" : "<span style='color: white;'>YO - Panel de Control</span>",
-                2: "<span style='color: #ff5252;'>Mesa 2 (Rival)</span>",
+                2: window.esMesa2Amigo ? "<span style='color: #64b5f6;'>Amigo 2 (Nuestro Equipo)</span>" : "<span style='color: #ff5252;'>Mesa 2 (Rival)</span>",
                 3: "<span style='color: #64b5f6;'>Amigo 3 (Nuestro Equipo)</span>",
                 4: "<span style='color: #ff5252;'>Mesa 4 (Rival)</span>"
             };
+
             document.getElementById('titulo-pantalla').innerHTML = titulos[pantallaActual];
             document.getElementById('indicador-auto').innerText = modoAutomatico ? "Autocambio: ACTIVADO" : "Autocambio: DETENIDO";
             document.getElementById('indicador-auto').style.color = modoAutomatico ? "#00e676" : "#ff9800";
@@ -429,7 +530,7 @@
             }
 
             let tablero = document.getElementById('caja-tablero');
-            if(pantallaActual === 3 || window.esAmigo3Vinculado) {
+            if(pantallaActual === 3 || (pantallaActual === 2 && window.esMesa2Amigo) || window.esAmigo3Vinculado) {
                 tablero.style.background = '#1a237e'; tablero.style.border = '2px solid #3f51b5';
             } else {
                 tablero.style.background = '#4a148c'; tablero.style.border = 'none';
@@ -437,26 +538,47 @@
 
             document.getElementById('caja-yo-2vs2').style.display = (!window.esAmigo3Vinculado && pantallaActual === 1) ? 'block' : 'none';
             document.getElementById('caja-amigo3-2vs2').style.display = (!window.esAmigo3Vinculado && (pantallaActual === 1 || pantallaActual === 3)) ? 'block' : 'none';
+            let cajaM2Config = document.getElementById('caja-mesa2-config');
+            if(cajaM2Config) cajaM2Config.style.display = (!window.esAmigo3Vinculado && pantallaActual === 2) ? 'block' : 'none';
 
-            if(pantallaActual === 1) {
-                document.getElementById('seccion-mano').style.display = 'block';
-                document.getElementById('seccion-maestro-extra').style.display = 'block';
-                document.getElementById('btn-paso-otros').style.display = 'none';
-                
-                let disableNum = manoCompletada;
+                   let esPanelManoActivo = (pantallaActual === 1) || (pantallaActual === 3) || (pantallaActual === 2 && window.esMesa2Amigo) || (pantallaActual === 4);
+                if(esPanelManoActivo) {
+        document.getElementById('seccion-mano').style.display = 'block';
+        document.getElementById('seccion-maestro-extra').style.display = ((pantallaActual === 4) || (pantallaActual === 3 && !window.esMesa2Amigo)) ? 'none' : 'block';
+
+        let cajaInfoMaestro = document.getElementById('caja-info-maestro');
+        if(cajaInfoMaestro) cajaInfoMaestro.style.display = (pantallaActual === 1) ? 'block' : 'none';
+
+        if(pantallaActual === 1) {
+            document.getElementById('btn-paso-otros').style.display = 'none';
+        } else {
+            document.getElementById('btn-paso-otros').style.display = 'block';
+            let btnPaso = document.getElementById('btn-paso-otros');
+            if(pantallaActual === 4) {
+                btnPaso.innerText = "MESA 4 (MAMÁ) PASÓ";
+                btnPaso.style.background = "#f44336";
+            } else {
+                btnPaso.innerText = (pantallaActual === 2) ? "AMIGO 2 PASÓ" : "AMIGO 3 PASÓ";
+                btnPaso.style.background = "#3f51b5";
+            }
+        }
+
+                        let activeManoComp = (pantallaActual === 4) ? (miManoMesa4.length >= 7) : ((pantallaActual === 2 && window.esMesa2Amigo) ? manoCompletadaMesa2 : (pantallaActual === 3 ? manoCompletadaAmigo3 : manoCompletada));
+
                 for(let i=0; i<=6; i++) {
                     let btn = document.getElementById(`btn-num-${i}`);
-                    if(btn) { btn.disabled = disableNum; btn.style.opacity = disableNum ? "0.3" : "1"; }
+                    if(btn) { btn.disabled = activeManoComp; btn.style.opacity = activeManoComp ? "0.3" : "1"; }
                 }
                 renderMano(); 
             } else {
+
                 document.getElementById('seccion-mano').style.display = 'none';
                 document.getElementById('seccion-maestro-extra').style.display = 'none';
                 document.getElementById('btn-paso-otros').style.display = 'block';
                 
                 let btnPaso = document.getElementById('btn-paso-otros');
-                btnPaso.innerText = (pantallaActual === 2) ? "MESA 2 PASÃ“" : (pantallaActual === 3) ? "AMIGO 3 PASÃ“" : "MESA 4 PASÃ“";
-                btnPaso.style.background = (pantallaActual === 3) ? "#3f51b5" : "#f44336";
+                btnPaso.innerText = "MESA 4 PASÓ";
+                btnPaso.style.background = "#f44336";
 
                 for(let i=0; i<=6; i++) {
                     let btn = document.getElementById(`btn-num-${i}`);
@@ -469,13 +591,15 @@
 
 
                 window.actualizarBotonesMesa = () => {
-            let esDobleMaestro = (pantallaActual === 1 && fichaPreparadaIndex !== -1 && miMano[fichaPreparadaIndex][0] === miMano[fichaPreparadaIndex][1]);
-            let esDobleOtros = (pantallaActual !== 1 && seleccion.length === 2 && seleccion[0] === seleccion[1]);
+            let esPanelManoActivo = (pantallaActual === 1) || (pantallaActual === 3) || (pantallaActual === 2 && window.esMesa2Amigo) || (pantallaActual === 4);
+            let targetMano = (pantallaActual === 4) ? miManoMesa4 : ((pantallaActual === 2 && window.esMesa2Amigo) ? miManoMesa2 : (pantallaActual === 3 ? miManoAmigo3 : miMano));
+            let esDobleMano = (esPanelManoActivo && fichaPreparadaIndex !== -1 && targetMano[fichaPreparadaIndex] && targetMano[fichaPreparadaIndex][0] === targetMano[fichaPreparadaIndex][1]);
+            let esDobleOtros = (!esPanelManoActivo && seleccion.length === 2 && seleccion[0] === seleccion[1]);
             
-            if(pantallaActual === 1) {
-                document.getElementById('btn-izq').style.display = (fichaPreparadaIndex !== -1 && (puntas.length > 0 || !esDobleMaestro)) ? 'block' : 'none';
-                document.getElementById('btn-der').style.display = (fichaPreparadaIndex !== -1 && (puntas.length > 0 || !esDobleMaestro)) ? 'block' : 'none';
-                document.getElementById('btn-centro').style.display = (fichaPreparadaIndex !== -1 && puntas.length === 0 && esDobleMaestro) ? 'block' : 'none';
+            if(esPanelManoActivo) {
+                document.getElementById('btn-izq').style.display = (fichaPreparadaIndex !== -1 && (puntas.length > 0 || !esDobleMano)) ? 'block' : 'none';
+                document.getElementById('btn-der').style.display = (fichaPreparadaIndex !== -1 && (puntas.length > 0 || !esDobleMano)) ? 'block' : 'none';
+                document.getElementById('btn-centro').style.display = (fichaPreparadaIndex !== -1 && puntas.length === 0 && esDobleMano) ? 'block' : 'none';
             } else {
                 document.getElementById('btn-izq').style.display = (seleccion.length === 2 && (puntas.length > 0 || !esDobleOtros)) ? 'block' : 'none';
                 document.getElementById('btn-der').style.display = (seleccion.length === 2 && (puntas.length > 0 || !esDobleOtros)) ? 'block' : 'none';
@@ -485,9 +609,11 @@
 
 
         // --- ENRUTADORES DE BOTONES ---
-        window.clickCentro = () => { if(pantallaActual === 1) ejecutarJugada(-1); else jugarCentro(); };
-        window.clickIzq = () => { if(pantallaActual === 1) ejecutarJugada(0); else jugarLado(0); };
-        window.clickDer = () => { if(pantallaActual === 1) ejecutarJugada(1); else jugarLado(1); };
+             let esPanelManoActivoGlobal = () => (pantallaActual === 1) || (pantallaActual === 3) || (pantallaActual === 2 && window.esMesa2Amigo) || (pantallaActual === 4);
+
+   window.clickCentro = () => { if(esPanelManoActivoGlobal()) ejecutarJugada(-1); else jugarCentro(); };
+        window.clickIzq = () => { if(esPanelManoActivoGlobal()) ejecutarJugada(0); else jugarLado(0); };
+        window.clickDer = () => { if(esPanelManoActivoGlobal()) ejecutarJugada(1); else jugarLado(1); };
 
 
         // --- LÃƒâ€œGICA DE FUEGO BASE (FIREBASE LECTURA) ---
@@ -502,20 +628,90 @@
         });
 
 
-        onValue(ref(db, 'partida/estado'), (s) => { 
+        window.procesarFinDeVueltaAutomatico = async () => {
+            let manoY = miMano || [];
+            let manoA3 = window.manoAliadaRemota && window.manoAliadaRemota.length ? window.manoAliadaRemota : (miManoAmigo3 || []);
+            let manoM2 = window.manoMesa2Remota && window.manoMesa2Remota.length ? window.manoMesa2Remota : (miManoMesa2 || []);
+            let manoM4 = window.manoMesa4Remota && window.manoMesa4Remota.length ? window.manoMesa4Remota : (miManoMesa4 || []);
+
+            let ptsY = manoY.reduce((a, f) => a + f[0] + f[1], 0);
+            let ptsA3 = manoA3.reduce((a, f) => a + f[0] + f[1], 0);
+            let ptsM2 = manoM2.reduce((a, f) => a + f[0] + f[1], 0);
+            let ptsM4 = manoM4.reduce((a, f) => a + f[0] + f[1], 0);
+
+            let es1vs3 = (window.tipoMeta === '1vs3');
+            let esM2Amigo = window.esMesa2Amigo;
+
+            let ptsNosotros = ptsY + ptsA3 + (es1vs3 || esM2Amigo ? ptsM2 : 0);
+            let ptsRivales = es1vs3 ? ptsM4 : (esM2Amigo ? ptsM4 : (ptsM2 + ptsM4));
+
+            let ganadorNosotros = false;
+            let motivoFin = "";
+
+            if (manoY.length === 0 || manoA3.length === 0 || ((es1vs3 || esM2Amigo) && manoM2.length === 0)) {
+                ganadorNosotros = true;
+                motivoFin = "¡Nosotros nos vaciamos primero!";
+            } else if (manoM4.length === 0 || (!es1vs3 && !esM2Amigo && manoM2.length === 0)) {
+                ganadorNosotros = false;
+                motivoFin = "¡Los rivales se vaciaron primero!";
+            } else {
+                if (ptsNosotros < ptsRivales) {
+                    ganadorNosotros = true;
+                    motivoFin = `Tranca: Menor suma de puntos (${ptsNosotros} vs ${ptsRivales}).`;
+                } else if (ptsRivales < ptsNosotros) {
+                    ganadorNosotros = false;
+                    motivoFin = `Tranca: Menor suma de puntos (${ptsRivales} vs ${ptsNosotros}).`;
+                } else {
+                    ganadorNosotros = true;
+                    motivoFin = "Tranca: Empate de puntos (Victoria asignada a Nosotros).";
+                }
+            }
+
+            let puntosGanadosRonda = ganadorNosotros ? ptsRivales : ptsNosotros;
+            
+            let nuevoPts = {
+                nosotros: puntaje.nosotros + (ganadorNosotros ? puntosGanadosRonda : 0),
+                rivales: puntaje.rivales + (!ganadorNosotros ? puntosGanadosRonda : 0)
+            };
+
+            await set(ref(db, 'partida/puntaje'), nuevoPts);
+
+            let resumenTexto = `
+                <div style="font-size:22px; font-weight:bold; color:${ganadorNosotros ? '#00e676' : '#ff5252'}; margin-bottom:10px;">
+                    ${ganadorNosotros ? '🏆 ¡NOSOTROS GANAMOS LA VUELTA!' : '❌ ¡LOS RIVALES GANARON LA VUELTA!'}
+                </div>
+                <div style="font-size:14px; color:#ddd; margin-bottom:10px;">${motivoFin}</div>
+                <div style="background:#222; padding:10px; border-radius:6px; text-align:left; font-size:13px; margin-bottom:10px; border:1px solid #64b5f6;">
+                    <b>Fichas Restantes y Puntos:</b><br>
+                    • Yo (Maestro): ${manoY.length} fichas (${ptsY} pts) -> [${manoY.map(f=>`[${f[0]}/${f[1]}]`).join(', ')}]<br>
+                    • Amigo 3: ${manoA3.length} fichas (${ptsA3} pts) -> [${manoA3.map(f=>`[${f[0]}/${f[1]}]`).join(', ')}]<br>
+                    • Mesa 2: ${manoM2.length} fichas (${ptsM2} pts) -> [${manoM2.map(f=>`[${f[0]}/${f[1]}]`).join(', ')}]<br>
+                    • Mesa 4: ${manoM4.length} fichas (${ptsM4} pts) -> [${manoM4.map(f=>`[${f[0]}/${f[1]}]`).join(', ')}]<br>
+                </div>
+                <div style="font-size:15px; color:#ffeb3b; font-weight:bold;">
+                    Puntos sumados esta vuelta: +${puntosGanadosRonda} pts.<br>
+                    Marcador Actual -> Nosotros: ${nuevoPts.nosotros} | Rivales: ${nuevoPts.rivales}
+                </div>
+            `;
+
+            registrarHistorial(`🏁 FIN DE VUELTA (${window.tipoMeta.toUpperCase()}). Ganador: ${ganadorNosotros ? 'NOSOTROS' : 'RIVALES'}. Puntos sumados: +${puntosGanadosRonda}. Marcador: Nosotros(${nuevoPts.nosotros}) - Rivales(${nuevoPts.rivales})`);
+            return resumenTexto;
+        };
+
+        onValue(ref(db, 'partida/estado'), async (s) => { 
             estadoPartida = s.val() || 'jugando'; 
             if(estadoPartida === 'contando') {
-                modoAutomatico = false; // "cuando finalice una ronda el automÃƒÂ¡tico se quita"
+                modoAutomatico = false; 
                 aplicarUI();
 
-                if(pantallaActual === 1) { // Solo ejecutar lÃƒÂ³gica de maestro
+                if(pantallaActual === 1) { 
                     set(ref(db, 'partida/fichas_maestro_temp'), miMano);
-                    document.getElementById('ia-texto').innerHTML = "<span style='color:#ffeb3b;'>Ã‚Â¡FIN DE LA VUELTA!</span><br><br><span style='font-size:14px; color:#aaa;'>Descansa. El analista en Estrategia estÃƒÂ¡ registrando y estudiando a los rivales.</span>";
+                    let resumenHTML = await procesarFinDeVueltaAutomatico();
+                    document.getElementById('ia-texto').innerHTML = resumenHTML;
                     document.getElementById('modal-ia').style.display = 'flex';
                 }
             } else {
                 document.getElementById('modal-ia').style.display = 'none';
-                // Eliminamos la limpieza automÃƒÂ¡tica de miMano para evitar que se borre al recargar la pÃƒÂ¡gina
             }
         });
 
@@ -575,28 +771,6 @@
         });
 
         onValue(ref(db, 'partida/puntas'), (s) => { puntas = s.val() || []; document.getElementById('puntas-text').innerText = puntas.length ? `Puntas: [ ${puntas[0]} - ${puntas[1]} ]` : "Mesa VacÃƒÂ­a"; });
-
-        // --- CAJA NEGRA Y CONTROL DE ESTADO (EVITA CONGELAMIENTO EN TURNO 5) ---
-        window.mostrarCajaNegra = () => {
-            let estadoActualInfo = `
-                === CAJA NEGRA M.A.D.R.E. ===
-                Pantalla Actual: ${pantallaActual} (${getJugadorID()})
-                Modo Automático: ${modoAutomatico}
-                Acción en Curso: ${window.accionEnCurso || false}
-                Fichas en miMano: ${miMano.length}
-                Puntas en Mesa: [${puntas.join(', ')}]
-                Mesa fichas totales: ${mesa.length}
-                -----------------------------
-            `;
-            console.log(estadoActualInfo);
-            alert(estadoActualInfo);
-        };
-
-        onValue(ref(db, 'partida/bot_rayo_x'), (s) => {
-            let data = s.val();
-            if (!data) return;
-            registrarHistorial(`📦 CAJA NEGRA: Señal de bot detectada (${data.botId}). Omitida en panel Maestro para proteger tu mano humana.`);
-        });
 
         onValue(ref(db, 'partida/mesa'), (s) => {
             mesa = []; let htmlIzq = ""; let htmlCentro = ""; let htmlDer = ""; let data = s.val();
@@ -668,6 +842,23 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
 
 
         // --- MANEJO DE SELECCIÃƒâ€œN ---
+function verificarCargarMesa4Automatica() {
+    let totalAliados = miMano.length + miManoMesa2.length + miManoAmigo3.length;
+    if (totalAliados >= 21 && miManoMesa4.length === 0) {
+        let todas = [];
+        for(let i=0; i<=6; i++) {
+            for(let j=i; j<=6; j++) todas.push([i, j]);
+        }
+        let usadas = [...miMano, ...miManoMesa2, ...miManoAmigo3];
+        let sobrantes = todas.filter(f => !usadas.some(u => (u[0]===f[0] && u[1]===f[1]) || (u[0]===f[1] && u[1]===f[0])));
+        miManoMesa4 = sobrantes.slice(0, 7);
+        localStorage.setItem('miManoMesa4Guardada', JSON.stringify(miManoMesa4));
+        set(ref(db, 'partida/mano_mesa4'), miManoMesa4);
+        manoCompletadaMesa4 = true;
+        localStorage.setItem('manoCompletadaMesa4', 'true');
+        registrarHistorial(`✨ Las 7 fichas restantes se cargaron automáticamente en la mano de Mesa 4 (Mamá).`);
+    }
+}
 
         window.seleccionar = (num) => {
             if(seleccion.length < 2) {
@@ -676,21 +867,44 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
             }
             document.getElementById('seleccion-actual').innerText = `Ingresando/Ficha: [ ${seleccion[0] !== undefined ? seleccion[0] : '?'} | ${seleccion[1] !== undefined ? seleccion[1] : '?'} ]`;
             
-            if(pantallaActual === 1) {
-                // Auto-guardar en mano (Modo Maestro)
+            let esPanelManoActivo = (pantallaActual === 1) || (pantallaActual === 3) || (pantallaActual === 2 && window.esMesa2Amigo) || (pantallaActual === 4);
 
+            if(esPanelManoActivo) {
                 if(seleccion.length === 2) {
                     setTimeout(() => {
-                        if(miMano.length < 7) {
-                            miMano.push([...seleccion]);
-                            localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
-                            set(ref(db, window.esAmigo3Vinculado ? 'partida/mano_amigo3' : 'partida/mano_yo'), miMano);
+                        let targetMano = (pantallaActual === 4) ? miManoMesa4 : ((pantallaActual === 2 && window.esMesa2Amigo) ? miManoMesa2 : (pantallaActual === 3 ? miManoAmigo3 : miMano));
+                        let maxLimit = 7;
+                        if(targetMano.length < maxLimit) {
+                            targetMano.push([...seleccion]);
+                            if(pantallaActual === 4) {
+                                localStorage.setItem('miManoMesa4Guardada', JSON.stringify(miManoMesa4));
+                                set(ref(db, 'partida/mano_mesa4'), miManoMesa4);
+                            } else if(pantallaActual === 2 && window.esMesa2Amigo) {
+                                localStorage.setItem('miManoMesa2Guardada', JSON.stringify(miManoMesa2));
+                                set(ref(db, 'partida/mano_mesa2'), miManoMesa2);
+                            } else if(pantallaActual === 3) {
+                                localStorage.setItem('miManoAmigo3Guardada', JSON.stringify(miManoAmigo3));
+                                set(ref(db, 'partida/mano_amigo3'), miManoAmigo3);
+                            } else {
+                                localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
+                                set(ref(db, window.esAmigo3Vinculado ? 'partida/mano_amigo3' : 'partida/mano_yo'), miMano);
+                            }
                             renderMano();
-                            if(miMano.length === 7) {
-
-
-                                manoCompletada = true;
-                                localStorage.setItem('manoCompletada', 'true');
+                            verificarCargarMesa4Automatica();
+                            if(targetMano.length === 7) {
+                                if(pantallaActual === 4) {
+                                    manoCompletadaMesa4 = true;
+                                    localStorage.setItem('manoCompletadaMesa4', 'true');
+                                } else if(pantallaActual === 2 && window.esMesa2Amigo) {
+                                    manoCompletadaMesa2 = true;
+                                    localStorage.setItem('manoCompletadaMesa2', 'true');
+                                } else if(pantallaActual === 3) {
+                                    manoCompletadaAmigo3 = true;
+                                    localStorage.setItem('manoCompletadaAmigo3', 'true');
+                                } else if(pantallaActual === 1) {
+                                    manoCompletada = true;
+                                    localStorage.setItem('manoCompletada', 'true');
+                                }
                                 for(let i=0; i<=6; i++) {
                                     let btn = document.getElementById(`btn-num-${i}`);
                                     if(btn) { btn.disabled = true; btn.style.opacity = "0.3"; }
@@ -702,7 +916,6 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
                         limpiarSeleccion();
                     }, 2);
                 }
-
             } else {
                 actualizarBotonesMesa();
             }
@@ -714,12 +927,12 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
             document.getElementById('seleccion-actual').innerText = `Ingresando/Ficha: [ ? | ? ]`;
             actualizarBotonesMesa();
         }
+function renderMano() {
+    let html = "";
+    let manoActualRender = (pantallaActual === 4) ? miManoMesa4 : ((pantallaActual === 2 && window.esMesa2Amigo) ? miManoMesa2 : (pantallaActual === 3 ? miManoAmigo3 : miMano));
+    manoActualRender.forEach((f, index) => {
 
-        // --- LÃƒâ€œGICA EXCLUSIVA MAESTRO ---
-        function renderMano() {
-            let html = "";
-            miMano.forEach((f, index) => {
-                let colorBorder = (index === fichaPreparadaIndex) ? "#00e676" : "#ffeb3b";
+           let colorBorder = (index === fichaPreparadaIndex) ? "#00e676" : "#ffeb3b";
                 let scale = (index === fichaPreparadaIndex) ? "transform: scale(1.1); box-shadow: 0 0 10px #00e676;" : "";
                 html += `<div class="ficha ficha-mano" style="border: 2px solid ${colorBorder}; ${scale}; cursor: pointer;" onclick="prepararMiFicha(${index})">[${f[0]}/${f[1]}]</div>`;
             });
@@ -727,14 +940,32 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
         }
 
         window.prepararMiFicha = (index) => {
-            if (fichaPreparadaIndex === index) {
-                miMano.splice(index, 1);
-                localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
-                set(ref(db, window.esAmigo3Vinculado ? 'partida/mano_amigo3' : 'partida/mano_yo'), miMano);
-                fichaPreparadaIndex = -1;
-                manoCompletada = false;
+    let targetMano = (pantallaActual === 4) ? miManoMesa4 : ((pantallaActual === 2 && window.esMesa2Amigo) ? miManoMesa2 : (pantallaActual === 3 ? miManoAmigo3 : miMano));
+    if (fichaPreparadaIndex === index) {
+        targetMano.splice(index, 1);
+        if(pantallaActual === 4) {
+            localStorage.setItem('miManoMesa4Guardada', JSON.stringify(miManoMesa4));
+            set(ref(db, 'partida/mano_mesa4'), miManoMesa4);
+            manoCompletadaMesa4 = false;
+            localStorage.setItem('manoCompletadaMesa4', 'false');
+        } else if(pantallaActual === 2 && window.esMesa2Amigo) {
+            localStorage.setItem('miManoMesa2Guardada', JSON.stringify(miManoMesa2));
+            set(ref(db, 'partida/mano_mesa2'), miManoMesa2);
+            manoCompletadaMesa2 = false;
+            localStorage.setItem('manoCompletadaMesa2', 'false');
+        } else if(pantallaActual === 3) {
+            localStorage.setItem('miManoAmigo3Guardada', JSON.stringify(miManoAmigo3));
+            set(ref(db, 'partida/mano_amigo3'), miManoAmigo3);
+            manoCompletadaAmigo3 = false;
+            localStorage.setItem('manoCompletadaAmigo3', 'false');
+        } else {
+            localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
+            set(ref(db, window.esAmigo3Vinculado ? 'partida/mano_amigo3' : 'partida/mano_yo'), miMano);
+            manoCompletada = false;
+            localStorage.setItem('manoCompletada', 'false');
+        }
 
-                localStorage.setItem('manoCompletada', 'false');
+                fichaPreparadaIndex = -1;
                 
                 for(let i=0; i<=6; i++) {
                     let btn = document.getElementById(`btn-num-${i}`);
@@ -750,12 +981,18 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
             renderMano();
             actualizarBotonesMesa();
         };
+window.ejecutarJugada = async (lado) => {
+    if(window.accionEnCurso) return;
+    if(fichaPreparadaIndex === -1) return alert("Selecciona una ficha de tu mano primero.");
+    window.accionEnCurso = true;
 
-                    window.ejecutarJugada = async (lado) => {
-            if(window.accionEnCurso) return;
-            if(fichaPreparadaIndex === -1) return alert("Selecciona una ficha de tu mano primero.");
-            window.accionEnCurso = true;
-            let f = miMano[fichaPreparadaIndex];
+    let isMesa4 = (pantallaActual === 4);
+    let isMesa2Aliado = (pantallaActual === 2 && window.esMesa2Amigo);
+    let isAmigo3 = (pantallaActual === 3);
+    
+    let targetMano = isMesa4 ? miManoMesa4 : (isMesa2Aliado ? miManoMesa2 : (isAmigo3 ? miManoAmigo3 : miMano));
+
+          let f = targetMano[fichaPreparadaIndex];
             let nuevasPuntas = [...puntas];
             let cuadra = false;
             let fichaJugada = [...f];
@@ -778,34 +1015,47 @@ let trancaAutomatica = (puntas.length === 2 && puntas[0] === puntas[1] && cantid
             }
 
             if(!cuadra) { window.accionEnCurso = false; return alert("Esta ficha no cuadra en esa punta!"); }
-            // REGISTRO DE NODO DE DECISIÃ“N (Momentos con mÃ¡s de 1 ficha jugable)
-            let jugablesMomento = puntas.length === 0 ? [...miMano] : miMano.filter(mf => puntas.includes(mf[0]) || puntas.includes(mf[1]));
-            if (jugablesMomento.length > 1) {
-                historialDecisionesYo.push({
-                    puntas: [...puntas],
-                    fichaElegida: [...f],
-                    manoCompleta: miMano.map(mf => [...mf]),
-                    jugables: jugablesMomento.map(mf => [...mf]),
-                    lado: lado,
-                    fichasRestantes: miMano.length - 1
-                });
+
+            if (pantallaActual === 1 && !window.esAmigo3Vinculado) {
+                let jugablesMomento = puntas.length === 0 ? [...miMano] : miMano.filter(mf => puntas.includes(mf[0]) || puntas.includes(mf[1]));
+                if (jugablesMomento.length > 1) {
+                    historialDecisionesYo.push({
+                        puntas: [...puntas],
+                        fichaElegida: [...f],
+                        manoCompleta: miMano.map(mf => [...mf]),
+                        jugables: jugablesMomento.map(mf => [...mf]),
+                        lado: lado,
+                        fichasRestantes: miMano.length - 1
+                    });
+                }
             }
 
-            miMano.splice(fichaPreparadaIndex, 1);
-            localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
-            set(ref(db, window.esAmigo3Vinculado ? 'partida/mano_amigo3' : 'partida/mano_yo'), miMano);
+                targetMano.splice(fichaPreparadaIndex, 1);
+    if(isMesa4) {
+        localStorage.setItem('miManoMesa4Guardada', JSON.stringify(miManoMesa4));
+        set(ref(db, 'partida/mano_mesa4'), miManoMesa4);
+    } else if(isMesa2Aliado) {
+        localStorage.setItem('miManoMesa2Guardada', JSON.stringify(miManoMesa2));
+        set(ref(db, 'partida/mano_mesa2'), miManoMesa2);
+    } else if(isAmigo3) {
+        localStorage.setItem('miManoAmigo3Guardada', JSON.stringify(miManoAmigo3));
+        set(ref(db, 'partida/mano_amigo3'), miManoAmigo3);
+    } else {
+        localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
+        set(ref(db, window.esAmigo3Vinculado ? 'partida/mano_amigo3' : 'partida/mano_yo'), miMano);
+    }
+
             fichaPreparadaIndex = -1;
 
             renderMano();
 
-            await push(ref(db, 'partida/mesa'), {ficha: fichaJugada, jugador: getJugadorID(), lado: lado});
-
-
+            let jugadorID = getJugadorID();
+            await push(ref(db, 'partida/mesa'), {ficha: fichaJugada, jugador: jugadorID, lado: lado});
             await set(ref(db, 'partida/puntas'), nuevasPuntas);
             await set(ref(db, 'partida/pases_consecutivos'), 0);
             
             let ladoTexto = lado === 0 ? 'Izquierda' : (lado === 1 ? 'Derecha' : 'Centro');
-            registrarHistorial(`Ã°Å¸â€˜Â¤ Yo (Maestro) juguÃƒÂ© [${fichaJugada[0]}/${fichaJugada[1]}] por la ${ladoTexto}.`);
+            registrarHistorial(`🎲 ${jugadorID.toUpperCase()} jugó [${fichaJugada[0]}/${fichaJugada[1]}] por la ${ladoTexto}.`);
             
             actualizarBotonesMesa();
             setTimeout(() => { window.accionEnCurso = false; siguienteTurno(); }, 2);
@@ -927,35 +1177,119 @@ window.jugarLado = async (lado) => {
                 if(el) el.innerHTML = `PROBABILIDAD DE GANAR:<br><span style="color:#64b5f6;">Nosotros: 50%</span> | <span style="color:#ff5252;">Rivales: 50%</span>`;
                 return;
             }
-            let cantNosotros = (7 - conteoJugadores['yo']) + (7 - conteoJugadores['amigo3']);
-            let cantRivales = (7 - conteoJugadores['mesa2']) + (7 - conteoJugadores['mesa4']);
-            
-            let scoreBase = 50 + (puntaje.nosotros - puntaje.rivales) * 0.4;
-            let ventajaFichas = (cantRivales - cantNosotros) * 5;
-            
-            let probNosotros = Math.round(scoreBase + ventajaFichas);
-            if(probNosotros < 5) probNosotros = 5;
-            if(probNosotros > 95) probNosotros = 95;
+            let cantYo = 7 - conteoJugadores['yo'];
+            let cantAmigo3 = 7 - conteoJugadores['amigo3'];
+            let cantMesa2 = 7 - conteoJugadores['mesa2'];
+            let cantMesa4 = 7 - conteoJugadores['mesa4'];
+
+            let probNosotros = 50;
+
+            if (window.tipoMeta === '1vs3' || window.esMesa2Amigo) {
+                // Modo 1vs3: Yo + Amigo 2 + Amigo 3 vs Mesa 4
+                let cantNosotrosTotal = cantYo + cantAmigo3 + cantMesa2;
+                let promNosotros = cantNosotrosTotal / 3;
+                let promMesa4 = cantMesa4;
+
+                let scoreBase = 50 + (puntaje.nosotros - puntaje.rivales) * 0.4;
+                let ventajaFichas = (promMesa4 - promNosotros) * 12;
+
+                if (cantYo === 0 || cantAmigo3 === 0 || cantMesa2 === 0) ventajaFichas += 40;
+                if (cantMesa4 === 0) ventajaFichas -= 45;
+
+                probNosotros = Math.round(scoreBase + ventajaFichas);
+            } else {
+                // Modo 2vs2 Estándar: Yo + Amigo 3 vs Mesa 2 + Mesa 4
+                let cantNosotrosTotal = cantYo + cantAmigo3;
+                let cantRivalesTotal = cantMesa2 + cantMesa4;
+
+                let promNosotros = cantNosotrosTotal / 2;
+                let promRivales = cantRivalesTotal / 2;
+
+                let scoreBase = 50 + (puntaje.nosotros - puntaje.rivales) * 0.4;
+                let ventajaFichas = (promRivales - promNosotros) * 8;
+
+                if (cantYo === 0 || cantAmigo3 === 0) ventajaFichas += 35;
+                if (cantMesa2 === 0 || cantMesa4 === 0) ventajaFichas -= 35;
+
+                probNosotros = Math.round(scoreBase + ventajaFichas);
+            }
+
+            if(probNosotros < 1) probNosotros = 1;
+            if(probNosotros > 99) probNosotros = 99;
             let probRivales = 100 - probNosotros;
 
             let el = document.getElementById('indicador-probabilidad');
-            if(el) el.innerHTML = `PROBABILIDAD DE GANAR:<br><span style="color:#64b5f6;">Nosotros: ${probNosotros}%</span> | <span style="color:#ff5252;">Rivales: ${probRivales}%</span>`;
+            if(el) el.innerHTML = `PROBABILIDAD DE GANAR (${(window.tipoMeta || '2vs2').toUpperCase()}):<br><span style="color:#64b5f6;">Nosotros: ${probNosotros}%</span> | <span style="color:#ff5252;">Rivales: ${probRivales}%</span>`;
         };
+
+        window.autorellenar1vs3AlAzar = async () => {
+            if(window.tipoMeta !== '1vs3') {
+                alert("El Modo 1vs3 no está seleccionado en el tipo de meta. Por favor selecciónalo arriba para usar esta función.");
+                return;
+            }
+            if(!confirm("¿Deseas repartir automáticamente al azar las 7 fichas para todos los jugadores en Modo 1vs3?")) return;
+
+            let todas = [];
+            for(let i=0; i<=6; i++) {
+                for(let j=i; j<=6; j++) todas.push([i, j]);
+            }
+            let shuffled = [...todas].sort(() => Math.random() - 0.5);
+
+            miMano = shuffled.slice(0, 7);
+            miManoMesa2 = shuffled.slice(7, 14);
+            miManoAmigo3 = shuffled.slice(14, 21);
+            miManoMesa4 = shuffled.slice(21, 28);
+
+            localStorage.setItem('miManoGuardada', JSON.stringify(miMano));
+            localStorage.setItem('miManoMesa2Guardada', JSON.stringify(miManoMesa2));
+            localStorage.setItem('miManoAmigo3Guardada', JSON.stringify(miManoAmigo3));
+            localStorage.setItem('miManoMesa4Guardada', JSON.stringify(miManoMesa4));
+
+            manoCompletada = true;
+            manoCompletadaMesa2 = true;
+            manoCompletadaAmigo3 = true;
+            manoCompletadaMesa4 = true;
+
+            localStorage.setItem('manoCompletada', 'true');
+            localStorage.setItem('manoCompletadaMesa2', 'true');
+            localStorage.setItem('manoCompletadaAmigo3', 'true');
+            localStorage.setItem('manoCompletadaMesa4', 'true');
+
+            await set(ref(db, window.esAmigo3Vinculado ? 'partida/mano_amigo3' : 'partida/mano_yo'), miMano);
+            await set(ref(db, 'partida/mano_mesa2'), miManoMesa2);
+            await set(ref(db, 'partida/mano_amigo3'), miManoAmigo3);
+            await set(ref(db, 'partida/mano_mesa4'), miManoMesa4);
+
+            aplicarUI();
+            renderMano();
+            registrarHistorial("🔀 Fichas repartidas automáticamente al azar para todos los jugadores (Modo 1vs3).");
+            alert("¡Fichas repartidas al azar con éxito para todos los jugadores en Modo 1vs3!");
+        };
+
         window.restablecerPartida = async () => {
             if(confirm("¿Borrar TODO el progreso, incluyendo el puntaje de 100?")) {
                 modoAutomatico = false; 
                 manoCompletada = false;
+                manoCompletadaMesa2 = false;
+                manoCompletadaAmigo3 = false;
                 historialDecisionesYo = [];
                 puntas = [];
                 mesa = [];
                 pasos = [];
                 conteoPintas = [0, 0, 0, 0, 0, 0, 0];
-                localStorage.removeItem('miManoGuardada');
-                localStorage.removeItem('manoCompletada');
-                aplicarUI();
-                await remove(ref(db, 'partida')); 
-                miMano = []; 
-                renderMano();
+                      localStorage.removeItem('miManoGuardada');
+        localStorage.removeItem('manoCompletada');
+        localStorage.removeItem('miManoMesa2Guardada');
+        localStorage.removeItem('manoCompletadaMesa2');
+        localStorage.removeItem('miManoAmigo3Guardada');
+        localStorage.removeItem('manoCompletadaAmigo3');
+        localStorage.removeItem('miManoMesa4Guardada');
+        localStorage.removeItem('manoCompletadaMesa4');
+        aplicarUI();
+        await remove(ref(db, 'partida')); 
+        miMano = []; miManoMesa2 = []; miManoAmigo3 = []; miManoMesa4 = [];
+
+     renderMano();
                 for(let i=0; i<=6; i++) { let btn = document.getElementById(`btn-num-${i}`); if(btn) { btn.disabled = false; btn.style.opacity = "1"; } }
             }
         };
@@ -964,6 +1298,8 @@ window.jugarLado = async (lado) => {
             if(confirm("¿Limpiar la mesa para la siguiente vuelta? El marcador de puntos se mantendrá intacto.")) {
                 modoAutomatico = false; 
                 manoCompletada = false;
+                manoCompletadaMesa2 = false;
+                manoCompletadaAmigo3 = false;
                 
                 // Analiza y guarda la lección en la IA antes de limpiar
                 let conteoJug = { mesa2: 0, mesa4: 0 };
@@ -976,16 +1312,22 @@ window.jugarLado = async (lado) => {
                 mesa = [];
                 pasos = [];
                 conteoPintas = [0, 0, 0, 0, 0, 0, 0];
-                localStorage.removeItem('miManoGuardada');
-                localStorage.removeItem('manoCompletada');
-                aplicarUI();
-                await remove(ref(db, 'partida/mesa'));
-                await remove(ref(db, 'partida/puntas'));
-                await remove(ref(db, 'partida/pasos'));
-                await set(ref(db, 'partida/pases_consecutivos'), 0);
-                await set(ref(db, 'partida/estado'), 'jugando');
-                registrarHistorial(`============= NUEVA VUELTA INICIADA (MEMORIA LIMPIA) =============`);
-                miMano = []; limpiarSeleccion(); renderMano();
+                        localStorage.removeItem('miManoGuardada');
+        localStorage.removeItem('manoCompletada');
+        localStorage.removeItem('miManoMesa2Guardada');
+        localStorage.removeItem('manoCompletadaMesa2');
+        localStorage.removeItem('miManoAmigo3Guardada');
+        localStorage.removeItem('manoCompletadaAmigo3');
+        localStorage.removeItem('miManoMesa4Guardada');
+        localStorage.removeItem('manoCompletadaMesa4');
+        aplicarUI();
+        await remove(ref(db, 'partida/mesa'));
+        await remove(ref(db, 'partida/puntas'));
+        await remove(ref(db, 'partida/pasos'));
+        await set(ref(db, 'partida/pases_consecutivos'), 0);
+        await set(ref(db, 'partida/estado'), 'jugando');
+        registrarHistorial(`============= NUEVA VUELTA INICIADA (MEMORIA LIMPIA) =============`);
+        miMano = []; miManoMesa2 = []; miManoAmigo3 = []; miManoMesa4 = []; limpiarSeleccion(); renderMano();
 
                 let btnG = document.getElementById('btn-guardar-partida');
                 if (btnG) { btnG.dataset.oculto = 'false'; btnG.style.display = 'none'; }
@@ -1057,18 +1399,21 @@ window.jugarLado = async (lado) => {
         // CEREBRO IA MAESTRO CON PROCESAMIENTO MULTIHILO (WEB WORKERS), 
         // MODELO ACTOR-CRÍTICO (MADRE 2.5), CACERÍA DE GORDAS Y ENDGAME SOLVER
         // =========================================================================
+             
         window.analizarJugada = async () => {
             let texto = document.getElementById('ia-texto');
+            let manoActualIA = (pantallaActual === 2 && window.esMesa2Amigo) ? miManoMesa2 : (pantallaActual === 3 ? miManoAmigo3 : miMano);
 
             if (puntas.length === 0) {
-                if (miMano.length === 0) return alert("No tienes fichas en tu mano aún.");
+                if (manoActualIA.length === 0) return alert("No tienes fichas en tu mano aún.");
                 
                 let evaluacionMano = [];
                 
-                miMano.forEach(f => {
-                    let cantPalo0 = miMano.filter(x => x.includes(f[0])).length;
-                    let cantPalo1 = miMano.filter(x => x.includes(f[1])).length;
-                    let esDoble = (f[0] === f[1]);
+                manoActualIA.forEach(f => {
+                    let cantPalo0 = manoActualIA.filter(x => x.includes(f[0])).length;
+                    let cantPalo1 = manoActualIA.filter(x => x.includes(f[1])).length;
+
+       let esDoble = (f[0] === f[1]);
                     
                     let respaldo0 = cantPalo0 - 1;
                     let respaldo1 = cantPalo1 - 1;
@@ -1149,19 +1494,12 @@ window.jugarLado = async (lado) => {
                 return;
 
             }
-
             if (puntas.length !== 2) return alert("La mesa tiene un estado inválido.");
-            let jugables = miMano.filter(f => puntas.includes(f[0]) || puntas.includes(f[1]));
+            let jugables = manoActualIA.filter(f => puntas.includes(f[0]) || puntas.includes(f[1]));
 
             if (jugables.length === 0) {
-                let jugAct = getJugadorID();
-                let nomJugPaso = jugAct === 'yo' ? 'YO' : jugAct.toUpperCase();
-                texto.innerHTML = `<span style='color:red;'>🚫 ${nomJugPaso} sin fichas jugables para [${puntas[0]} - ${puntas[1]}]. Pasando automáticamente...</span>`;
+                texto.innerHTML = "<span style='color:red;'>No tienes fichas. DEBES PASAR.</span><br><button class='btn-accion' style='background:#f44336; margin-top:15px;' onclick='registrarPasoMaestro()'>Confirmar y Pasar</button>";
                 document.getElementById('modal-ia').style.display = 'flex';
-                registrarHistorial(`⚠️ ERROR/AVISO IA: ${nomJugPaso} no encontró fichas jugables en la mano para las puntas [${puntas[0]}-${puntas[1]}]. Ejecutando paso automático.`);
-                setTimeout(() => {
-                    registrarPasoMaestro();
-                }, 800);
                 return;
             }
 
@@ -1177,20 +1515,22 @@ window.jugarLado = async (lado) => {
             for (let i = 0; i <= 6; i++) {
                 for (let j = i; j <= 6; j++) todasFichas.push([i, j]);
             }
-
             let fichasEnMesa = mesa.map(m => m.ficha);
             let esMismaFicha = (f1, f2) => (f1[0] === f2[0] && f1[1] === f2[1]) || (f1[0] === f2[1] && f1[1] === f2[0]);
 
-            let manoAliada = window.manoAliadaRemota || [];
+            let manoAliada3 = window.esMesa2Amigo ? (window.manoAliadaRemota || []) : [];
+            let manoAliada2 = window.esMesa2Amigo ? (window.manoMesa2Remota || []) : [];
+
             let fichasOcultas = todasFichas.filter(f => 
                 !fichasEnMesa.some(fm => esMismaFicha(fm, f)) && 
-                !miMano.some(mm => esMismaFicha(mm, f)) &&
-                !manoAliada.some(ma => esMismaFicha(ma, f))
+                !manoActualIA.some(mm => esMismaFicha(mm, f)) &&
+                !manoAliada3.some(ma => esMismaFicha(ma, f)) &&
+                !manoAliada2.some(ma2 => esMismaFicha(ma2, f))
             );
 
             let fallosJugadores = { mesa2: [], amigo3: [], mesa4: [] };
 
-            pasos.forEach(p => {
+                       pasos.forEach(p => {
                 if (fallosJugadores[p.jugador] && p.puntas) {
                     p.puntas.forEach(pinta => {
                         if (!fallosJugadores[p.jugador].includes(pinta)) fallosJugadores[p.jugador].push(pinta);
@@ -1233,40 +1573,48 @@ window.jugarLado = async (lado) => {
             }
             // --- FIN MOTOR 7 ---
 
-            let rivalesSospechaGordas = { mesa2: false, mesa4: false };
+                        let rivalesSospechaGordas = { mesa2: false, mesa4: false };
             let detallesCaceria = [];
 
-            mesa.forEach(m => {
-                if ((m.jugador === 'mesa2' || m.jugador === 'mesa4') && m.lado !== -1) {
-                    let sumaFicha = m.ficha[0] + m.ficha[1];
-                    let habiaPintaAlta = puntas.includes(5) || puntas.includes(6);
-                    if (sumaFicha <= 4 && habiaPintaAlta) {
-                        rivalesSospechaGordas[m.jugador] = true;
+            if (window.tipoMeta !== '1vs3') {
+                mesa.forEach(m => {
+                    if ((m.jugador === 'mesa2' || m.jugador === 'mesa4') && m.lado !== -1) {
+                        let sumaFicha = m.ficha[0] + m.ficha[1];
+                        let habiaPintaAlta = puntas.includes(5) || puntas.includes(6);
+                        if (sumaFicha <= 4 && habiaPintaAlta) {
+                            rivalesSospechaGordas[m.jugador] = true;
+                        }
                     }
-                }
-            });
+                });
 
-            pasos.forEach(p => {
-                if ((p.jugador === 'mesa2' || p.jugador === 'mesa4') && p.puntas) {
-                    if (p.puntas.includes(5) || p.puntas.includes(6)) {
-                        rivalesSospechaGordas[p.jugador] = true;
+                pasos.forEach(p => {
+                    if ((p.jugador === 'mesa2' || p.jugador === 'mesa4') && p.puntas) {
+                        if (p.puntas.includes(5) || p.puntas.includes(6)) {
+                            rivalesSospechaGordas[p.jugador] = true;
+                        }
                     }
-                }
-            });
+                });
 
-            if (rivalesSospechaGordas.mesa2) detallesCaceria.push("  <b>Mesa 2 (Rival):</b> Detección de evasión en pintas altas. Probable retención de fichas pesadas.");
-            if (rivalesSospechaGordas.mesa4) detallesCaceria.push("  <b>Mesa 4 (Rival):</b> Detección de evasión en pintas altas. Probable retención de fichas pesadas.");
+                if (rivalesSospechaGordas.mesa2) detallesCaceria.push("  <b>Mesa 2 (Rival):</b> Detección de evasión en pintas altas. Probable retención de fichas pesadas.");
+                if (rivalesSospechaGordas.mesa4) detallesCaceria.push("  <b>Mesa 4 (Rival):</b> Detección de evasión en pintas altas. Probable retención de fichas pesadas.");
+            } else {
+                // Modo 1vs3: Cacería de gordas y descarte aleatorio de altas anulados por completo. Prioridad absoluta al bloqueo y control de flujo.
+                rivalesSospechaGordas = { mesa2: false, mesa4: false };
+            }
 
             let conteoJugadoresMesa = { yo: 0, mesa2: 0, amigo3: 0, mesa4: 0 };
             mesa.forEach(m => conteoJugadoresMesa[m.jugador]++);
 
             let objetivoManos = {
-                mesa2: 7 - conteoJugadoresMesa['mesa2'],
+                mesa2: window.esMesa2Amigo ? 0 : (7 - conteoJugadoresMesa['mesa2']),
                 amigo3: 7 - conteoJugadoresMesa['amigo3'],
                 mesa4: 7 - conteoJugadoresMesa['mesa4']
             };
-            if(window.esAmigo3Vinculado || manoAliada.length > 0) {
-                objetivoManos.amigo3 = 0; // IA vinculada ya sabe la mano del aliado, no adivina
+            if(window.esAmigo3Vinculado || manoAliada3.length > 0) {
+                objetivoManos.amigo3 = 0;
+            }
+            if(window.esMesa2Amigo) {
+                objetivoManos.mesa2 = 0; // Madre ya conoce la mano de Amigo 2 (Mesa 2)
             }
 
             let totalFichasOcultas = fichasOcultas.length;
@@ -1321,19 +1669,19 @@ window.jugarLado = async (lado) => {
                         ['mesa2', 'amigo3', 'mesa4'].forEach(jug => {
                             let prob = objetivoManos[jug] > 0 ? probInicial : 0;
                             
-                            // --- CONEXIÓN [MOTOR 3] PERFILADO PSICOLÓGICO ---
-                            if (perfilesPsicologicos[jug]) {
-                                if (perfilesPsicologicos[jug] === 'agresivo' && pesoFicha >= 7) prob *= 0.8; // Menos prob de tener gordas si no las soltó
-                                else if (perfilesPsicologicos[jug] === 'conservador' && pesoFicha >= 7) prob *= 1.3; // Guarda las gordas
-                            }
-                            
-                            // --- CONEXIÓN [MOTOR 4] ANÁLISIS DE TIEMPO ---
-                            if (motorTiempoActivo && tiemposJugadores[jug] && tiemposJugadores[jug].length > 0) {
-                                let ultMs = tiemposJugadores[jug][tiemposJugadores[jug].length - 1];
-                                // Si pensó mucho (>5s), se asume duda, menos probabilidad de dobles o pintas fuertes
-                                if (ultMs > 5000 && f[0] === f[1]) prob *= 0.6;
-                                // Si jugó muy rápido (<1.5s), probabilidad alta de que siga su palo fuerte
-                                if (ultMs < 1500 && puntasMesa.some(p => p === f[0] || p === f[1])) prob *= 1.25;
+                            if (data.tipoMeta !== '1vs3') {
+                                // --- CONEXIÓN [MOTOR 3] PERFILADO PSICOLÓGICO ---
+                                if (perfilesPsicologicos[jug]) {
+                                    if (perfilesPsicologicos[jug] === 'agresivo' && pesoFicha >= 7) prob *= 0.8;
+                                    else if (perfilesPsicologicos[jug] === 'conservador' && pesoFicha >= 7) prob *= 1.3;
+                                }
+                                
+                                // --- CONEXIÓN [MOTOR 4] ANÁLISIS DE TIEMPO ---
+                                if (motorTiempoActivo && tiemposJugadores[jug] && tiemposJugadores[jug].length > 0) {
+                                    let ultMs = tiemposJugadores[jug][tiemposJugadores[jug].length - 1];
+                                    if (ultMs > 5000 && f[0] === f[1]) prob *= 0.6;
+                                    if (ultMs < 1500 && puntasMesa.some(p => p === f[0] || p === f[1])) prob *= 1.25;
+                                }
                             }
                             
                             motorBayesiano[jug][k] = prob;
@@ -1348,30 +1696,32 @@ window.jugarLado = async (lado) => {
                             motorBayesiano.mesa2[k] /= sum; motorBayesiano.amigo3[k] /= sum; motorBayesiano.mesa4[k] /= sum;
                         }
                     });
-
                     Object.keys(fallosJugadores).forEach(jug => {
-                        fallosJugadores[jug].forEach(pinta => {
-                            fichasOcultas.forEach(f => {
-                                if (f[0] === pinta || f[1] === pinta) {
-                                    let k = f[0] + '-' + f[1];
-                                    let probActual = motorBayesiano[jug][k];
-                                    let probReducida = probActual * factorEngano;
-                                    let probRedistribuir = probActual - probReducida;
-                                    
-                                    motorBayesiano[jug][k] = probReducida;
-                                    
-                                    let otros = ['mesa2', 'amigo3', 'mesa4'].filter(j => j !== jug && objetivoManos[j] > 0);
-                                    if (otros.length > 0) {
-                                        let sumaOtros = otros.reduce((sum, j) => sum + motorBayesiano[j][k], 0);
-                                        otros.forEach(j => {
-                                            let peso = sumaOtros > 0 ? (motorBayesiano[j][k] / sumaOtros) : (1 / otros.length);
-                                            motorBayesiano[j][k] += probRedistribuir * peso;
-                                        });
+                        if (fallosJugadores[jug]) {
+                            fallosJugadores[jug].forEach(pinta => {
+                                fichasOcultas.forEach(f => {
+                                    if (f[0] === pinta || f[1] === pinta) {
+                                        let k = f[0] + '-' + f[1];
+                                        let probActual = motorBayesiano[jug][k];
+                                        let probReducida = probActual * factorEngano;
+                                        let probRedistribuir = probActual - probReducida;
+                                        
+                                        motorBayesiano[jug][k] = probReducida;
+                                        
+                                        let otros = ['mesa2', 'amigo3', 'mesa4'].filter(j => j !== jug && objetivoManos[j] > 0);
+                                        if (otros.length > 0) {
+                                            let sumaOtros = otros.reduce((sum, j) => sum + motorBayesiano[j][k], 0);
+                                            otros.forEach(j => {
+                                                let peso = sumaOtros > 0 ? (motorBayesiano[j][k] / sumaOtros) : (1 / otros.length);
+                                                motorBayesiano[j][k] += probRedistribuir * peso;
+                                            });
+                                        }
                                     }
-                                }
+                                });
                             });
-                        });
+                        }
                     });
+
                     // --- FIN MOTOR 1 ---
 
                     function esValida(jug, f) {
@@ -1524,8 +1874,7 @@ window.jugarLado = async (lado) => {
                                         }
                                         manosSimuladas[0].splice(idx, 0, t); 
                                     }
-                                } else if (!esFinalPartida && mctsEscenariosCalculados < (data.valMcts || 500)) {
-                                    // EL MOTOR MCTS ENTRA EN ACCIÓN DURANTE EL MID-GAME (Límite dinámico ajustado por barra)
+                                                    } else if (!esFinalPartida && mctsEscenariosCalculados < (data.valMcts || 500)) {
                                     mctsEscenariosCalculados++;
                                     let left = puntas.length > 0 ? puntas[0] : null;
                                     let right = puntas.length > 0 ? puntas[1] : null;
@@ -1541,27 +1890,29 @@ window.jugarLado = async (lado) => {
                                         let t = jugables[j];
                                         let fichaStr = t[0] + '-' + t[1];
                                         
-                                        if (!simulacionesPorFicha[fichaStr]) {
+                                        if (simulacionesPorFicha[fichaStr] === undefined) {
                                             simulacionesPorFicha[fichaStr] = 0;
-                                            if (!victoriasPorFicha[fichaStr]) victoriasPorFicha[fichaStr] = 0;
+                                        }
+                                        if (victoriasPorFicha[fichaStr] === undefined) {
+                                            victoriasPorFicha[fichaStr] = 0;
                                         }
 
                                         let manosSimuladas = [ mYo.slice(), m2.slice(), mAmigo.slice(), m4.slice() ];
                                         let idx = manosSimuladas[0].findIndex(f => f[0]===t[0] && f[1]===t[1]);
-                                        manosSimuladas[0].splice(idx, 1);
+                                        if(idx !== -1) manosSimuladas[0].splice(idx, 1);
                                         
                                         let nextLeft = left; let nextRight = right;
                                         if (left === null) { nextLeft = t[0]; nextRight = t[1]; }
                                         else if (t[0] === left || t[1] === left) { nextLeft = (t[0] === left) ? t[1] : t[0]; }
                                         else { nextRight = (t[0] === right) ? t[1] : t[0]; }
                                         
-                                        // Lanzamos el Playout hacia el futuro
                                         let won = playoutMCTS(manosSimuladas, nextLeft, nextRight, 1, 0);
-                                        simulacionesPorFicha[fichaStr]++;
-                                        if (won) victoriasPorFicha[fichaStr]++;
+                                        simulacionesPorFicha[fichaStr] = (simulacionesPorFicha[fichaStr] || 0) + 1;
+                                        if (won) victoriasPorFicha[fichaStr] = (victoriasPorFicha[fichaStr] || 0) + 1;
                                     }
                                 }
-                            }
+
+        }
                             return;
                         }
                         
@@ -1570,11 +1921,78 @@ window.jugarLado = async (lado) => {
                         if (a3.length < objetivoManos.amigo3 && esValida('amigo3', f)) { a3.push(f); simularEscenarios(index + 1, m2, a3, m4); a3.pop(); }
                         if (m4.length < objetivoManos.mesa4 && esValida('mesa4', f)) { m4.push(f); simularEscenarios(index + 1, m2, a3, m4); m4.pop(); }
                     }
+                    if (objetivoManos.mesa2 === 0 && objetivoManos.amigo3 === 0) {
+                        let m4 = fichasOcultas.slice();
+                        let m2 = [];
+                        let a3 = [];
+                        distribucionesValidas = 1;
+                        for(let i=0; i<m4.length; i++) mapaProbabilidadesFichas.mesa4[m4[i][0] + '-' + m4[i][1]] = 1;
 
-                    simularEscenarios(0, [], [], []);
+                        if (esFinalPartida) {
+                            dfsEscenariosCalculados++;
+                            let left = puntas.length > 0 ? puntas[0] : null;
+                            let right = puntas.length > 0 ? puntas[1] : null;
+                            let mYo = soyAmigo3 ? (manoAliada.length > 0 ? manoAliada.slice() : []) : miMano.slice();
+                            let mAmigo = soyAmigo3 ? miMano.slice() : (manoAliada.length > 0 ? manoAliada.slice() : []);
+                            let manosSimuladas = [ mYo, m2, mAmigo, m4 ];
+                            let jugables = [];
+                            if(left===null) { jugables = manosSimuladas[0].slice(); } 
+                            else { jugables = manosSimuladas[0].filter(f => f[0]===left || f[1]===left || f[0]===right || f[1]===right); }
+
+                            for(let j = 0; j < jugables.length; j++) {
+                                let t = jugables[j];
+                                let fichaStr = t[0] + '-' + t[1];
+                                let idx = manosSimuladas[0].findIndex(f => f[0]===t[0] && f[1]===t[1]);
+                                manosSimuladas[0].splice(idx, 1);
+                                if (left === null) {
+                                    solveDFS(manosSimuladas, t[0], t[1], 1, 0, fichaStr);
+                                } else {
+                                    if (t[0] === left || t[1] === left) {
+                                        let newLeft = (t[0] === left) ? t[1] : t[0];
+                                        solveDFS(manosSimuladas, newLeft, right, 1, 0, fichaStr);
+                                    }
+                                    if (left !== right && (t[0] === right || t[1] === right)) {
+                                        let newRight = (t[0] === right) ? t[1] : t[0];
+                                        solveDFS(manosSimuladas, left, newRight, 1, 0, fichaStr);
+                                    }
+                                }
+                                manosSimuladas[0].splice(idx, 0, t); 
+                            }
+                                    } else {
+                            let left = puntas.length > 0 ? puntas[0] : null;
+                            let right = puntas.length > 0 ? puntas[1] : null;
+                            let mYo = soyAmigo3 ? (manoAliada.length > 0 ? manoAliada.slice() : []) : miMano.slice();
+                            let mAmigo = soyAmigo3 ? miMano.slice() : (manoAliada.length > 0 ? manoAliada.slice() : []);
+                            let jugables = [];
+                            if(left === null) { jugables = mYo.slice(); } 
+                            else { jugables = mYo.filter(f => f[0]===left || f[1]===left || f[0]===right || f[1]===right); }
+
+                            for(let j = 0; j < jugables.length; j++) {
+                                let t = jugables[j];
+                                let fichaStr = t[0] + '-' + t[1];
+                                if (simulacionesPorFicha[fichaStr] === undefined) simulacionesPorFicha[fichaStr] = 0;
+                                if (victoriasPorFicha[fichaStr] === undefined) victoriasPorFicha[fichaStr] = 0;
+
+                                let manosSimuladas = [ mYo.slice(), m2.slice(), mAmigo.slice(), m4.slice() ];
+                                let idx = manosSimuladas[0].findIndex(f => f[0]===t[0] && f[1]===t[1]);
+                                if(idx !== -1) manosSimuladas[0].splice(idx, 1);
+                                let nextLeft = left; let nextRight = right;
+                                if (left === null) { nextLeft = t[0]; nextRight = t[1]; }
+                                else if (t[0] === left || t[1] === left) { nextLeft = (t[0] === left) ? t[1] : t[0]; }
+                                else { nextRight = (t[0] === right) ? t[1] : t[0]; }
+                                let won = playoutMCTS(manosSimuladas, nextLeft, nextRight, 1, 0);
+                                simulacionesPorFicha[fichaStr] = (simulacionesPorFicha[fichaStr] || 0) + 1;
+                                if (won) victoriasPorFicha[fichaStr] = (victoriasPorFicha[fichaStr] || 0) + 1;
+                            }
+                        }
+
+        } else {
+                        simularEscenarios(0, [], [], []);
+                    }
 
                     let certezasMap = [];
-                    // Frenado de falsas certezas: Solo se activa la certeza absoluta en Endgame y con alta muestra válida
+
+                        // Frenado de falsas certezas: Solo se activa la certeza absoluta en Endgame y con alta muestra válida
                     if (esFinalPartida && distribucionesValidas >= 5000) {
                         ['mesa2', 'amigo3', 'mesa4'].forEach(jug => {
                             let nomJ = jug === 'mesa2' ? 'Mesa 2 (Rival)' : jug === 'amigo3' ? 'Amigo 3 (Compañero)' : 'Mesa 4 (Rival)';
@@ -1624,17 +2042,18 @@ window.jugarLado = async (lado) => {
 
             for (let w = 0; w < numWorkers; w++) {
                 let worker = new Worker(URL.createObjectURL(workerBlob));
-
                 worker.postMessage({
                     fichasOcultas: fichasOcultas,
                     objetivoManos: objetivoManos,
                     fallosJugadores: fallosJugadores,
                     esFinalPartida: esFinalPartida,
-                    miMano: miMano,
+                    miMano: manoActualIA,
                     puntasMesa: puntas,
-                    manoAliada: manoAliada,
-                    soyAmigo3: window.esAmigo3Vinculado,
-                    motorTiempoActivo: window.motorTiempoActivo,
+                    manoAliada: manoAliada3,
+                    soyAmigo3: (pantallaActual === 3 || window.esAmigo3Vinculado),
+                    tipoMeta: window.tipoMeta,
+
+                          motorTiempoActivo: window.motorTiempoActivo,
                     tiemposJugadores: window.tiemposJugadores,
                     perfilesPsicologicos: window.perfilesPsicologicos,
                     valBayes: customBayes,
@@ -1683,19 +2102,29 @@ window.jugarLado = async (lado) => {
                     }
                 };
             }
-
-            function renderizarResultadosIA(resData) {
+                        function renderizarResultadosIA(resData) {
                 let distribucionesValidas = resData.distribucionesValidas;
                 let mapaProbabilidadesFichas = resData.mapaProbabilidadesFichas;
                 let certezasMap = resData.certezasMap;
                 let esEndgameActive = resData.esFinalPartida;
 
-                let cantNosotros = (7 - conteoJugadoresMesa['yo']) + (7 - conteoJugadoresMesa['amigo3']);
-                let cantRivales = (7 - conteoJugadoresMesa['mesa2']) + (7 - conteoJugadoresMesa['mesa4']);
-                let scoreBase = 50 + (puntaje.nosotros - puntaje.rivales) * 0.4;
+                // --- RECONOCIMIENTO DINÁMICO DE LÍDER (1vs3 / 2vs2) ---
+                let fichasAliadasYo = miMano.length;
+                let fichasAliadasAmigo3 = window.manoAliadaRemota && window.manoAliadaRemota.length ? window.manoAliadaRemota.length : (miManoAmigo3 ? miManoAmigo3.length : 7);
+                let fichasAliadasMesa2 = window.esMesa2Amigo ? (window.manoMesa2Remota && window.manoMesa2Remota.length ? window.manoMesa2Remota.length : miManoMesa2.length) : 99;
+
+                let mapConteoAliados = { 'Maestro (Tú)': fichasAliadasYo, 'Amigo 3': fichasAliadasAmigo3 };
+                if (window.esMesa2Amigo) mapConteoAliados['Amigo 2 (Mesa 2)'] = fichasAliadasMesa2;
+
+                let liderSupremoKey = Object.keys(mapConteoAliados).reduce((a, b) => mapConteoAliados[a] < mapConteoAliados[b] ? a : b);
+
+                let cantNosotros = (7 - conteoJugadoresMesa['yo']) + (7 - conteoJugadoresMesa['amigo3']) + (window.esMesa2Amigo ? (7 - conteoJugadoresMesa['mesa2']) : 0);
+                let cantRivales = window.esMesa2Amigo ? (7 - conteoJugadoresMesa['mesa4']) : ((7 - conteoJugadoresMesa['mesa2']) + (7 - conteoJugadoresMesa['mesa4']));
+
+                                let scoreBase = 50 + (puntaje.nosotros - puntaje.rivales) * 0.4;
                 let ventajaFichas = (cantRivales - cantNosotros) * 5;
                 let probActual = Math.round(scoreBase + ventajaFichas);
-                let activarManoAmiga = (probActual <= 30);
+                let activarManoAmiga = (window.tipoMeta !== '1vs3' && probActual <= 30);
 
                 let bannerManoAmiga = "";
                 if (activarManoAmiga) {
@@ -1770,16 +2199,128 @@ window.jugarLado = async (lado) => {
                         let puntaViejaPunta = (lado === 0) ? puntas[0] : puntas[1];
                         let nuevaPunta = (f[0] === puntaViejaPunta) ? f[1] : f[0];
                         let nuevasPuntas = (lado === 0) ? [nuevaPunta, puntas[1]] : [puntas[0], nuevaPunta];
-
-                        let ptsBase = (f[0] + f[1]) * 4;
-                        if (f[0] === f[1]) ptsBase += 25;
-
+                        let miManoRestante = miMano.filter(mf => !esMismaFicha(mf, f));
                         let cuantasDeNuevaPunta = conteoPintas[nuevaPunta];
                         let miConteoDeNuevaPunta = miMano.filter(miFicha => miFicha.includes(nuevaPunta)).length;
                         let totalPintaMesaYMano = cuantasDeNuevaPunta + miConteoDeNuevaPunta;
 
-                        let miManoRestante = miMano.filter(mf => !esMismaFicha(mf, f));
-                        let misPuntosRestantes = miManoRestante.reduce((acc, curr) => acc + curr[0] + curr[1], 0);
+                                                let ptsBase = (f[0] + f[1]) * 4;
+                        if (f[0] === f[1]) ptsBase += 25;
+
+                        let dictamenMadre = "";
+                        let ptsArbol = 0;
+                        let arbolDetalles = [];
+
+                                 // --- MOTOR 9: VACIADO RÁPIDO COOPERATIVO Y BLOQUEO HOSTIL (1VS3 ABSOLUTO) ---
+                    let bonoVaciadoRapido = 0;
+                    if (window.vaciadoRapidoActivo || window.tipoMeta === '1vs3') {
+                        let conteoFichasAliados = {
+                            'yo': miMano.length,
+                            'amigo3': (window.manoAliadaRemota ? window.manoAliadaRemota.length : (miManoAmigo3 ? miManoAmigo3.length : 7)),
+                            'mesa2': window.esMesa2Amigo ? miManoMesa2.length : 99
+                        };
+                        let liderActual = Object.keys(conteoFichasAliados).reduce((a, b) => conteoFichasAliados[a] < conteoFichasAliados[b] ? a : b);
+                        
+                        // Si estamos en 1vs3 y el motor está activo, forzamos un peso masivo al control de puntas del rival (Mesa 4)
+                        let fichasRivalMesa4 = window.manoMesa4Remota || [];
+                        let rivalTienePintaNueva = fichasRivalMesa4.some(fr => fr.includes(nuevaPunta));
+                        let rivalTienePintaMantenida = fichasRivalMesa4.some(fr => fr.includes(puntaMantenida));
+
+                        if (window.tipoMeta === '1vs3') {
+                            // Castigar severamente si abrimos una pinta donde el rival solitario (Mesa 4) tiene fichas para jugar cómodo
+                            if (rivalTienePintaNueva) {
+                                bonoVaciadoRapido -= 6000;
+                                arbolDetalles.push(`<span style='color:#ff5252;'><b>Motor 9 (Bloqueo Hostil):</b> Peligro. La punta [${nuevaPunta}] da juego directo al rival Mesa 4. Penalizada.</span>`);
+                            } else {
+                                // Premiar herméticamente si dejamos una pinta cerrada o a la que el rival le huye (falla)
+                                bonoVaciadoRapido += 5000;
+                                arbolDetalles.push(`<span style='color:#00e676;'><b>Motor 9 (Bloqueo Hostil):</b> Excelente. La punta [${nuevaPunta}] ahoga o restringe al rival Mesa 4.</span>`);
+                            }
+                        }
+
+                        if (nuevaPunta === liderActual || puntaMantenida === liderActual) {
+                            bonoVaciadoRapido += 3000;
+                            arbolDetalles.push(`<span style='color:#ff4081;'><b>Motor 9 (Vaciado Rápido):</b> Sincronización activa. Prioriza ruta y cabezas del Líder (${liderActual.toUpperCase()}).</span>`);
+                        }
+
+                        // Verificación de fichas que el líder puede vaciar directamente con las nuevas puntas
+                        let manoLiderReferencia = liderActual === 'yo' ? miMano : (liderActual === 'amigo3' ? (window.manoAliadaRemota.length ? window.manoAliadaRemota : miManoAmigo3) : miManoMesa2);
+                        let liderPuedeVaciarAlgo = manoLiderReferencia.some(mf => mf.includes(nuevasPuntas[0]) || mf.includes(nuevasPuntas[1]));
+                        if (liderPuedeVaciarAlgo) {
+                            bonoVaciadoRapido += 6000;
+                            arbolDetalles.push(`<span style='color:#ff4081;'><b>Motor 9 (Flujo de Líder):</b> Las puntas [${nuevasPuntas[0]}-${nuevasPuntas[1]}] permiten al Líder vaciar su ficha de forma inmediata.</span>`);
+                        }
+
+                        // Regla Anti-Tranca estricta en 1vs3: los 3 aliados NUNCA deben trancar a menos que tengan menos puntos seguros que el rival
+                        let puntosMisFichas = miManoRestante.reduce((acc, curr) => acc + curr[0] + curr[1], 0) + (f[0] + f[1]);
+                        let puntosRivalMesa4 = fichasRivalMesa4.reduce((acc, curr) => acc + curr[0] + curr[1], 0);
+
+                        if (totalPintaMesaYMano === 7 && puntosRivalMesa4 < puntosMisFichas) {
+                            bonoVaciadoRapido -= 15000;
+                            arbolDetalles.push(`<span style='color:#ff4081;'><b>Motor 9 (Anti-Tranca 1vs3):</b> Tranca vetada. El rival Mesa 4 tiene menos puntos acumulados (${puntosRivalMesa4} vs ${puntosMisFichas}).</span>`);
+                        }
+                    }
+                    ptsBase += bonoVaciadoRapido;
+
+                    // --- MOTOR 10: CACERÍA FORZADA Y CONTROL DE CABEZAS DE MESA 4 ---
+                    let bonoCaceriaForzada = 0;
+                    if (window.caceriaForzadaActiva || window.tipoMeta === '1vs3') {
+                        let fichasRivalMesa4 = window.manoMesa4Remota || [];
+                        let jugablesMesa4Punta0 = fichasRivalMesa4.filter(fr => fr.includes(nuevasPuntas[0])).length;
+                        let jugablesMesa4Punta1 = fichasRivalMesa4.filter(fr => fr.includes(nuevasPuntas[1])).length;
+                        let totalOpcionesMesa4 = jugablesMesa4Punta0 + jugablesMesa4Punta1;
+
+                        if (totalOpcionesMesa4 === 0) {
+                            bonoCaceriaForzada += 7000;
+                            arbolDetalles.push(`<span style='color:#00bcd4;'><b>Motor 10 (Cacería Forzada):</b> ¡Perfecto! Las puntas [${nuevasPuntas[0]}-${nuevasPuntas[1]}] obligan a Mesa 4 a PASAR (0 opciones).</span>`);
+                        } else if (totalOpcionesMesa4 === 1) {
+                            bonoCaceriaForzada += 4500;
+                            arbolDetalles.push(`<span style='color:#00bcd4;'><b>Motor 10 (Cacería Forzada):</b> Opción única. Forzamos a Mesa 4 a botar su única ficha disponible.</span>`);
+                        } else if (totalOpcionesMesa4 >= 3) {
+                            bonoCaceriaForzada -= 2000;
+                            arbolDetalles.push(`<span style='color:#ff5252;'><b>Motor 10 (Cacería Forzada):</b> Cuidado. Las puntas dan demasiada libertad (${totalOpcionesMesa4} opciones) a Mesa 4.</span>`);
+                        }
+                    }
+                    ptsBase += bonoCaceriaForzada;
+
+                    // --- MOTOR 11: CACERÍA DUAL (MESA 2 Y MESA 4) ---
+                    let bonoCaceriaDual = 0;
+                    if (window.caceriaDualActiva) {
+                        let fichasRivalMesa2 = window.manoMesa2Remota || [];
+                        let fichasRivalMesa4 = window.manoMesa4Remota || [];
+                        
+                        let opcM2_0 = fichasRivalMesa2.filter(fr => fr.includes(nuevasPuntas[0])).length;
+                        let opcM2_1 = fichasRivalMesa2.filter(fr => fr.includes(nuevasPuntas[1])).length;
+                        let totalOpcionesM2 = opcM2_0 + opcM2_1;
+
+                        let opcM4_0 = fichasRivalMesa4.filter(fr => fr.includes(nuevasPuntas[0])).length;
+                        let opcM4_1 = fichasRivalMesa4.filter(fr => fr.includes(nuevasPuntas[1])).length;
+                        let totalOpcionesM4 = opcM4_0 + opcM4_1;
+
+                        if (totalOpcionesM2 === 0) {
+                            bonoCaceriaDual += 3500;
+                            arbolDetalles.push(`<span style='color:#ff9800;'><b>Motor 11 (Cacería Dual):</b> Mesa 2 se queda sin opciones (Pasa).</span>`);
+                        } else if (totalOpcionesM2 === 1) {
+                            bonoCaceriaDual += 2250;
+                            arbolDetalles.push(`<span style='color:#ff9800;'><b>Motor 11 (Cacería Dual):</b> Opción única forzada a Mesa 2.</span>`);
+                        }
+
+                        if (totalOpcionesM4 === 0) {
+                            bonoCaceriaDual += 3500;
+                            arbolDetalles.push(`<span style='color:#ff9800;'><b>Motor 11 (Cacería Dual):</b> Mesa 4 se queda sin opciones (Pasa).</span>`);
+                        } else if (totalOpcionesM4 === 1) {
+                            bonoCaceriaDual += 2250;
+                            arbolDetalles.push(`<span style='color:#ff9800;'><b>Motor 11 (Cacería Dual):</b> Opción única forzada a Mesa 4.</span>`);
+                        }
+
+                        if (totalOpcionesM2 >= 3 && totalOpcionesM4 >= 3) {
+                            bonoCaceriaDual -= 3000;
+                            arbolDetalles.push(`<span style='color:#ff5252;'><b>Motor 11 (Cacería Dual):</b> Ambas mesas rivales tienen demasiada libertad.</span>`);
+                        }
+                    }
+                    ptsBase += bonoCaceriaDual;
+
+                let misPuntosRestantes = miManoRestante.reduce((acc, curr) => acc + curr[0] + curr[1], 0);
 
                         let tieneConectorNueva = miManoRestante.some(mf => mf.includes(nuevaPunta));
                         let tieneConectorMantenida = miManoRestante.some(mf => mf.includes(puntaMantenida));
@@ -1803,9 +2344,8 @@ window.jugarLado = async (lado) => {
                             sugerenciaActor = `Ataque Estándar con [${f[0]}/${f[1]}] por ${opc.nombreLado}.`;
                         }
 
-                        let dictamenMadre = "";
-                        let ptsArbol = 0;
-                        let arbolDetalles = [];
+                        dictamenMadre = "";
+                        ptsArbol = 0;
 
                         let bonoCaceria = 0;
                         if ((rivalesSospechaGordas.mesa2 || rivalesSospechaGordas.mesa4) && (nuevaPunta === 5 || nuevaPunta === 6 || puntaMantenida === 5 || puntaMantenida === 6)) {
@@ -1880,6 +2420,19 @@ window.jugarLado = async (lado) => {
                             microMensajeXAI += `para mantener control abriendo la punta del ${nuevaPunta}.`;
                         }
 
+                                                let nombreLiderInput = document.getElementById('input-nombre-lider') ? document.getElementById('input-nombre-lider').value : 'Gabriele';
+                        if (window.vaciadoRapidoActivo) {
+                            let conteoFichasAliados = {
+                                'yo': miMano.length,
+                                'amigo3': (window.manoAliadaRemota ? window.manoAliadaRemota.length : (miManoAmigo3 ? miManoAmigo3.length : 7)),
+                                'mesa2': window.esMesa2Amigo ? miManoMesa2.length : 99
+                            };
+                            let liderActualKey = Object.keys(conteoFichasAliados).reduce((a, b) => conteoFichasAliados[a] < conteoFichasAliados[b] ? a : b);
+                            let rolLiderText = liderActualKey === 'yo' ? 'Maestro' : (liderActualKey === 'amigo3' ? 'Amigo 3' : 'Amigo 2');
+                            microMensajeXAI = `${nombreLiderInput} es ${rolLiderText} (Líder) -> Jugada [${f[0]}/${f[1]}] por la ${opc.nombreLado}.`;
+                        }
+
+
                         if (esEndgameActive) {
                             if (miManoRestante.length === 0) {
                                 ptsBase += 20000;
@@ -1895,13 +2448,16 @@ window.jugarLado = async (lado) => {
                             }
                         } else {
                             let fichaStr = f[0] + '-' + f[1];
-                            if (resData.simulacionesPorFicha && resData.simulacionesPorFicha[fichaStr] > 0) {
-                                let mctsVictorias = resData.victoriasPorFicha[fichaStr] || 0;
-                                let mctsSimulaciones = resData.simulacionesPorFicha[fichaStr];
+                            let mctsSimulaciones = (resData.simulacionesPorFicha && resData.simulacionesPorFicha[fichaStr]) ? resData.simulacionesPorFicha[fichaStr] : 0;
+                            let mctsVictorias = (resData.victoriasPorFicha && resData.victoriasPorFicha[fichaStr]) ? resData.victoriasPorFicha[fichaStr] : 0;
+                            
+                            if (mctsSimulaciones > 0) {
                                 let winRate = mctsVictorias / mctsSimulaciones;
                                 let mctsPuntos = (winRate - 0.5) * 800;
                                 ptsArbol += mctsPuntos;
-                                arbolDetalles.push(`<span style='color:#00e676;'><b>IS-MCTS:</b> Tasa de éxito ${Math.round(winRate * 100)}%.</span>`);
+                                arbolDetalles.push(`<span style='color:#00e676;'><b>IS-MCTS:</b> Tasa de éxito ${Math.round(winRate * 100)}% (${mctsVictorias}/${mctsSimulaciones} simulaciones).</span>`);
+                            } else {
+                                arbolDetalles.push(`<span style='color:#64b5f6;'><b>IS-MCTS:</b> Ruta evaluada mediante Inferencia Bayesiana y Red de Filtro.</span>`);
                             }
                         }
 
@@ -1921,34 +2477,8 @@ window.jugarLado = async (lado) => {
                         });
                     });
                 });
+
                 opcionesEvaluadas.sort((a, b) => b.score - a.score);
-                        if (opcionesEvaluadas.length === 0) {
-                    let jugAct = getJugadorID();
-                    let nomJugPaso = jugAct === 'yo' ? 'YO' : jugAct.toUpperCase();
-                    document.getElementById('ia-texto').innerHTML = `
-                        <div style="font-size:22px; font-weight:bold; color:#ff5252; margin-bottom:10px;">🚫 ${nomJugPaso} NO TIENE FICHAS JUGABLES</div>
-                        <div style="font-size:14px; color:#ccc; margin-bottom:15px;">Las puntas son [${puntas[0]} - ${puntas[1]}]. Purgando y pasando en 3s...</div>
-                    `;
-                    document.getElementById('modal-ia').style.display = 'flex';
-                    registrarHistorial(`⚠️ MADRE LIMPIEZA: ${nomJugPaso} sin opciones. Pausa de 3s para purgar proceso anterior.`);
-                    
-                    if (db) {
-                        remove(ref(db, 'partida/bot_respuesta'));
-                        set(ref(db, 'partida/bot_respuesta'), {
-                            ficha: null,
-                            paso: true,
-                            jugador: jugAct,
-                            timestamp: Date.now()
-                        });
-                    }
-                    setTimeout(() => {
-                        if (db) remove(ref(db, 'partida/bot_respuesta'));
-                        registrarPasoMaestro();
-                    }, 3000);
-                    return;
-                }
-
-
                 let mejorMovimiento = opcionesEvaluadas[0];
 
                 let certezasHTML = certezasMap.length > 0 ? `<div style="background:#064e3b; border:1px solid #10b981; padding:10px; border-radius:8px; margin-bottom:12px; font-size:13px; color:#a7f3d0; text-align:left;">${certezasMap.join('<br>')}</div>` : '';
@@ -1970,24 +2500,10 @@ window.jugarLado = async (lado) => {
                         </div>
                     </div>
                 `;
+
                 document.getElementById('ia-texto').innerHTML = textoModal;
                 document.getElementById('modal-ia').style.display = 'flex';
                 registrarHistorial(`IA SUGIRIÓ: [${mejorMovimiento.ficha[0]}/${mejorMovimiento.ficha[1]}] por la ${mejorMovimiento.lado}.`);
-
-                // --- ENVIAR DICTAMEN DE MADRE CON LIMPIEZA Y PAUSA DE 3 SEGUNDOS ---
-                if (db) {
-                    remove(ref(db, 'partida/bot_respuesta'));
-                    set(ref(db, 'partida/bot_respuesta'), {
-                        ficha: mejorMovimiento.ficha,
-                        lado: mejorMovimiento.lado,
-                        timestamp: Date.now()
-                    });
-                }
-                registrarHistorial(`🧠 MADRE CONTEXTO LIMPIO: Turno dictaminado. Purgando procesos anteriores en pausa de 3s...`);
-                setTimeout(() => {
-                    if (db) remove(ref(db, 'partida/bot_respuesta'));
-                }, 3000);
-
                                 let customXai = document.getElementById('slider-xai') ? document.getElementById('slider-xai').value : '100';
                 let textoAuditoriaCompleta = `[JUGADA] Sugerencia: [${mejorMovimiento.ficha[0]}/${mejorMovimiento.ficha[1]}] por ${mejorMovimiento.lado} | Bayes: ${Math.round(customBayes*100)}%, MCTS: ${customMcts}, Match: ${customMatch}, XAI: ${customXai}%, Workers: ${numWorkers}, Max Distribuciones: ${customDistribuciones}`;
                 push(ref(db, 'partida/historial_sugerencias_ia'), textoAuditoriaCompleta);
@@ -2014,7 +2530,7 @@ window.jugarLado = async (lado) => {
 
         // Iniciar IU por defecto
         aplicarUI();
-    </script>
+    </script> 
 
 </body>
 </html>

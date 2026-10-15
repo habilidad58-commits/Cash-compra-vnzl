@@ -133,6 +133,8 @@
             <button class="btn-reset" style="background:#ff9800; margin: 0 5px;" onclick="nuevaVuelta()">Vuelta</button>
             <button class="btn-reset" onclick="restablecerPartida()">Reiniciar</button>
         </div>
+        <button class="btn-accion" style="background:#00bcd4; color:black; width:100%; margin-top:8px; font-size:15px; font-weight:bold; box-shadow: 0 0 10px #00bcd4;" onclick="document.getElementById('modal-auditoria-turno').style.display='flex'">📊 Auditoría Exclusiva de Turnos</button>
+
         
           <!-- INICIO MOTOR 4 CONFIG -->
    
@@ -156,19 +158,31 @@
                 <button class="btn-accion" style="background:#00c853; padding:8px 15px; font-size:14px; margin-left:5px;" onclick="verificarCodigo2vs2()">Conectar</button>
             </div>
 
-               <div style="background: #181818; padding: 15px; border-radius: 8px; border: 2px solid #ff9800; margin-top: 15px; margin-bottom: 15px; text-align: left;">
+                    <div style="background: #181818; padding: 15px; border-radius: 8px; border: 2px solid #ff9800; margin-top: 15px; margin-bottom: 15px; text-align: left;">
                 <div style="color: #ff9800; font-weight: bold; font-size: 14px; margin-bottom: 12px; text-align: center;">🎛️ CONFIGURAR MOTORES (LÍMITES Y PESOS)</div>
                 
-                <div style="font-size: 12px; color: #ccc; margin-bottom: 5px;">Motor 1: Inferencia Bayesiana (Factor de Engaño): <span id="val-bayes" style="color:#00e676;">5%</span></div>
+                <div style="font-size: 12px; color: #ccc; margin-bottom: 5px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>Motor 1: Inferencia Bayesiana (Factor de Engaño): <span id="val-bayes" style="color:#00e676;">5%</span></span>
+                    <button onclick="mostrarAyudaSlider('bayes')" style="background:#ff9800; color:black; border:none; border-radius:50%; width:20px; height:20px; font-weight:bold; cursor:pointer; font-size:11px;">!</button>
+                </div>
                 <input type="range" id="slider-bayes" min="1" max="20" value="5" style="width: 100%; margin-bottom: 12px;" oninput="document.getElementById('val-bayes').innerText = this.value + '%'">
 
-                <div style="font-size: 12px; color: #ccc; margin-bottom: 5px;">Motor 2: IS-MCTS (Mundos Simulados Mid-Game): <span id="val-mcts" style="color:#00e676;">500</span></div>
+                <div style="font-size: 12px; color: #ccc; margin-bottom: 5px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>Motor 2: IS-MCTS (Mundos Simulados): <span id="val-mcts" style="color:#00e676;">500</span></span>
+                    <button onclick="mostrarAyudaSlider('mcts')" style="background:#ff9800; color:black; border:none; border-radius:50%; width:20px; height:20px; font-weight:bold; cursor:pointer; font-size:11px;">!</button>
+                </div>
                 <input type="range" id="slider-mcts" min="100" max="2000" step="100" value="500" style="width: 100%; margin-bottom: 12px;" oninput="document.getElementById('val-mcts').innerText = this.value">
 
-                <div style="font-size: 12px; color: #ccc; margin-bottom: 5px;">Motor 5: Match Control (Sensibilidad de Riesgo): <span id="val-match" style="color:#00e676;">50</span></div>
+                <div style="font-size: 12px; color: #ccc; margin-bottom: 5px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>Motor 5: Match Control (Riesgo): <span id="val-match" style="color:#00e676;">50</span></span>
+                    <button onclick="mostrarAyudaSlider('match')" style="background:#ff9800; color:black; border:none; border-radius:50%; width:20px; height:20px; font-weight:bold; cursor:pointer; font-size:11px;">!</button>
+                </div>
                 <input type="range" id="slider-match" min="10" max="100" value="50" style="width: 100%; margin-bottom: 12px;" oninput="document.getElementById('val-match').innerText = this.value">
 
-                <div style="font-size: 12px; color: #ccc; margin-bottom: 5px;">Motor 8: XAI Copiloto (Nivel de Detalle): <span id="val-xai" style="color:#00e676;">100%</span></div>
+                <div style="font-size: 12px; color: #ccc; margin-bottom: 5px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>Motor 8: XAI Copiloto (Detalle): <span id="val-xai" style="color:#00e676;">100%</span></span>
+                    <button onclick="mostrarAyudaSlider('xai')" style="background:#ff9800; color:black; border:none; border-radius:50%; width:20px; height:20px; font-weight:bold; cursor:pointer; font-size:11px;">!</button>
+                </div>
                 <input type="range" id="slider-xai" min="0" max="100" value="100" style="width: 100%; margin-bottom: 12px;" oninput="document.getElementById('val-xai').innerText = this.value + '%'">
             </div>
 
@@ -220,6 +234,15 @@
                 <div id="estado-servidor-lider" style="font-size: 11px; color: #aaa; margin-top: 5px;">Estado: DESACTIVADO. Estrategia cooperativa estándar.</div>
             </div>
 
+            <div style="background: #1a1a2e; padding: 15px; border-radius: 8px; border: 2px solid #ab47bc; margin-top: 15px; margin-bottom: 15px; text-align: left;">
+                <div style="color: #ab47bc; font-weight: bold; font-size: 14px; margin-bottom: 10px; text-align: center;">👁️ MOTOR 13: VISIÓN PERIFÉRICA E INTENCIÓN INDIRECTA</div>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #ccc; cursor: pointer; margin-bottom: 8px;">
+                    <span>Activar Deducción de Respaldos e Intención Oculta</span>
+                    <input type="checkbox" id="toggle-vision-periferica" style="width: 20px; height: 20px;" onchange="toggleVisionPeriferica()">
+                </label>
+                <div id="estado-vision-periferica" style="font-size: 11px; color: #aaa; margin-top: 5px;">Estado: DESACTIVADO. Inferencia puramente matemática estándar.</div>
+            </div>
+
 
       <!-- FIN MOTOR 4 CONFIG -->
 
@@ -233,16 +256,34 @@
             </div>
         </div>
 
+        <!-- Modal Auditoría Exclusiva de Turnos -->
+        <div id="modal-auditoria-turno" class="modal">
+            <div class="modal-content" style="border-color: #00bcd4;">
+                <h2 style="color: #00bcd4; margin-top: 0; font-size:18px;">📊 Auditoría Exclusiva de Turnos</h2>
+                <button class="btn-accion" style="background:#00c853; width:100%; margin:0; padding:10px;" onclick="copiarAuditoriaTurnos()">📋 Copiar Auditoría Completa</button>
+                <div id="auditoria-turnos-lista" class="historial-lista"></div>
+                <button class="close-btn" onclick="document.getElementById('modal-auditoria-turno').style.display='none'">Cerrar</button>
+            </div>
+        </div>
+
         <div id="caja-config-motores" style="background: #1a1a1a; padding: 12px; border-radius: 8px; margin: 15px 0; border: 1px solid #64b5f6; display:block;">
             <div style="color: #64b5f6; font-weight: bold; font-size: 13px; margin-bottom: 8px;">🎛️ CONTROL Y ESCALADO DE MOTORES (MADRE 2.5)</div>
             
-            <div style="font-size: 11px; color: #ccc; margin-bottom: 4px; display:flex; justify-content:space-between;">
-                <span>Distribuciones Bayes / MCTS (Max):</span><span id="val-distribuciones" style="color:#00e676; font-weight:bold;">150,000</span>
+            <div style="font-size: 11px; color: #ccc; margin-bottom: 4px; display:flex; justify-content:space-between; align-items:center;">
+                <span>Distribuciones Bayes / MCTS (Max):</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="val-distribuciones" style="color:#00e676; font-weight:bold;">150,000</span>
+                    <button onclick="mostrarAyudaSlider('distribuciones')" style="background:#64b5f6; color:black; border:none; border-radius:50%; width:18px; height:18px; font-weight:bold; cursor:pointer; font-size:10px;">!</button>
+                </div>
             </div>
             <input type="range" id="slider-distribuciones" min="10000" max="1000000" step="10000" value="150000" style="width:100%; accent-color:#00e676;" oninput="document.getElementById('val-distribuciones').innerText = Number(this.value).toLocaleString()">
 
-            <div style="font-size: 11px; color: #ccc; margin: 8px 0 4px 0; display:flex; justify-content:space-between;">
-                <span>Hilos Web Workers Activos:</span><span id="val-workers" style="color:#64b5f6; font-weight:bold;">2</span>
+            <div style="font-size: 11px; color: #ccc; margin: 8px 0 4px 0; display:flex; justify-content:space-between; align-items:center;">
+                <span>Hilos Web Workers Activos:</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="val-workers" style="color:#64b5f6; font-weight:bold;">2</span>
+                    <button onclick="mostrarAyudaSlider('workers')" style="background:#64b5f6; color:black; border:none; border-radius:50%; width:18px; height:18px; font-weight:bold; cursor:pointer; font-size:10px;">!</button>
+                </div>
             </div>
             <input type="range" id="slider-workers" min="1" max="4" step="1" value="2" style="width:100%; accent-color:#64b5f6;" oninput="document.getElementById('val-workers').innerText = this.value">
         </div>
@@ -250,9 +291,7 @@
   </div>
 
 
- 
-
-    <!-- Modal IA -->
+     <!-- Modal IA -->
     <div id="modal-ia" class="modal">
         <div class="modal-content">
             <h2 style="color: #00c853; margin-top: 0;">Ã°Å¸Â§Â  JUGADA MAESTRA</h2>
@@ -260,6 +299,17 @@
             <button class="close-btn" onclick="document.getElementById('modal-ia').style.display='none'">Entendido</button>
         </div>
     </div>
+
+    <!-- Modal Ayuda Sliders y Motores -->
+    <div id="modal-slider-help" class="modal">
+        <div class="modal-content" style="border-color: #ff9800; text-align: left;">
+            <h2 id="help-title" style="color: #ff9800; margin-top: 0; font-size: 18px; text-align: center;">ℹ️ Información del Motor / Barra</h2>
+            <div id="help-body" style="font-size: 13px; color: #ddd; line-height: 1.5; max-height: 55vh; overflow-y: auto; padding-right: 5px;"></div>
+            <button class="close-btn" style="background:#ff9800; color:black; font-weight:bold;" onclick="document.getElementById('modal-slider-help').style.display='none'">Cerrar</button>
+        </div>
+    </div>
+
+
         <!-- Modal Registro (Historial) -->
     <div id="modal-historial" class="modal">
    
@@ -283,10 +333,63 @@
        import { getDatabase, ref, set, onValue, push, remove, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
        
         const app = initializeApp({ apiKey: "AIzaSyDFCJfaYGgcgQuRia1qc4hmZkEWmiBuX2k", databaseURL: "https://llevatelo-seguro-default-rtdb.firebaseio.com", projectId: "llevatelo-seguro" });
-
         const db = getDatabase(app);
+
+        // --- SISTEMA DE AYUDA Y EJEMPLOS PARA BARRAS Y MOTORES ---
+        window.mostrarAyudaSlider = (tipo) => {
+            const info = {
+                bayes: {
+                    title: "Motor 1: Inferencia Bayesiana (Factor de Engaño)",
+                    what: "Calcula matemáticamente la probabilidad de que los rivales posean fichas ocultas basándose en sus jugadas y pases.",
+                    how: "Cuando un rival pasa en una pinta (ej. el 5), el factor de engaño (ej. 5%) reduce bruscamente la probabilidad de que tenga fichas con 5, redistribuyendo esa probabilidad entre los demás.",
+                    example: "Si configuras 5%, la IA es estricta y descarta al rival si pasa. Si lo subes a 20%, la IA es más tolerante ante posibles faroles (engaños) del rival."
+                },
+                mcts: {
+                    title: "Motor 2: IS-MCTS (Mundos Simulados Mid-Game)",
+                    what: "Algoritmo de Monte Carlo que simula cientos o miles de partidas futuras completas (playouts) para evaluar la mejor jugada.",
+                    how: "Prueba múltiples combinaciones de manos ocultas y simula jugadas aleatorias hasta el final para medir la tasa de victoria (win rate) de cada ficha tuya.",
+                    example: "Con 500 simulaciones, la IA evalúa 500 futuros posibles para tu jugada en milisegundos y elige la que estadísticamente te da más opciones de ganar."
+                },
+                match: {
+                    title: "Motor 5: Match Control (Sensibilidad de Riesgo)",
+                    what: "Modula la agresividad o conservadurismo del asistente según el puntaje global de la partida.",
+                    how: "Si vas perdiendo por muchos puntos, eleva el riesgo a modo 'Kamikaze' buscando trancas y jugadas agresivas. Si vas ganando, prioriza descarte seguro.",
+                    example: "Con un valor de 50, se mantiene equilibrado. Con valor 100, la IA es implacable y busca trancar o cerrar de inmediato cuando el equipo lo necesita."
+                },
+                xai: {
+                    title: "Motor 8: XAI Copiloto (Nivel de Detalle)",
+                    what: "Controla el nivel de explicación y auditoría que muestra el asistente al justificar una jugada.",
+                    how: "Ajusta la profundidad de los textos generados por el modelo actor-crítico y el árbol de decisiones tácticas.",
+                    example: "Al 100%, te muestra exactamente por qué te recomienda una ficha (ej: 'para taparle el 3 a Mesa 2 y proteger al compañero')."
+                },
+                distribuciones: {
+                    title: "Distribuciones Bayes / MCTS (Max Permutaciones)",
+                    what: "El número máximo de combinaciones posibles de manos ocultas que evalúa el Web Worker.",
+                    how: "Permite explorar permutaciones exactas (DFS) para encontrar certezas absolutas y patrones ocultos en el cierre de la partida.",
+                    example: "Con 150,000 distribuciones, el procesador evalúa miles de escenarios en paralelo para deducir con 100% de seguridad qué ficha tiene el rival."
+                },
+                workers: {
+                    title: "Hilos Web Workers Activos",
+                    what: "La cantidad de hilos de procesamiento en paralelo que utiliza la IA en los núcleos de tu dispositivo.",
+                    how: "Divide la carga de cálculo de las simulaciones y distribuciones entre los núcleos del procesador de tu móvil sin congelar la pantalla.",
+                    example: "Se seleccionas 4 hilos, la IA calcula cuatro veces más rápido al repartir el trabajo matemático entre todo el procesador."
+                }
+            };
+
+            let item = info[tipo] || { title: "Ayuda", what: "", how: "", example: "" };
+            let htmlContent = `
+                <div style="margin-bottom: 10px;"><b style="color:#00e676;">¿Qué es?</b><br>${item.what}</div>
+                <div style="margin-bottom: 10px;"><b style="color:#64b5f6;">¿Cómo funciona?</b><br>${item.how}</div>
+                <div style="margin-bottom: 10px;"><b style="color:#ffeb3b;">Ejemplo práctico:</b><br>${item.example}</div>
+            `;
+            document.getElementById('help-title').innerText = item.title;
+            document.getElementById('help-body').innerHTML = htmlContent;
+            document.getElementById('modal-slider-help').style.display = 'flex';
+        };
+
         // Variables Globales
           let puntas = []; let mesa = []; let pasos = []; let historialLocal = [];
+
         let miMano = JSON.parse(localStorage.getItem('miManoGuardada')) || []; let seleccion = [];
         let manoCompletada = localStorage.getItem('manoCompletada') === 'true';
 
@@ -366,6 +469,18 @@ window.manoMesa4Remota = [];
             registrarHistorial(`🤝 Motor 12 (Servidor del Líder 2vs2) ${window.servidorLiderActivo ? 'ACTIVADO' : 'DESACTIVADO'}.`);
         };
 
+        window.visionPerifericaActiva = false;
+        window.toggleVisionPeriferica = () => {
+            window.visionPerifericaActiva = document.getElementById('toggle-vision-periferica').checked;
+            let estadoEl = document.getElementById('estado-vision-periferica');
+            if(estadoEl) {
+                estadoEl.innerText = window.visionPerifericaActiva ? 
+                    "Estado: ¡ACTIVO! Simulando intención indirecta y respaldos de rivales." : 
+                    "Estado: DESACTIVADO.";
+            }
+            registrarHistorial(`👁️ Motor 13 (Visión Periférica) ${window.visionPerifericaActiva ? 'ACTIVADO' : 'DESACTIVADO'}.`);
+        };
+
         window.toggleMesa2Amigo = () => {
             window.esMesa2Amigo = document.getElementById('toggle-mesa2-amigo').checked;
             localStorage.setItem('esMesa2Amigo', window.esMesa2Amigo);
@@ -442,7 +557,7 @@ onValue(ref(db, 'partida/mano_mesa4'), (s) => { window.manoMesa4Remota = s.val()
             document.getElementById('historial-lista').innerHTML = htmlHistorial;
         });
 
-        let historialSugerenciasLocal = [];
+                let historialSugerenciasLocal = [];
         onValue(ref(db, 'partida/historial_sugerencias_ia'), (s) => {
             historialSugerenciasLocal = [];
             let htmlSugerencias = "";
@@ -456,6 +571,32 @@ onValue(ref(db, 'partida/mano_mesa4'), (s) => { window.manoMesa4Remota = s.val()
             let elList = document.getElementById('sugerencias-ia-lista');
             if(elList) elList.innerHTML = htmlSugerencias;
         });
+
+        window.copiarSugerenciasIA = () => {
+            let textoCopia = historialSugerenciasLocal.join('\n');
+            navigator.clipboard.writeText(textoCopia).then(() => alert("Registro de sugerencias IA copiado al portapapeles."));
+        };
+
+        let historialAuditoriaTurnosLocal = [];
+        onValue(ref(db, 'partida/historial_auditoria_turnos'), (s) => {
+            historialAuditoriaTurnosLocal = [];
+            let htmlAuditoria = "";
+            let data = s.val();
+            if (data) {
+                Object.values(data).forEach(item => {
+                    historialAuditoriaTurnosLocal.push(item);
+                    htmlAuditoria = `<div class="historial-item" style="border-bottom:1px solid #00bcd4; padding-bottom:8px; margin-bottom:8px; white-space: pre-wrap;">${item}</div>` + htmlAuditoria;
+                });
+            }
+            let elList = document.getElementById('auditoria-turnos-lista');
+            if(elList) elList.innerHTML = htmlAuditoria;
+        });
+
+        window.copiarAuditoriaTurnos = () => {
+            let textoCopia = historialAuditoriaTurnosLocal.join('\n\n-------------------\n\n');
+            navigator.clipboard.writeText(textoCopia).then(() => alert("Auditoría exclusiva copiada al portapapeles con éxito."));
+        };
+
 
         window.copiarSugerenciasIA = () => {
             let textoCopia = historialSugerenciasLocal.join('\n');
@@ -649,92 +790,20 @@ onValue(ref(db, 'partida/mano_mesa4'), (s) => { window.manoMesa4Remota = s.val()
         });
 
 
-        window.procesarFinDeVueltaAutomatico = async () => {
-            let manoY = miMano || [];
-            let manoA3 = window.manoAliadaRemota && window.manoAliadaRemota.length ? window.manoAliadaRemota : (miManoAmigo3 || []);
-            let manoM2 = window.manoMesa2Remota && window.manoMesa2Remota.length ? window.manoMesa2Remota : (miManoMesa2 || []);
-            let manoM4 = window.manoMesa4Remota && window.manoMesa4Remota.length ? window.manoMesa4Remota : (miManoMesa4 || []);
+        
+        onValue(ref(db, 'partida/estado'), (s) => { 
+    estadoPartida = s.val() || 'jugando'; 
+    if(estadoPartida === 'contando') {
+        modoAutomatico = false; 
+        aplicarUI();
 
-            let ptsY = manoY.reduce((a, f) => a + f[0] + f[1], 0);
-            let ptsA3 = manoA3.reduce((a, f) => a + f[0] + f[1], 0);
-            let ptsM2 = manoM2.reduce((a, f) => a + f[0] + f[1], 0);
-            let ptsM4 = manoM4.reduce((a, f) => a + f[0] + f[1], 0);
-
-            let es1vs3 = (window.tipoMeta === '1vs3');
-            let esM2Amigo = window.esMesa2Amigo;
-
-            let ptsNosotros = ptsY + ptsA3 + (es1vs3 || esM2Amigo ? ptsM2 : 0);
-            let ptsRivales = es1vs3 ? ptsM4 : (esM2Amigo ? ptsM4 : (ptsM2 + ptsM4));
-
-            let ganadorNosotros = false;
-            let motivoFin = "";
-
-            if (manoY.length === 0 || manoA3.length === 0 || ((es1vs3 || esM2Amigo) && manoM2.length === 0)) {
-                ganadorNosotros = true;
-                motivoFin = "¡Nosotros nos vaciamos primero!";
-            } else if (manoM4.length === 0 || (!es1vs3 && !esM2Amigo && manoM2.length === 0)) {
-                ganadorNosotros = false;
-                motivoFin = "¡Los rivales se vaciaron primero!";
-            } else {
-                if (ptsNosotros < ptsRivales) {
-                    ganadorNosotros = true;
-                    motivoFin = `Tranca: Menor suma de puntos (${ptsNosotros} vs ${ptsRivales}).`;
-                } else if (ptsRivales < ptsNosotros) {
-                    ganadorNosotros = false;
-                    motivoFin = `Tranca: Menor suma de puntos (${ptsRivales} vs ${ptsNosotros}).`;
-                } else {
-                    ganadorNosotros = true;
-                    motivoFin = "Tranca: Empate de puntos (Victoria asignada a Nosotros).";
-                }
-            }
-
-            let puntosGanadosRonda = ganadorNosotros ? ptsRivales : ptsNosotros;
-            
-            let nuevoPts = {
-                nosotros: puntaje.nosotros + (ganadorNosotros ? puntosGanadosRonda : 0),
-                rivales: puntaje.rivales + (!ganadorNosotros ? puntosGanadosRonda : 0)
-            };
-
-            await set(ref(db, 'partida/puntaje'), nuevoPts);
-
-            let resumenTexto = `
-                <div style="font-size:22px; font-weight:bold; color:${ganadorNosotros ? '#00e676' : '#ff5252'}; margin-bottom:10px;">
-                    ${ganadorNosotros ? '🏆 ¡NOSOTROS GANAMOS LA VUELTA!' : '❌ ¡LOS RIVALES GANARON LA VUELTA!'}
-                </div>
-                <div style="font-size:14px; color:#ddd; margin-bottom:10px;">${motivoFin}</div>
-                <div style="background:#222; padding:10px; border-radius:6px; text-align:left; font-size:13px; margin-bottom:10px; border:1px solid #64b5f6;">
-                    <b>Fichas Restantes y Puntos:</b><br>
-                    • Yo (Maestro): ${manoY.length} fichas (${ptsY} pts) -> [${manoY.map(f=>`[${f[0]}/${f[1]}]`).join(', ')}]<br>
-                    • Amigo 3: ${manoA3.length} fichas (${ptsA3} pts) -> [${manoA3.map(f=>`[${f[0]}/${f[1]}]`).join(', ')}]<br>
-                    • Mesa 2: ${manoM2.length} fichas (${ptsM2} pts) -> [${manoM2.map(f=>`[${f[0]}/${f[1]}]`).join(', ')}]<br>
-                    • Mesa 4: ${manoM4.length} fichas (${ptsM4} pts) -> [${manoM4.map(f=>`[${f[0]}/${f[1]}]`).join(', ')}]<br>
-                </div>
-                <div style="font-size:15px; color:#ffeb3b; font-weight:bold;">
-                    Puntos sumados esta vuelta: +${puntosGanadosRonda} pts.<br>
-                    Marcador Actual -> Nosotros: ${nuevoPts.nosotros} | Rivales: ${nuevoPts.rivales}
-                </div>
-            `;
-
-            registrarHistorial(`🏁 FIN DE VUELTA (${window.tipoMeta.toUpperCase()}). Ganador: ${ganadorNosotros ? 'NOSOTROS' : 'RIVALES'}. Puntos sumados: +${puntosGanadosRonda}. Marcador: Nosotros(${nuevoPts.nosotros}) - Rivales(${nuevoPts.rivales})`);
-            return resumenTexto;
-        };
-
-        onValue(ref(db, 'partida/estado'), async (s) => { 
-            estadoPartida = s.val() || 'jugando'; 
-            if(estadoPartida === 'contando') {
-                modoAutomatico = false; 
-                aplicarUI();
-
-                if(pantallaActual === 1) { 
-                    set(ref(db, 'partida/fichas_maestro_temp'), miMano);
-                    let resumenHTML = await procesarFinDeVueltaAutomatico();
-                    document.getElementById('ia-texto').innerHTML = resumenHTML;
-                    document.getElementById('modal-ia').style.display = 'flex';
-                }
-            } else {
-                document.getElementById('modal-ia').style.display = 'none';
-            }
-        });
+        if(pantallaActual === 1) { 
+            set(ref(db, 'partida/fichas_maestro_temp'), miMano);
+        }
+    } else {
+        document.getElementById('modal-ia').style.display = 'none';
+    }
+});
 
                 onValue(ref(db, 'partida/pases_consecutivos'), (s) => { 
             pasesConsecutivos = s.val() || 0; 
@@ -1512,6 +1581,9 @@ window.jugarLado = async (lado) => {
                 let configBarrasSalida = `Configuracion Barras -> Bayes: ${document.getElementById('slider-bayes')?.value || '-'}%, MCTS: ${document.getElementById('slider-mcts')?.value || '-'}, Match: ${document.getElementById('slider-match')?.value || '-'}, XAI: ${document.getElementById('slider-xai')?.value || '-'}%, Distribuciones: ${document.getElementById('val-distribuciones')?.innerText || '-'}, Workers: ${document.getElementById('val-workers')?.innerText || '-'}, Motor Tiempo: ${window.motorTiempoActivo ? 'ACTIVO' : 'DESACTIVADO'}`;
                 let textoAuditoriaSalidaCompleta = `[SALIDA] Sugerencia: [${mejor.ficha[0]}/${mejor.ficha[1]}] al Centro. Auditoría: ${auditoriaSalida.replace(/<[^>]*>/g, '')} | ${configBarrasSalida}`;
                 push(ref(db, 'partida/historial_sugerencias_ia'), textoAuditoriaSalidaCompleta);
+                
+                let textoAuditTurnoSalida = `[TURNO SALIDA] Sugerencia: [${mejor.ficha[0]}/${mejor.ficha[1]}] al Centro.\nAuditoría/Razonamiento: ${auditoriaSalida.replace(/<[^>]*>/g, '')}\nConfiguración: ${configBarrasSalida}`;
+                push(ref(db, 'partida/historial_auditoria_turnos'), textoAuditTurnoSalida);
                 return;
 
             }
@@ -1652,7 +1724,7 @@ window.jugarLado = async (lado) => {
                 ultimoLadoMesa2 = mesa[mesa.length - 1].lado;
             }
 
-            const workerCode = `
+                        const workerCode = `
                 self.onmessage = function(e) {
                     const data = e.data;
                     const fichasOcultas = data.fichasOcultas;
@@ -1666,13 +1738,25 @@ window.jugarLado = async (lado) => {
                     const motorTiempoActivo = data.motorTiempoActivo || false;
                     const tiemposJugadores = data.tiemposJugadores || {};
                     const perfilesPsicologicos = data.perfilesPsicologicos || {};
+                    const sliderMatchVal = data.valMatch !== undefined ? data.valMatch : 50;
+                    const sliderBayesVal = data.valBayes !== undefined ? data.valBayes : 0.05;
 
                     let distribucionesValidas = 0;
                     let dfsEscenariosCalculados = 0;
                     let mapaProbabilidadesFichas = { mesa2: {}, amigo3: {}, mesa4: {} };
                     let victoriasPorFicha = {}; 
 
-                     // --- [MOTOR 1] INFERENCIA BAYESIANA (MATRIZ OCULTA) ---
+                    // --- CONTROL ABSOLUTO DE PALO (DOMINIO DE PINTA) ---
+                    let todasLasFichasGlobales = [];
+                    for(let i=0; i<=6; i++) {
+                        for(let j=i; j<=6; j++) todasLasFichasGlobales.push([i, j]);
+                    }
+                    let controlSuitLocal = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
+                    miMano.forEach(f => { controlSuitLocal[f[0]]++; if(f[0]!==f[1]) controlSuitLocal[f[1]]++; });
+                    manoAliada.forEach(f => { controlSuitLocal[f[0]]++; if(f[0]!==f[1]) controlSuitLocal[f[1]]++; });
+
+                                 // --- [MOTOR 1] INFERENCIA BAYESIANA Y [MOTOR 13] VISIÓN PERIFÉRICA ---
+                    let visionPerifericaActiva = data.visionPerifericaActiva || false;
                     let motorBayesiano = { mesa2: {}, amigo3: {}, mesa4: {} };
                     let factorEngano = data.valBayes !== undefined ? data.valBayes : 0.05;
 
@@ -1690,14 +1774,18 @@ window.jugarLado = async (lado) => {
                         ['mesa2', 'amigo3', 'mesa4'].forEach(jug => {
                             let prob = objetivoManos[jug] > 0 ? probInicial : 0;
                             
+                            if (visionPerifericaActiva) {
+                                if (f[0] === f[1] || pesoFicha >= 8) {
+                                    prob *= 1.15;
+                                }
+                            }
+
                             if (data.tipoMeta !== '1vs3') {
-                                // --- CONEXIÓN [MOTOR 3] PERFILADO PSICOLÓGICO ---
                                 if (perfilesPsicologicos[jug]) {
                                     if (perfilesPsicologicos[jug] === 'agresivo' && pesoFicha >= 7) prob *= 0.8;
                                     else if (perfilesPsicologicos[jug] === 'conservador' && pesoFicha >= 7) prob *= 1.3;
                                 }
                                 
-                                // --- CONEXIÓN [MOTOR 4] ANÁLISIS DE TIEMPO ---
                                 if (motorTiempoActivo && tiemposJugadores[jug] && tiemposJugadores[jug].length > 0) {
                                     let ultMs = tiemposJugadores[jug][tiemposJugadores[jug].length - 1];
                                     if (ultMs > 5000 && f[0] === f[1]) prob *= 0.6;
@@ -2063,7 +2151,7 @@ window.jugarLado = async (lado) => {
 
             for (let w = 0; w < numWorkers; w++) {
                 let worker = new Worker(URL.createObjectURL(workerBlob));
-                worker.postMessage({
+                                worker.postMessage({
                     fichasOcultas: fichasOcultas,
                     objetivoManos: objetivoManos,
                     fallosJugadores: fallosJugadores,
@@ -2073,15 +2161,16 @@ window.jugarLado = async (lado) => {
                     manoAliada: manoAliada3,
                     soyAmigo3: (pantallaActual === 3 || window.esAmigo3Vinculado),
                     tipoMeta: window.tipoMeta,
-
-                          motorTiempoActivo: window.motorTiempoActivo,
+                    motorTiempoActivo: window.motorTiempoActivo,
                     tiemposJugadores: window.tiemposJugadores,
                     perfilesPsicologicos: window.perfilesPsicologicos,
                     valBayes: customBayes,
                     valMcts: Math.round(customMcts / numWorkers),
                     valMatch: customMatch,
-                    valDistribuciones: Math.round(customDistribuciones / numWorkers)
+                    valDistribuciones: Math.round(customDistribuciones / numWorkers),
+                    visionPerifericaActiva: window.visionPerifericaActiva
                 });
+
 
                 worker.onmessage = (e) => {
                     let resData = e.data;
@@ -2209,6 +2298,9 @@ window.jugarLado = async (lado) => {
                 }
 
                 let opcionesEvaluadas = [];
+                let customMatchMult = document.getElementById('slider-match') ? parseInt(document.getElementById('slider-match').value) / 50 : 1.0;
+                let customBayesScale = document.getElementById('slider-bayes') ? parseFloat(document.getElementById('slider-bayes').value) / 5 : 1.0;
+
                 jugables.forEach(f => {
                     let opcionesLado = [];
                     if (f[0] === puntas[0] || f[1] === puntas[0]) opcionesLado.push({ lado: 0, nombreLado: "IZQUIERDA" });
@@ -2225,12 +2317,23 @@ window.jugarLado = async (lado) => {
                         let miConteoDeNuevaPunta = miMano.filter(miFicha => miFicha.includes(nuevaPunta)).length;
                         let totalPintaMesaYMano = cuantasDeNuevaPunta + miConteoDeNuevaPunta;
 
-                                                let ptsBase = (f[0] + f[1]) * 4;
-                        if (f[0] === f[1]) ptsBase += 25;
-
                         let dictamenMadre = "";
                         let ptsArbol = 0;
                         let arbolDetalles = [];
+
+                        // --- REGLA DE DOMINIO ABSOLUTO DE PALO (CONTROL DE PINTA) ---
+                        let totalPaloEnJuego = 7; 
+                        let fichasSalidasEstePalo = mesa.filter(m => m.ficha[0] === nuevaPunta || m.ficha[1] === nuevaPunta).length;
+                        let fichasEnNuestrasManosPalo = miMano.filter(mf => mf.includes(nuevaPunta)).length + (window.esMesa2Amigo ? miManoMesa2.filter(mf => mf.includes(nuevaPunta)).length : 0) + (miManoAmigo3 ? miManoAmigo3.filter(mf => mf.includes(nuevaPunta)).length : 0);
+                        
+                        let bonoDominioAbsoluto = 0;
+                        if ((fichasSalidasEstePalo + fichasEnNuestrasManosPalo) === totalPaloEnJuego) {
+                            bonoDominioAbsoluto = 15000 * customMatchMult; 
+                            arbolDetalles.push(`<span style='color:#00e676;'><b>[DOMINIO ABSOLUTO]:</b> Controlamos el 100% del palo del [${nuevaPunta}]. Pinta cerrada/segura para nosotros.</span>`);
+                        }
+
+                        let ptsBase = ((f[0] + f[1]) * 4 * customBayesScale) + bonoDominioAbsoluto;
+                        if (f[0] === f[1]) ptsBase += 25;
 
                                  // --- MOTOR 9: VACIADO RÁPIDO COOPERATIVO Y BLOQUEO HOSTIL (1VS3 ABSOLUTO) ---
                     let bonoVaciadoRapido = 0;
@@ -2572,6 +2675,7 @@ window.jugarLado = async (lado) => {
                     </div>
                 `;
 
+
                 document.getElementById('ia-texto').innerHTML = textoModal;
                 document.getElementById('modal-ia').style.display = 'flex';
                 registrarHistorial(`IA SUGIRIÓ: [${mejorMovimiento.ficha[0]}/${mejorMovimiento.ficha[1]}] por la ${mejorMovimiento.lado}.`);
@@ -2579,11 +2683,14 @@ window.jugarLado = async (lado) => {
                 let textoAuditoriaCompleta = `[JUGADA] Sugerencia: [${mejorMovimiento.ficha[0]}/${mejorMovimiento.ficha[1]}] por ${mejorMovimiento.lado} | Bayes: ${Math.round(customBayes*100)}%, MCTS: ${customMcts}, Match: ${customMatch}, XAI: ${customXai}%, Workers: ${numWorkers}, Max Distribuciones: ${customDistribuciones}`;
                 push(ref(db, 'partida/historial_sugerencias_ia'), textoAuditoriaCompleta);
 
+                let textoAuditTurnoJugada = `[TURNO JUEGO] Sugerencia: [${mejorMovimiento.ficha[0]}/${mejorMovimiento.ficha[1]}] por ${mejorMovimiento.lado}.\nEjecución Táctica: "${mejorMovimiento.xaiMsg}"\nActor-Crítico:\n• Actor: ${mejorMovimiento.sugerenciaActor}\n• Madre: ${mejorMovimiento.dictamenMadre}\nDetalles Árbol: ${mejorMovimiento.arbol.map(i => i.replace(/<[^>]*>/g, '')).join(' | ')}`;
+                push(ref(db, 'partida/historial_auditoria_turnos'), textoAuditTurnoJugada);
+
                    }
 
         };
 
- 
+  
  
             
                                             window.registrarPasoMaestro = async () => {

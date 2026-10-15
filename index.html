@@ -50,8 +50,9 @@
 
     <h2 id="titulo-pantalla" style="margin-bottom: 5px;">YO - Panel de Control</h2>
         <div id="indicador-auto" style="color: #ff9800; font-size:12px; margin-bottom:5px; font-weight:bold;">Autocambio: DETENIDO (Presiona un Turno 1-4)</div>
-        <div id="indicador-senal" style="display:inline-block; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:bold; background:#d32f2f; color:white; margin-bottom:10px;">📶 Señal: Verificando...</div>
-    </div>
+          <div id="indicador-senal" style="display:inline-block; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:bold; background:#d32f2f; color:white; margin-bottom:10px;">📶 Señal: Verificando estabilidad...</div>
+
+  </div>
 
     <!-- TABLERO UNIFICADO -->
     <div class="tablero" id="caja-tablero" style="background: #4a148c;">
@@ -336,18 +337,43 @@
         const app = initializeApp({ apiKey: "AIzaSyDFCJfaYGgcgQuRia1qc4hmZkEWmiBuX2k", databaseURL: "https://llevatelo-seguro-default-rtdb.firebaseio.com", projectId: "llevatelo-seguro" });
         const db = getDatabase(app);
 
+        let ultimosCortes = 0;
+        let ultimaDesconexionTime = 0;
+        
         onValue(ref(db, ".info/connected"), (snap) => {
             let elSenal = document.getElementById('indicador-senal');
             if (elSenal) {
                 if (snap.val() === true) {
-                    elSenal.style.background = "#2e7d32";
-                    elSenal.innerText = "📶 Señal: Óptima (Verde)";
+                    let ahora = Date.now();
+                    if (ultimaDesconexionTime > 0 && (ahora - ultimaDesconexionTime) < 15000) {
+                        ultimosCortes++;
+                    }
+                    if (ultimosCortes > 0) {
+                        elSenal.style.background = "#d32f2f";
+                        elSenal.innerText = "🔴 Señal: Inestable (Micro-cortes detectados)";
+                    } else {
+                        elSenal.style.background = "#2e7d32";
+                        elSenal.innerText = "🟢 Señal: Óptima (Puedes jugar sin problemas)";
+                    }
                 } else {
+                    ultimaDesconexionTime = Date.now();
+                    ultimosCortes++;
                     elSenal.style.background = "#d32f2f";
-                    elSenal.innerText = "📶 Señal: Inestable / Desconectado";
+                    elSenal.innerText = "🔴 Señal: Cortes / Sin Conexión";
                 }
             }
         });
+
+        setInterval(() => {
+            if (ultimosCortes > 0) {
+                ultimosCortes--;
+                let elSenal = document.getElementById('indicador-senal');
+                if (elSenal && ultimosCortes === 0) {
+                    elSenal.style.background = "#2e7d32";
+                    elSenal.innerText = "🟢 Señal: Óptima (Puedes jugar sin problemas)";
+                }
+            }
+        }, 20000);
 
         // --- SISTEMA DE AYUDA Y EJEMPLOS PARA BARRAS Y MOTORES ---
         window.mostrarAyudaSlider = (tipo) => {

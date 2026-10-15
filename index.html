@@ -49,7 +49,8 @@
     
 
     <h2 id="titulo-pantalla" style="margin-bottom: 5px;">YO - Panel de Control</h2>
-        <div id="indicador-auto" style="color: #ff9800; font-size:12px; margin-bottom:10px; font-weight:bold;">Autocambio: DETENIDO (Presiona un Turno 1-4)</div>
+        <div id="indicador-auto" style="color: #ff9800; font-size:12px; margin-bottom:5px; font-weight:bold;">Autocambio: DETENIDO (Presiona un Turno 1-4)</div>
+        <div id="indicador-senal" style="display:inline-block; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:bold; background:#d32f2f; color:white; margin-bottom:10px;">📶 Señal: Verificando...</div>
     </div>
 
     <!-- TABLERO UNIFICADO -->
@@ -334,6 +335,19 @@
        
         const app = initializeApp({ apiKey: "AIzaSyDFCJfaYGgcgQuRia1qc4hmZkEWmiBuX2k", databaseURL: "https://llevatelo-seguro-default-rtdb.firebaseio.com", projectId: "llevatelo-seguro" });
         const db = getDatabase(app);
+
+        onValue(ref(db, ".info/connected"), (snap) => {
+            let elSenal = document.getElementById('indicador-senal');
+            if (elSenal) {
+                if (snap.val() === true) {
+                    elSenal.style.background = "#2e7d32";
+                    elSenal.innerText = "📶 Señal: Óptima (Verde)";
+                } else {
+                    elSenal.style.background = "#d32f2f";
+                    elSenal.innerText = "📶 Señal: Inestable / Desconectado";
+                }
+            }
+        });
 
         // --- SISTEMA DE AYUDA Y EJEMPLOS PARA BARRAS Y MOTORES ---
         window.mostrarAyudaSlider = (tipo) => {

@@ -236,13 +236,22 @@
                 <div id="estado-servidor-lider" style="font-size: 11px; color: #aaa; margin-top: 5px;">Estado: DESACTIVADO. Estrategia cooperativa estándar.</div>
             </div>
 
-            <div style="background: #1a1a2e; padding: 15px; border-radius: 8px; border: 2px solid #ab47bc; margin-top: 15px; margin-bottom: 15px; text-align: left;">
+                        <div style="background: #1a1a2e; padding: 15px; border-radius: 8px; border: 2px solid #ab47bc; margin-top: 15px; margin-bottom: 15px; text-align: left;">
                 <div style="color: #ab47bc; font-weight: bold; font-size: 14px; margin-bottom: 10px; text-align: center;">👁️ MOTOR 13: VISIÓN PERIFÉRICA E INTENCIÓN INDIRECTA</div>
                 <label style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #ccc; cursor: pointer; margin-bottom: 8px;">
                     <span>Activar Deducción de Respaldos e Intención Oculta</span>
                     <input type="checkbox" id="toggle-vision-periferica" style="width: 20px; height: 20px;" onchange="toggleVisionPeriferica()">
                 </label>
                 <div id="estado-vision-periferica" style="font-size: 11px; color: #aaa; margin-top: 5px;">Estado: DESACTIVADO. Inferencia puramente matemática estándar.</div>
+            </div>
+
+            <div style="background: #1a1a2e; padding: 15px; border-radius: 8px; border: 2px solid #00e676; margin-top: 15px; margin-bottom: 15px; text-align: left;">
+                <div style="color: #00e676; font-weight: bold; font-size: 14px; margin-bottom: 10px; text-align: center;">🏆 MOTOR 14: MOTOR ULTRA - ESTRATEGIAS PROFESIONALES (JOAQUÍN)</div>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #ccc; cursor: pointer; margin-bottom: 8px;">
+                    <span>Activar los 5 Principios Tácticos Profesionales 2vs2</span>
+                    <input type="checkbox" id="toggle-motor-ultra" style="width: 20px; height: 20px;" onchange="toggleMotorUltra()" checked>
+                </label>
+                <div id="estado-motor-ultra" style="font-size: 11px; color: #aaa; margin-top: 5px;">Estado: ¡ACTIVO! Fidelidad a salida, cacería a izquierda, cuadres y tranca ponderada.</div>
             </div>
 
 
@@ -519,6 +528,141 @@ window.manoMesa4Remota = [];
                     "Estado: DESACTIVADO.";
             }
             registrarHistorial(`👁️ Motor 13 (Visión Periférica) ${window.visionPerifericaActiva ? 'ACTIVADO' : 'DESACTIVADO'}.`);
+        };
+
+        // --- CLASE MOTOR 14: MOTOR ULTRA PROFESIONAL ---
+        class MotorUltraProfesional {
+            constructor(config = {}) {
+                this.activo = config.activo !== undefined ? config.activo : true;
+                this.pesoMotor = config.pesoMotor || 10000;
+            }
+
+            evaluarJugadaProfesional(ctx) {
+                if (!this.activo) {
+                    return { bonoPuntos: 0, detalles: [], advertencias: [] };
+                }
+
+                let bonoTotal = 0;
+                const detalles = [];
+                const advertencias = [];
+
+                const {
+                    ficha,               
+                    lado,                
+                    puntas,              
+                    miManoRestante,      
+                    mesa,                
+                    pasos,               
+                    manoAliado,          
+                    manoRivalIzq,        
+                    manoRivalDer,        
+                    conteoPintasMesa,    
+                    tiemposJugadores,    
+                    tipoMeta             
+                } = ctx;
+
+                const puntaVieja = (lado === 0) ? puntas[0] : puntas[1];
+                const puntaMantenida = (lado === 0) ? puntas[1] : puntas[0];
+                const nuevaPunta = (ficha[0] === puntaVieja) ? ficha[1] : ficha[0];
+                const nuevasPuntas = (lado === 0) ? [nuevaPunta, puntas[1]] : [puntas[0], nuevaPunta];
+
+                // 1. CONTROL ESTRATÉGICO DE LA SALIDA Y REPETICIÓN
+                const salidaMesa = mesa.find(m => m.lado === -1 || mesa.indexOf(m) === 0);
+                if (salidaMesa) {
+                    const esSalidaNuestra = (salidaMesa.jugador === 'yo' || salidaMesa.jugador === 'amigo3' || salidaMesa.jugador === 'mesa2_aliado');
+                    const pintaSalidaA = salidaMesa.ficha[0];
+                    const pintaSalidaB = salidaMesa.ficha[1];
+
+                    if (esSalidaNuestra) {
+                        if (nuevaPunta === pintaSalidaA || nuevaPunta === pintaSalidaB || puntaMantenida === pintaSalidaA || puntaMantenida === pintaSalidaB) {
+                            bonoTotal += 4500;
+                            detalles.push(`<span style="color:#00e676;"><b>[MOTOR ULTRA - P1]:</b> Fidelidad a la Salida del Equipo. Mantiene activa la pinta [${pintaSalidaA}/${pintaSalidaB}].</span>`);
+                        }
+                    } else {
+                        if (puntaVieja === pintaSalidaA || puntaVieja === pintaSalidaB) {
+                            bonoTotal += 5000;
+                            detalles.push(`<span style="color:#00e676;"><b>[MOTOR ULTRA - P1]:</b> Ataque Táctico. Tapa la salida inicial del Rival [${puntaVieja}].</span>`);
+                        }
+                    }
+                }
+
+                // 2. TEORÍA DE CASTIGOS Y CACERÍA DE LA MANO AHORCADA (IZQUIERDA)
+                const pasesRivalIzq = pasos.filter(p => p.jugador === 'mesa4').flatMap(p => p.puntas || []);
+                if (pasesRivalIzq.includes(nuevaPunta)) {
+                    bonoTotal += 6000;
+                    detalles.push(`<span style="color:#00e676;"><b>[MOTOR ULTRA - P2]:</b> Castigo a la Izquierda. Forzando paso a Mesa 4 en la pinta [${nuevaPunta}].</span>`);
+                }
+
+                const esDoble = (ficha[0] === ficha[1]);
+                if (esDoble) {
+                    const cantAcompanantes = miManoRestante.filter(f => f.includes(ficha[0])).length;
+                    if (cantAcompanantes === 0 && mesa.filter(m => m.ficha.includes(ficha[0])).length <= 2) {
+                        bonoTotal += 3500;
+                        detalles.push(`<span style="color:#ffeb3b;"><b>[MOTOR ULTRA - P2]:</b> Descarte Preventivo de Doble en Riesgo [${ficha[0]}/${ficha[1]}].</span>`);
+                    }
+                }
+
+                // 3. TÁCTICA DEL CUADRE Y LA DOBLE PUNTA
+                const misPintasMano = miManoRestante.filter(f => f.includes(nuevaPunta)).length + 1;
+                if (nuevasPuntas[0] === nuevasPuntas[1]) {
+                    if (misPintasMano >= 3) {
+                        bonoTotal += 7000;
+                        detalles.push(`<span style="color:#00e676;"><b>[MOTOR ULTRA - P3]:</b> Cuadre Dominado. Ambas puntas en [${nuevaPunta}] controladas con ${misPintasMano} fichas de respaldo.</span>`);
+                    } else {
+                        bonoTotal -= 4000;
+                        advertencias.push(`Cuadre a [${nuevaPunta}] desaconsejado por falta de control en mano.`);
+                    }
+                }
+
+                // 4. LECTURA AVANZADA DE PASES, TIEMPOS Y "PENSADOS"
+                if (tiemposJugadores && tiemposJugadores['amigo3']) {
+                    const ultimosTiemposAmigo = tiemposJugadores['amigo3'];
+                    const ultimoPensado = ultimosTiemposAmigo[ultimosTiemposAmigo.length - 1] || 0;
+                    if (ultimoPensado > 4000) {
+                        bonoTotal += 2500;
+                        detalles.push(`<span style="color:#64b5f6;"><b>[MOTOR ULTRA - P4]:</b> Timing de Compañero. Respetando juego alternativo tras pensado profundo de Amigo 3.</span>`);
+                    }
+                }
+
+                // 5. TÁCTICA DEL CIERRE Y TRANCA NUMÉRICA PONDERADA POR EQUIPO
+                const totalAparicionesPinta = (conteoPintasMesa[nuevaPunta] || 0) + miManoRestante.filter(f => f.includes(nuevaPunta)).length + 1;
+                if (totalAparicionesPinta === 7) {
+                    const puntosMisFichas = miManoRestante.reduce((acc, f) => acc + f[0] + f[1], 0);
+                    const puntosEstimadosCompanero = (manoAliado && manoAliado.length) ? manoAliado.reduce((acc, f) => acc + f[0] + f[1], 0) : 10;
+                    const sumaEquipo = puntosMisFichas + puntosEstimadosCompanero;
+
+                    const cantFichasRivalIzq = (manoRivalIzq && manoRivalIzq.length) ? manoRivalIzq.length : 3;
+                    const cantFichasRivalDer = (manoRivalDer && manoRivalDer.length) ? manoRivalDer.length : 3;
+                    const sumaEstimadaRivales = (cantFichasRivalIzq + cantFichasRivalDer) * 6;
+
+                    if (sumaEquipo < sumaEstimadaRivales) {
+                        bonoTotal += 12000;
+                        detalles.push(`<span style="color:#00e676;"><b>[MOTOR ULTRA - P5]:</b> TRANCA DE EQUIPO APROBADA. Puntos estimado Equipo (${sumaEquipo} pts) < Rivales (${sumaEstimadaRivales} pts).</span>`);
+                    } else {
+                        bonoTotal -= 15000;
+                        advertencias.push(`TRANCA RECHAZADA: La suma combinada del equipo (${sumaEquipo} pts) supera la estimación rival.`);
+                    }
+                }
+
+                return {
+                    bonoPuntos: bonoTotal,
+                    detalles: detalles,
+                    advertencias: advertencias
+                };
+            }
+        }
+
+        window.instanciaMotorUltra = new MotorUltraProfesional({ activo: true });
+        window.toggleMotorUltra = () => {
+            const chk = document.getElementById('toggle-motor-ultra');
+            window.instanciaMotorUltra.activo = chk ? chk.checked : false;
+            let estadoEl = document.getElementById('estado-motor-ultra');
+            if(estadoEl) {
+                estadoEl.innerText = window.instanciaMotorUltra.activo ? 
+                    "Estado: ¡ACTIVO! Fidelidad a salida, cacería a izquierda, cuadres y tranca ponderada." : 
+                    "Estado: DESACTIVADO.";
+            }
+            registrarHistorial(`🏆 Motor 14 (Ultra Profesional) ${window.instanciaMotorUltra.activo ? 'ACTIVADO' : 'DESACTIVADO'}.`);
         };
 
         window.toggleMesa2Amigo = () => {
@@ -1845,16 +1989,18 @@ window.jugarLado = async (lado) => {
                             motorBayesiano.mesa2[k] /= sum; motorBayesiano.amigo3[k] /= sum; motorBayesiano.mesa4[k] /= sum;
                         }
                     });
-                    Object.keys(fallosJugadores).forEach(jug => {
+                                         Object.keys(fallosJugadores).forEach(jug => {
                         if (fallosJugadores[jug]) {
                             fallosJugadores[jug].forEach(pinta => {
                                 fichasOcultas.forEach(f => {
                                     if (f[0] === pinta || f[1] === pinta) {
                                         let k = f[0] + '-' + f[1];
                                         let probActual = motorBayesiano[jug][k];
-                                        let probReducida = probActual * factorEngano;
+                                        // Detector de Faroles y Tolerancia a Engaños (Punto 3): Si al rival le quedan pocas fichas (<=3), su pase se evalúa con sospecha de farol táctico, suavizando el castigo bayesiano.
+                                        let factorEfectivo = (objetivoManos[jug] <= 3) ? Math.max(factorEngano * 5, 0.4) : factorEngano;
+                                        let probReducida = probActual * factorEfectivo;
                                         let probRedistribuir = probActual - probReducida;
-                                        
+
                                         motorBayesiano[jug][k] = probReducida;
                                         
                                         let otros = ['mesa2', 'amigo3', 'mesa4'].filter(j => j !== jug && objetivoManos[j] > 0);
@@ -2372,8 +2518,52 @@ window.jugarLado = async (lado) => {
                             arbolDetalles.push(`<span style='color:#00e676;'><b>[DOMINIO ABSOLUTO]:</b> Controlamos el 100% del palo del [${nuevaPunta}]. Pinta cerrada/segura para nosotros.</span>`);
                         }
 
-                        let ptsBase = ((f[0] + f[1]) * 4 * customBayesScale) + bonoDominioAbsoluto;
-                        if (f[0] === f[1]) ptsBase += 25;
+                                     // --- REGLA DE ORO 2vs2: PRIORIZACIÓN ABSOLUTA DE LA SALIDA DE LA PAREJA ---
+                                            let bonoSalidaPareja = 0;
+                    let salidaCompanero = mesa.find(m => (m.jugador === 'amigo3' || (window.esMesa2Amigo && m.jugador === 'mesa2')) && m.lado === -1);
+                    if (salidaCompanero) {
+                        let pintaSalidaAmigoPareja = salidaCompanero.ficha[0];
+                        if (nuevaPunta === pintaSalidaAmigoPareja || puntaMantenida === pintaSalidaAmigoPareja) {
+                            bonoSalidaPareja += 8500;
+                            arbolDetalles.push(`<span style='color:#00e676;'><b>[SALIDA DE PAREJA]:</b> Mantiene activa y protege la pinta [${pintaSalidaAmigoPareja}] de la salida de nuestro compañero.</span>`);
+                        } else {
+                            let pintaCerradaPorAccion = (lado === 0) ? puntas[0] : puntas[1];
+                            if (pintaCerradaPorAccion === pintaSalidaAmigoPareja) {
+                                bonoSalidaPareja -= 12000;
+                                arbolDetalles.push(`<span style='color:#ff5252;'><b>[PENALIZACIÓN SALIDA PAREJA]:</b> Cierra la pinta [${pintaSalidaAmigoPareja}] de la salida de nuestro compañero. Grave error táctico en 2vs2.</span>`);
+                            }
+                        }
+                    }
+
+                    // --- TÁCTICA 3: CUADRE DE PINTA PROPIA Y CUADRE PARA LA PAREJA ---
+                    let bonoCuadrePropio = 0;
+                    let bonoCuadrePareja = 0;
+                    let esCuadreDoblePunta = (nuevasPuntas[0] === nuevasPuntas[1]);
+                    let numCuadre = nuevasPuntas[0];
+                    let misFichasDeEsteNumero = miManoRestante.filter(mf => mf.includes(numCuadre)).length + (f.includes(numCuadre) ? 1 : 0);
+
+                    if (esCuadreDoblePunta && misFichasDeEsteNumero >= 4) {
+                        bonoCuadrePropio += 12000;
+                        arbolDetalles.push(`<span style='color:#00e676;'><b>[CUADRE DE PINTA PROPIA]:</b> Ambas puntas muestran el [${numCuadre}] y poseemos ${misFichasDeEsteNumero} fichas de ese número. Control absoluto del tablero.</span>`);
+                    }
+
+                    if (typeof pintaFuerteAmigo !== 'undefined' && pintaFuerteAmigo !== -1 && (nuevasPuntas[0] === pintaFuerteAmigo || nuevasPuntas[1] === pintaFuerteAmigo)) {
+                        bonoCuadrePareja += 9500;
+                        if (esCuadreDoblePunta && numCuadre === pintaFuerteAmigo) bonoCuadrePareja += 5000;
+                        arbolDetalles.push(`<span style='color:#00ffcc;'><b>[CUADRE PARA LA PAREJA]:</b> Cuadramos la mesa a la pinta fuerte [${pintaFuerteAmigo}] identificada de nuestro compañero, guiando su juego.</span>`);
+                    }
+
+                                        let ptsBase = ((f[0] + f[1]) * 4 * customBayesScale) + bonoDominioAbsoluto + bonoSalidaPareja;
+                    if (f[0] === f[1]) ptsBase += 25;
+
+                    // Táctica 5: Descarte Preventivo de Puntos Pesados en primeros turnos sin dominación
+                    let esFichaPesada = (f[0] + f[1] >= 10 || (f[0] === f[1] && f[0] >= 5));
+                    let esPrimerosTurnos = mesa.length <= 8;
+                    let dominaPinta = (fichasEnNuestrasManosPalo >= 3);
+                    if (esFichaPesada && esPrimerosTurnos && !dominaPinta) {
+                        ptsBase += 6000;
+                        arbolDetalles.push(`<span style='color:#ffeb3b;'><b>[DESCARTE PREVENTIVO]:</b> Botando ficha pesada [${f[0]}/${f[1]}] en primeros turnos sin dominación de pinta.</span>`);
+                    }
 
                                  // --- MOTOR 9: VACIADO RÁPIDO COOPERATIVO Y BLOQUEO HOSTIL (1VS3 ABSOLUTO) ---
                     let bonoVaciadoRapido = 0;
@@ -2534,79 +2724,96 @@ window.jugarLado = async (lado) => {
                     }
                     ptsBase += bonoServidorLider;
 
-                let misPuntosRestantes = miManoRestante.reduce((acc, curr) => acc + curr[0] + curr[1], 0);
+                      let misPuntosRestantes = miManoRestante.reduce((acc, curr) => acc + curr[0] + curr[1], 0);
+            let manoAmigoRef = window.esMesa2Amigo ? (window.manoMesa2Remota && window.manoMesa2Remota.length ? window.manoMesa2Remota : miManoMesa2) : (window.manoAliadaRemota && window.manoAliadaRemota.length ? window.manoAliadaRemota : miManoAmigo3);
+            let puntosAmigoRestantes = manoAmigoRef.reduce((acc, curr) => acc + curr[0] + curr[1], 0);
+            let puntosTotalesEquipo = misPuntosRestantes + puntosAmigoRestantes;
 
-                        let tieneConectorNueva = miManoRestante.some(mf => mf.includes(nuevaPunta));
-                        let tieneConectorMantenida = miManoRestante.some(mf => mf.includes(puntaMantenida));
-                        let penaltyHuerfana = 0;
-                        let fichasAltasRestantes = miManoRestante.filter(mf => mf[0] >= 5 || mf[1] >= 5);
-                        if (fichasAltasRestantes.length > 0 && (!tieneConectorNueva && !tieneConectorMantenida)) {
-                            penaltyHuerfana -= 500;
-                        } else if (!tieneConectorNueva && miManoRestante.length > 2) {
-                            penaltyHuerfana -= 200;
+                    let tieneConectorNueva = miManoRestante.some(mf => mf.includes(nuevaPunta));
+                    let tieneConectorMantenida = miManoRestante.some(mf => mf.includes(puntaMantenida));
+                    let penaltyHuerfana = 0;
+                    let fichasAltasRestantes = miManoRestante.filter(mf => mf[0] >= 5 || mf[1] >= 5);
+                    if (fichasAltasRestantes.length > 0 && (!tieneConectorNueva && !tieneConectorMantenida)) {
+                        penaltyHuerfana -= 500;
+                    } else if (!tieneConectorNueva && miManoRestante.length > 2) {
+                        penaltyHuerfana -= 200;
+                    }
+                    ptsBase += penaltyHuerfana;
+
+                    let sugerenciaActor = "";
+                    if (totalPintaMesaYMano === 7) {
+                        sugerenciaActor = `Tranca/Cierre Conjunto (Equipo: ${puntosTotalesEquipo} pts) con [${f[0]}/${f[1]}].`;
+                    } else if (rivalesSospechaGordas.mesa2 || rivalesSospechaGordas.mesa4) {
+                        sugerenciaActor = `Cacería de Gordas con [${f[0]}/${f[1]}] por ${opc.nombreLado}.`;
+                    } else if (pintaSalidaAmigo !== -1 && (nuevaPunta === pintaSalidaAmigo || puntaMantenida === pintaSalidaAmigo)) {
+                        sugerenciaActor = `Sinergia 2v2: Mantener abierta salida de Amigo 3.`;
+                    } else {
+                        sugerenciaActor = `Ataque Estándar con [${f[0]}/${f[1]}] por ${opc.nombreLado}.`;
+                    }
+
+                    dictamenMadre = "";
+                    ptsArbol = 0;
+
+                    let bonoCaceria = 0;
+                    if ((rivalesSospechaGordas.mesa2 || rivalesSospechaGordas.mesa4) && (nuevaPunta === 5 || nuevaPunta === 6 || puntaMantenida === 5 || puntaMantenida === 6)) {
+                        bonoCaceria = 180;
+                        dictamenMadre = `CACERÍA APROBADA: Rival cargado detectado.`;
+                    }
+
+                    let ptsMotor5 = 0;
+                    if (matchControlModo === "KAMIKAZE") {
+                        if (puntosTotalesEquipo >= 15 && totalPintaMesaYMano >= 5) {
+                            ptsMotor5 += 350;
+                            arbolDetalles.push(`<span style='color:#ff8a80;'><b>Motor 5 (Kamikaze):</b> Bonificación por riesgo alto (Equipo ${puntosTotalesEquipo} pts).</span>`);
                         }
-                        ptsBase += penaltyHuerfana;
-
-                        let sugerenciaActor = "";
+                    } else if (matchControlModo === "ULTRA-CONSERVADOR") {
+                        if (f[0] + f[1] >= 8) {
+                            ptsMotor5 += 400;
+                            arbolDetalles.push(`<span style='color:#b2ff59;'><b>Motor 5 (Conservador):</b> Descarte de ficha pesada.</span>`);
+                        }
                         if (totalPintaMesaYMano === 7) {
-                            sugerenciaActor = `Tranca/Cierre con [${f[0]}/${f[1]}].`;
-                        } else if (rivalesSospechaGordas.mesa2 || rivalesSospechaGordas.mesa4) {
-                            sugerenciaActor = `Cacería de Gordas con [${f[0]}/${f[1]}] por ${opc.nombreLado}.`;
-                        } else if (pintaSalidaAmigo !== -1 && (nuevaPunta === pintaSalidaAmigo || puntaMantenida === pintaSalidaAmigo)) {
-                            sugerenciaActor = `Sinergia 2v2: Mantener abierta salida de Amigo 3.`;
-                        } else {
-                            sugerenciaActor = `Ataque Estándar con [${f[0]}/${f[1]}] por ${opc.nombreLado}.`;
+                            ptsMotor5 -= 800;
+                            arbolDetalles.push(`<span style='color:#b2ff59;'><b>Motor 5 (Conservador):</b> Evasión de trancas.</span>`);
                         }
+                    }
 
-                        dictamenMadre = "";
-                        ptsArbol = 0;
-
-                        let bonoCaceria = 0;
-                        if ((rivalesSospechaGordas.mesa2 || rivalesSospechaGordas.mesa4) && (nuevaPunta === 5 || nuevaPunta === 6 || puntaMantenida === 5 || puntaMantenida === 6)) {
-                            bonoCaceria = 180;
-                            dictamenMadre = `CACERÍA APROBADA: Rival cargado detectado.`;
+                    let ptsMotor6 = 0;
+                    if (pintasPeligrosas.includes(nuevaPunta) || pintasPeligrosas.includes(puntaMantenida)) {
+                        if (matchControlModo === "ULTRA-CONSERVADOR") {
+                            ptsMotor6 -= 500;
+                            arbolDetalles.push(`<span style='color:#b388ff;'><b>Motor 6:</b> Rechazo hacia pinta muerta.</span>`);
+                        } else if (matchControlModo === "KAMIKAZE" || puntosTotalesEquipo < 12) {
+                            ptsMotor6 += 500;
+                            arbolDetalles.push(`<span style='color:#b388ff;'><b>Motor 6:</b> Encaminando a tranca forzada.</span>`);
                         }
+                    }
 
-                        let ptsMotor5 = 0;
-                        if (matchControlModo === "KAMIKAZE") {
-                            if (misPuntosRestantes >= 10 && totalPintaMesaYMano >= 5) {
-                                ptsMotor5 += 350;
-                                arbolDetalles.push(`<span style='color:#ff8a80;'><b>Motor 5 (Kamikaze):</b> Bonificación por riesgo alto.</span>`);
-                            }
-                        } else if (matchControlModo === "ULTRA-CONSERVADOR") {
-                            if (f[0] + f[1] >= 8) {
-                                ptsMotor5 += 400;
-                                arbolDetalles.push(`<span style='color:#b2ff59;'><b>Motor 5 (Conservador):</b> Descarte de ficha pesada.</span>`);
-                            }
-                            if (totalPintaMesaYMano === 7) {
-                                ptsMotor5 -= 800;
-                                arbolDetalles.push(`<span style='color:#b2ff59;'><b>Motor 5 (Conservador):</b> Evasión de trancas.</span>`);
-                            }
-                        }
+                    ptsArbol += ptsMotor5 + ptsMotor6;
 
-                        let ptsMotor6 = 0;
-                        if (pintasPeligrosas.includes(nuevaPunta) || pintasPeligrosas.includes(puntaMantenida)) {
-                            if (matchControlModo === "ULTRA-CONSERVADOR") {
-                                ptsMotor6 -= 500;
-                                arbolDetalles.push(`<span style='color:#b388ff;'><b>Motor 6:</b> Rechazo hacia pinta muerta.</span>`);
-                            } else if (matchControlModo === "KAMIKAZE" || misPuntosRestantes < 8) {
-                                ptsMotor6 += 500;
-                                arbolDetalles.push(`<span style='color:#b388ff;'><b>Motor 6:</b> Encaminando a tranca forzada.</span>`);
-                            }
-                        }
+                                   if (totalPintaMesaYMano === 7) {
+                            let puntosEstimadosRivales = 0;
+                            fichasOcultas.forEach(fo => {
+                                let k = `${fo[0]}-${fo[1]}`;
+                                let probRival = (resData.motorBayesiano && resData.motorBayesiano['mesa2'] && resData.motorBayesiano['mesa4']) ? 
+                                    ((resData.motorBayesiano['mesa2'][k] || 0) + (resData.motorBayesiano['mesa4'][k] || 0)) : 0.5;
+                                puntosEstimadosRivales += (fo[0] + fo[1]) * probRival;
+                            });
 
-                        ptsArbol += ptsMotor5 + ptsMotor6;
+                            // Táctica 5: Tranca Numérica Estricta (Solo trancar si equipo < rivales estimados)
+                            let trancaPermitida = puntosTotalesEquipo < puntosEstimadosRivales;
 
-                        if (totalPintaMesaYMano === 7) {
-                            let posMesa4Cierre = simularRespuestaJugador('mesa4', nuevasPuntas);
-                            if (matchControlModo !== "KAMIKAZE" && posMesa4Cierre.length > 0 && misPuntosRestantes > 12) {
-                                ptsArbol -= 300;
-                                dictamenMadre = `TRANCA RECHAZADA: Riesgo elevado de puntos (${misPuntosRestantes} pts).`;
+                            if (!trancaPermitida) {
+                                ptsArbol -= 15000;
+                                dictamenMadre = `TRANCA RECHAZADA (Táctica 5): Puntos del equipo (${puntosTotalesEquipo}) >= Puntos estimados rivales (${Math.round(puntosEstimadosRivales)}). Prohibido trancar.`;
+                                arbolDetalles.push(`<span style='color:#ff5252;'><b>Táctica 5 (Tranca Numérica):</b> Suma combinada del equipo (${puntosTotalesEquipo}) no es inferior a los rivales (${Math.round(puntosEstimadosRivales)}).</span>`);
                             } else {
-                                ptsArbol += 400;
-                                dictamenMadre = `TRANCA APROBADA: Cierre favorable.`;
+                                ptsArbol += 15000;
+                                dictamenMadre = `TRANCA APROBADA (Táctica 5): Puntos del equipo (${puntosTotalesEquipo}) < Puntos estimados rivales (${Math.round(puntosEstimadosRivales)}). Cierre ventajoso.`;
+                                arbolDetalles.push(`<span style='color:#00e676;'><b>Táctica 5 (Tranca Numérica):</b> Ventaja numérica confirmada. Tranca autorizada.</span>`);
                             }
                         }
+
+
 
                         let sinergiaTelegrafica = false;
                         if (pintaFuerteAmigo !== -1) {
@@ -2678,6 +2885,27 @@ window.jugarLado = async (lado) => {
                         if (!dictamenMadre) {
                             dictamenMadre = `Sugerencia aprobada por el Sistema Madre.`;
                         }
+                        // --- INTEGRACIÓN MOTOR 14: ULTRA PROFESIONAL ---
+                        if (window.instanciaMotorUltra && window.instanciaMotorUltra.activo) {
+                            let ctxMotorUltra = {
+                                ficha: f,
+                                lado: lado,
+                                puntas: puntas,
+                                miManoRestante: miManoRestante,
+                                mesa: mesa,
+                                pasos: pasos,
+                                manoAliado: window.esMesa2Amigo ? miManoMesa2 : (window.manoAliadaRemota || miManoAmigo3),
+                                manoRivalIzq: window.manoMesa4Remota || [],
+                                manoRivalDer: window.manoMesa2Remota || [],
+                                conteoPintasMesa: conteoPintas,
+                                tiemposJugadores: window.tiemposJugadores,
+                                tipoMeta: window.tipoMeta
+                            };
+                            let resUltra = window.instanciaMotorUltra.evaluarJugadaProfesional(ctxMotorUltra);
+                            ptsBase += resUltra.bonoPuntos;
+                            resUltra.detalles.forEach(d => arbolDetalles.push(d));
+                            resUltra.advertencias.forEach(a => arbolDetalles.push(`<span style='color:#ff5252;'><b>[MOTOR ULTRA ADV]:</b> ${a}</span>`));
+                        }
 
                         let ptsTotales = ptsBase + ptsArbol + bonoCaceria;
                         opcionesEvaluadas.push({
@@ -2689,6 +2917,7 @@ window.jugarLado = async (lado) => {
                             arbol: arbolDetalles,
                             xaiMsg: microMensajeXAI
                         });
+
                     });
                 });
 
